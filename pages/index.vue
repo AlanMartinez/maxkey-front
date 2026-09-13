@@ -28,7 +28,10 @@ watch(data, (list) => {
 
 <template>
   <div class="flex flex-col gap-10">
-    <HeroCarousel />
+    <div class="flex flex-col gap-6">
+      <HeroCarousel />
+      <TrustStrip />
+    </div>
     <section id="catalogo" class="flex flex-col gap-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-2xl font-bold">Catálogo</h2>
