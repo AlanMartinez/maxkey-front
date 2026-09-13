@@ -58,7 +58,7 @@ describe('useApi', () => {
 
     await useApi()('/catalog/products')
 
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('http://localhost:5000/catalog/products')
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('http://localhost:8080/catalog/products')
     expect(sentHeaders(fetchMock).has('authorization')).toBe(false)
   })
 })

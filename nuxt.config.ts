@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
-      apiBaseUrl: 'http://localhost:5000',
+      apiBaseUrl: 'http://localhost:8080',
       siteUrl: 'http://localhost:3000',
     },
   },
