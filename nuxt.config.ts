@@ -2,6 +2,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   modules: ['@nuxtjs/supabase', '@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
+  // Components are referenced by file name (AppButton, ProductCard), not by directory prefix.
+  components: [{ path: '~/components', pathPrefix: false }],
   // Most pages are public; auth-only pages opt in via middleware/auth.ts (design.md §9).
   supabase: { redirect: false },
   runtimeConfig: {
