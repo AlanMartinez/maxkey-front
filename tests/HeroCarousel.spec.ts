@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import type { DOMWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import HeroCarousel from '~/components/catalog/HeroCarousel.vue'
 
-function activeIndex(wrapper: Awaited<ReturnType<typeof mountSuspended>>) {
+function activeIndex(wrapper: { findAll: (selector: string) => DOMWrapper<Element>[] }) {
   return wrapper.findAll('[role="tab"]').findIndex((tab) => tab.attributes('aria-selected') === 'true')
 }
 
