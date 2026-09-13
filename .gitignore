@@ -17,3 +17,9 @@ dist/
 .DS_Store
 Thumbs.db
 .nuxtrc
+
+# Agent skill registry
+.atl/
+
+# CodeGraph index (per checkout)
+.codegraph/
