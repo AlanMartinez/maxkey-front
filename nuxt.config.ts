@@ -8,7 +8,8 @@ export default defineNuxtConfig({
   // Components are referenced by file name (AppButton, ProductCard), not by directory prefix.
   components: [{ path: '~/components', pathPrefix: false }],
   // Most pages are public; auth-only pages opt in via middleware/auth.ts (design.md §9).
-  supabase: { redirect: false },
+  // Supabase is used for auth only; no generated database types (`Database = unknown`).
+  supabase: { redirect: false, types: false },
   runtimeConfig: {
     public: {
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
