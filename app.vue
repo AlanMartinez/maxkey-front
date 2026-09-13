@@ -5,7 +5,7 @@
       <NuxtPage />
     </main>
     <AppFooter />
-    <!-- <CartDrawer /> is added in the cart slice (PR15). -->
-    <!-- <LoginDialog /> is added in the auth slice (PR17). -->
+    <CartDrawer />
+    <LoginDialog />
   </div>
 </template>

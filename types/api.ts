@@ -50,6 +50,35 @@ export interface OrderStatusResponse {
   currency: string
 }
 
+// mirrors design.md §7 "GET /me/orders" response item (OrderSummary)
+export interface OrderSummaryDto {
+  id: string
+  status: OrderStatus
+  totalAmount: number
+  currency: string
+  createdAt: string
+  itemCount: number
+}
+
+// mirrors design.md §7 "GET /me/orders/{id}" response `items[]` — `keys` present only when `Delivered`
+export interface OrderItemDto {
+  productName: string
+  variantName: string
+  unitPrice: number
+  quantity: number
+  keys?: string[]
+}
+
+// mirrors design.md §7 "GET /me/orders/{id}" response (OrderDetail)
+export interface OrderDetailDto {
+  id: string
+  status: OrderStatus
+  totalAmount: number
+  currency: string
+  createdAt: string
+  items: OrderItemDto[]
+}
+
 // mirrors design.md §7 "Error mapping" — RFC 7807 Problem Details with `traceId` extension
 export interface ProblemDetails {
   type: string
