@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Shared with pages/index.vue, which debounces it into the catalog query.
+const search = useState('catalog-search', () => '')
 const links = [
   { label: 'Catálogo', to: '/' },
   { label: 'Ofertas', to: '/#ofertas' },
@@ -17,7 +19,7 @@ const links = [
       </nav>
       <label class="relative ml-auto hidden w-full max-w-xs sm:block">
         <span class="sr-only">Buscar</span>
-        <input type="search" placeholder="Buscar juegos, tarjetas..." class="w-full rounded-xl border border-white/10 bg-bg/60 px-4 py-2 text-sm placeholder:text-white/40 focus:border-accent focus:outline-none" />
+        <input v-model="search" type="search" placeholder="Buscar juegos, tarjetas..." class="w-full rounded-xl border border-white/10 bg-bg/60 px-4 py-2 text-sm placeholder:text-white/40 focus:border-accent focus:outline-none" />
       </label>
       <button type="button" aria-label="Carrito" class="relative rounded-xl p-2 text-white/80 transition hover:bg-white/5 hover:text-white">
         <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
