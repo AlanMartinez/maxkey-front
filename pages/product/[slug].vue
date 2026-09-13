@@ -16,6 +16,17 @@ useHead({ title: () => (product.value ? `${product.value.name} · Nexo` : 'Nexo'
 // The API only returns active variants, so the first one is the default selection.
 const selectedId = ref<string | null>(product.value?.variants[0]?.id ?? null)
 const selected = computed(() => product.value?.variants.find((v) => v.id === selectedId.value) ?? product.value?.variants[0])
+
+const cart = useCart()
+const feedback = ref<'added' | 'max-items' | null>(null)
+function addToCart() {
+  if (!product.value || !selected.value) return
+  const { slug, name, imageUrl } = product.value
+  const result = cart.add({ variantId: selected.value.id, productSlug: slug, productName: name, variantName: selected.value.name, unitPrice: selected.value.price, currency: selected.value.currency, imageUrl })
+  feedback.value = result.ok ? 'added' : result.reason
+  if (result.ok) cart.open()
+  setTimeout(() => (feedback.value = null), 1500)
+}
 </script>
 
 <template>
@@ -34,8 +45,8 @@ const selected = computed(() => product.value?.variants.find((v) => v.id === sel
         <span class="text-3xl font-bold">{{ formatMoney(selected.price, selected.currency) }}</span>
         <span v-if="selected.oldPrice" class="text-white/40 line-through">{{ formatMoney(selected.oldPrice, selected.currency) }}</span>
       </p>
-      <!-- Cart wiring (useCart.add) lands in PR15; until then this button is a placeholder. -->
-      <AppButton size="lg" :disabled="!selected">Agregar al carrito</AppButton>
+      <AppButton size="lg" :disabled="!selected" @click="addToCart()">{{ feedback === 'added' ? 'Agregado' : 'Agregar al carrito' }}</AppButton>
+      <p v-if="feedback === 'max-items'" class="text-sm text-red-300" role="alert">El carrito admite hasta 20 productos distintos.</p>
       <TrustBadges />
     </div>
   </article>
