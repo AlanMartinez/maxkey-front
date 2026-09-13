@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const slides = [
-  { eyebrow: 'Oferta de la semana', title: 'Riot Points con 12% off', text: 'Recarga League of Legends y VALORANT antes del domingo.', cta: 'Ver oferta', tone: 'from-accent/50' },
-  { eyebrow: 'Recarga instantánea', title: 'Robux al mejor precio de LATAM', text: 'Hasta 20% menos que la tienda oficial, acreditación en minutos.', cta: 'Explorar Robux', tone: 'from-success/40' },
-  { eyebrow: 'Edición completa', title: 'GTA$ Shark Cash Card −15%', text: 'Suma dinero en el juego sin salir de Rockstar Games.', cta: 'Ver detalle', tone: 'from-red-500/40' },
+  { title: 'Riot Points con 90% de descuento', alt: 'Solo por hoy. Riot Points: 90% de descuento. Aprovechá ahora.', cta: 'Ver oferta', image: '/images/promos/riot-promo-text-20260913.png' },
+  { title: 'Robux con 75% de descuento', alt: 'Robux: 75% de descuento. Aprovechá ahora.', cta: 'Explorar Robux', image: '/images/promos/robux-promo-text-20260913.png' },
+  { title: 'GTA V con 50% de descuento', alt: 'Solo por hoy. GTA V: 50% de descuento. Aprovechá ahora.', cta: 'Ver detalle', image: '/images/promos/gta-promo-text-20260913.png' },
 ]
 const active = ref(0)
 let timer: ReturnType<typeof setInterval> | undefined
@@ -14,16 +14,21 @@ onUnmounted(() => clearInterval(timer))
 </script>
 
 <template>
-  <section id="ofertas" aria-label="Ofertas destacadas" class="glass rounded-3xl bg-gradient-to-br to-surface p-8 sm:p-12" :class="slides[active]?.tone">
-    <div v-for="(slide, i) in slides" v-show="i === active" :key="slide.title" class="max-w-xl">
-      <p class="text-sm font-medium text-white/70">{{ slide.eyebrow }}</p>
-      <h1 class="mt-2 text-3xl font-bold sm:text-5xl">{{ slide.title }}</h1>
-      <p class="mt-3 text-white/70">{{ slide.text }}</p>
-      <NuxtLink to="/#catalogo" class="mt-6 inline-flex h-12 items-center rounded-xl bg-accent px-6 font-medium text-white shadow-[0_0_24px_rgba(124,92,252,0.35)] transition hover:bg-accent-hover">
-        {{ slide.cta }}
+  <section id="ofertas" aria-label="Ofertas destacadas" class="glass overflow-hidden rounded-3xl">
+    <div v-for="(slide, i) in slides" v-show="i === active" :key="slide.title">
+      <h1 class="sr-only">{{ slide.title }}</h1>
+      <NuxtLink to="/#catalogo" class="block focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
+        <img
+          :src="slide.image"
+          :alt="slide.alt"
+          width="2172"
+          height="724"
+          class="block h-auto w-full object-contain"
+        >
+        <span class="sr-only">{{ slide.cta }}</span>
       </NuxtLink>
     </div>
-    <div class="mt-8 flex gap-2" role="tablist" aria-label="Diapositivas">
+    <div class="flex justify-center gap-2 p-4" role="tablist" aria-label="Diapositivas">
       <button
         v-for="(slide, i) in slides"
         :key="slide.title"

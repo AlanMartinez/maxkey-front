@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ProductSummary } from '~/types/api'
+import { productImageUrl } from '~/utils/productImage'
 
 const props = defineProps<{ product: ProductSummary }>()
 
@@ -11,7 +12,7 @@ const discount = computed(() =>
 <template>
   <NuxtLink :to="`/product/${product.slug}`" class="glass group flex flex-col overflow-hidden rounded-2xl transition hover:border-accent/50">
     <div class="relative aspect-[4/3] overflow-hidden bg-white/5">
-      <img :src="product.imageUrl" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
+      <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
       <AppBadge v-if="discount > 0" tone="success" class="absolute left-3 top-3">-{{ discount }}%</AppBadge>
     </div>
     <div class="flex flex-1 flex-col gap-2 p-4">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ProductDetail } from '~/types/api'
 import type { ApiError } from '~/composables/useApi'
+import { productImageUrl } from '~/utils/productImage'
 
 const slug = useRoute().params.slug as string
 const api = useApi()
@@ -21,7 +22,8 @@ const cart = useCart()
 const feedback = ref<'added' | 'max-items' | null>(null)
 function addToCart() {
   if (!product.value || !selected.value) return
-  const { slug, name, imageUrl } = product.value
+  const { slug, name } = product.value
+  const imageUrl = productImageUrl(product.value)
   const result = cart.add({ variantId: selected.value.id, productSlug: slug, productName: name, variantName: selected.value.name, unitPrice: selected.value.price, currency: selected.value.currency, imageUrl })
   feedback.value = result.ok ? 'added' : result.reason
   if (result.ok) cart.open()
@@ -35,7 +37,7 @@ function addToCart() {
     <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
   </ErrorState>
   <article v-else class="grid gap-8 lg:grid-cols-2">
-    <img :src="product.imageUrl" :alt="product.name" class="aspect-[4/3] w-full rounded-3xl object-cover" />
+    <img :src="productImageUrl(product)" :alt="product.name" class="aspect-[4/3] w-full rounded-3xl object-cover" />
     <div class="flex flex-col gap-5">
       <AppBadge tone="accent" class="self-start">{{ product.platform }}</AppBadge>
       <h1 class="text-3xl font-bold sm:text-4xl">{{ product.name }}</h1>
