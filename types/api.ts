@@ -26,6 +26,8 @@ export interface ProductVariantDto {
 export interface ProductDetail extends ProductSummary {
   description: string
   variants: ProductVariantDto[]
+  /** Gallery URLs (main image first). Not served by the API yet — needs a `Product.Images` list backend-side; the UI falls back to `imageUrl`. */
+  images?: string[]
 }
 
 // mirrors design.md §7 "POST /checkout/orders" request `items[]`

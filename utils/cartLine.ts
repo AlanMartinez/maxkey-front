@@ -19,3 +19,16 @@ export function toCartLine(product: Pick<ProductDetail, 'slug' | 'name' | 'image
     imageUrl: productImageUrl(product),
   }
 }
+
+/**
+ * Placeholder heuristic for the "Más elegido" tag until the API exposes popularity:
+ * the first discounted variant wins; without discounts nothing is tagged.
+ */
+export function recommendedVariant<T extends ProductVariantDto>(variants: T[]): T | undefined {
+  return variants.find((v) => v.oldPrice !== undefined && v.oldPrice > v.price)
+}
+
+/** Gallery sources for the product page: the optional `images` list, else the single catalog image. */
+export function galleryImages(product: Pick<ProductDetail, 'slug' | 'imageUrl' | 'images'>): string[] {
+  return product.images?.length ? product.images : [productImageUrl(product)]
+}

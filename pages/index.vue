@@ -2,7 +2,8 @@
 import type { ProductSummary } from '~/types/api'
 
 const api = useApi()
-const platform = ref<string | null>(null)
+// Pre-selected from `?platform=` so the product breadcrumb can link back to a filtered catalog.
+const platform = ref<string | null>((useRoute().query.platform as string | undefined) || null)
 // Typed in AppHeader's search box; debounced into `q` before hitting the API.
 const search = useState('catalog-search', () => '')
 const q = ref(search.value.trim())
