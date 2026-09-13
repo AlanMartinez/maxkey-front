@@ -2,11 +2,22 @@
 // Shared with pages/index.vue, which debounces it into the catalog query.
 const search = useState('catalog-search', () => '')
 const { count, toggle } = useCart()
+const { isAuthenticated, displayName, avatarUrl, openLogin, signOut } = useAuth()
+const isAccountMenuOpen = ref(false)
 const links = [
   { label: 'Catálogo', to: '/' },
   { label: 'Ofertas', to: '/#ofertas' },
   { label: 'Ayuda', to: '/#ayuda' },
 ]
+
+function closeAccountMenu() {
+  isAccountMenuOpen.value = false
+}
+
+async function handleSignOut() {
+  closeAccountMenu()
+  await signOut()
+}
 </script>
 
 <template>
@@ -30,7 +41,25 @@ const links = [
         <span v-if="count > 0" class="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-accent px-1.5 text-center text-xs font-semibold leading-5 text-white" data-testid="cart-count">{{ count }}</span>
       </button>
       <slot name="account">
-        <AppButton variant="ghost" size="sm">Ingresar</AppButton>
+        <AppButton v-if="!isAuthenticated" variant="ghost" size="sm" @click="openLogin()">Iniciar sesión</AppButton>
+        <div v-else class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-xl p-1.5 pr-3 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
+            :aria-expanded="isAccountMenuOpen"
+            @click="isAccountMenuOpen = !isAccountMenuOpen"
+          >
+            <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName ?? ''" class="h-7 w-7 rounded-full object-cover" />
+            <span v-else class="flex h-7 w-7 items-center justify-center rounded-full bg-accent/30 text-xs font-semibold" aria-hidden="true">
+              {{ (displayName ?? '?').charAt(0).toUpperCase() }}
+            </span>
+            <span class="hidden max-w-[10ch] truncate sm:inline">{{ displayName }}</span>
+          </button>
+          <div v-if="isAccountMenuOpen" class="glass absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-white/10 p-1.5 text-sm">
+            <NuxtLink to="/account/orders" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Mis compras</NuxtLink>
+            <button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-white/80 transition hover:bg-white/5 hover:text-white" @click="handleSignOut()">Cerrar sesión</button>
+          </div>
+        </div>
       </slot>
     </div>
   </header>

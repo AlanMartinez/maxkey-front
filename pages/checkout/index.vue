@@ -5,9 +5,10 @@ useHead({ title: 'Checkout · Nexo' })
 
 const { lines, subtotal, isEmpty } = useCart()
 const { status, error, errorMessage, submit } = useCheckout()
-// Login lands in the auth slice (PR17); until then this only prefills when a Supabase user already exists.
-const user = useSupabaseUser()
-const email = ref(user.value?.email ?? '')
+// Prefills from the signed-in user's email but keeps it editable — an edited email still links the order
+// to the account server-side via the bearer token, per auth spec.
+const { email: authEmail } = useAuth()
+const email = ref(authEmail.value ?? '')
 const validation = ref<string | null>(null)
 const busy = computed(() => status.value === 'submitting' || status.value === 'redirecting')
 // 422 belongs to the email field; anything else is shown next to the pay button.
