@@ -6,6 +6,6 @@
     </main>
     <AppFooter />
     <CartDrawer />
-    <!-- <LoginDialog /> is added in the auth slice (PR17). -->
+    <LoginDialog />
   </div>
 </template>
