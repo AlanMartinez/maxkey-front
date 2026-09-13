@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Shared with pages/index.vue, which debounces it into the catalog query.
 const search = useState('catalog-search', () => '')
+const { count, toggle } = useCart()
 const links = [
   { label: 'Catálogo', to: '/' },
   { label: 'Ofertas', to: '/#ofertas' },
@@ -21,13 +22,12 @@ const links = [
         <span class="sr-only">Buscar</span>
         <input v-model="search" type="search" placeholder="Buscar juegos, tarjetas..." class="w-full rounded-xl border border-white/10 bg-bg/60 px-4 py-2 text-sm placeholder:text-white/40 focus:border-accent focus:outline-none" />
       </label>
-      <button type="button" aria-label="Carrito" class="relative rounded-xl p-2 text-white/80 transition hover:bg-white/5 hover:text-white">
+      <button type="button" aria-label="Carrito" class="relative rounded-xl p-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="toggle()">
         <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6.2" />
           <circle cx="10" cy="20" r="1" /><circle cx="17" cy="20" r="1" />
         </svg>
-        <!-- Cart count badge (PR15) -->
-        <slot name="cart-count" />
+        <span v-if="count > 0" class="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-accent px-1.5 text-center text-xs font-semibold leading-5 text-white" data-testid="cart-count">{{ count }}</span>
       </button>
       <slot name="account">
         <AppButton variant="ghost" size="sm">Ingresar</AppButton>
