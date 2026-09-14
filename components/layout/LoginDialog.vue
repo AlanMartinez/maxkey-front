@@ -28,7 +28,10 @@ async function continueWithGoogle() {
         </button>
         <h2 id="login-title" class="text-lg font-semibold">Iniciar sesión</h2>
         <p class="text-sm text-white/60">Accedé para ver tu historial de compras y tus keys.</p>
-        <AppButton size="lg" class="w-full" :loading="pending" @click="continueWithGoogle()">Continuar con Google</AppButton>
+        <AppButton variant="ghost" size="lg" class="w-full border-[#8E918F] bg-[#131314] text-[#E3E3E3]" :loading="pending" @click="continueWithGoogle()">
+          <img v-if="!pending" src="/images/brands/google-g.png" alt="" aria-hidden="true" width="20" height="20" class="h-5 w-5 flex-none rounded-full bg-white" />
+          Continuar con Google
+        </AppButton>
         <p class="text-xs text-white/40">Puedes comprar sin cuenta; el email es suficiente.</p>
       </div>
     </div>

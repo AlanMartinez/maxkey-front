@@ -76,6 +76,7 @@ const buttonLabel = computed(() => {
         :class="{ 'border-success/60 text-success': feedback === 'added', 'border-red-400/60 text-red-300': feedback === 'max-items' || feedback === 'error' }"
         @click.stop.prevent="addDefaultVariant()"
       >
+        <CartIcon v-if="!adding" />
         {{ buttonLabel }}
       </AppButton>
     </div>
