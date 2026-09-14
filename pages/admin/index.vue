@@ -15,10 +15,10 @@ useHead({ title: 'Admin · Nexo' })
         <h2 class="text-lg font-semibold">Carrusel</h2>
         <p class="text-sm text-white/60">Gestionar las diapositivas de ofertas.</p>
       </NuxtLink>
-      <div class="glass flex flex-col gap-2 rounded-2xl p-6 opacity-50" aria-disabled="true">
+      <NuxtLink to="/admin/buyers" class="glass flex flex-col gap-2 rounded-2xl p-6 transition hover:border-accent/50">
         <h2 class="text-lg font-semibold">Compradores</h2>
-        <p class="text-sm text-white/60">Próximamente.</p>
-      </div>
+        <p class="text-sm text-white/60">Ver compradores y reenviar emails de entrega.</p>
+      </NuxtLink>
     </nav>
   </section>
 </template>
