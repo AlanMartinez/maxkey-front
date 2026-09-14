@@ -18,6 +18,7 @@ defineEmits<{ buy: []; add: [] }>()
     </p>
     <AppButton size="lg" class="w-full" :disabled="!variant" :loading="busy" @click="$emit('buy')">Comprar ahora</AppButton>
     <AppButton variant="ghost" size="lg" class="w-full" :disabled="!variant || busy" @click="$emit('add')">
+      <CartIcon />
       {{ addedLabel ? 'Agregado ✓' : 'Agregar al carrito' }}
     </AppButton>
     <p v-if="error" class="text-sm text-red-300" role="alert">{{ error }}</p>

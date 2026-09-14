@@ -70,7 +70,14 @@ async function buyNow() {
     </nav>
 
     <div class="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-      <ProductGallery :images="images" :alt="product.name" />
+      <div class="flex flex-col gap-6">
+        <ProductGallery :images="images" :alt="product.name" />
+
+        <section aria-labelledby="about-heading">
+          <h2 id="about-heading" class="mb-3 text-xl font-semibold">Sobre este producto</h2>
+          <p class="leading-relaxed text-white/60">{{ product.description }}</p>
+        </section>
+      </div>
 
       <div class="flex flex-col gap-7 lg:sticky lg:top-24">
         <header class="flex flex-col gap-2">
@@ -89,10 +96,5 @@ async function buyNow() {
         <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
       </div>
     </div>
-
-    <section class="max-w-2xl" aria-labelledby="about-heading">
-      <h2 id="about-heading" class="mb-3 text-xl font-semibold">Sobre este producto</h2>
-      <p class="leading-relaxed text-white/60">{{ product.description }}</p>
-    </section>
   </article>
 </template>
