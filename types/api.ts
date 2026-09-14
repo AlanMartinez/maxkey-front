@@ -174,3 +174,40 @@ export interface CarouselSlideRequest {
   caption?: string
   imageKey?: string
 }
+
+// mirrors admin-dashboard design.md D4 "GET /admin/buyers" response `orders[].items[]` (admin-buyers spec: Key Exposure in Buyer View — count only, never a key code)
+export interface AdminBuyerOrderItem {
+  productName: string
+  variantName: string
+  quantity: number
+  assignedKeys: number
+}
+
+// mirrors admin-dashboard design.md D4 "GET /admin/buyers" response `orders[]`
+export interface AdminBuyerOrder {
+  id: string
+  status: OrderStatus
+  paidAt?: string
+  totalAmount: number
+  currency: string
+  items: AdminBuyerOrderItem[]
+}
+
+// mirrors admin-dashboard design.md D4 "GET /admin/buyers" response `items[]` (buyer grouped by email)
+export interface AdminBuyer {
+  email: string
+  orderCount: number
+  lastPaidAt?: string
+  orders: AdminBuyerOrder[]
+}
+
+// mirrors admin-dashboard design.md D4 "GET /admin/buyers" response (pagination metadata alongside items)
+export interface AdminBuyersPage {
+  items: AdminBuyer[]
+  page: number
+  pageSize: number
+  total: number
+}
+
+// mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
+export interface ResendDeliveryResponse { outboxEventId: string }
