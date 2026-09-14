@@ -91,3 +91,86 @@ export interface ProblemDetails {
   traceId?: string
   errors?: Record<string, string[]>
 }
+
+// mirrors admin-dashboard design.md D5 "GET /admin/me" response
+export interface AdminMeResponse { sub: string }
+
+// mirrors admin-dashboard design.md D3 "GET /admin/catalog/products" response `variants[]` item
+export interface AdminVariant {
+  id: string
+  region?: string
+  edition?: string
+  price: number
+  oldPrice?: number
+  currency: string
+  sortOrder: number
+  isActive: boolean
+}
+
+// mirrors admin-dashboard design.md D3 "GET /admin/catalog/products" response item (includes inactive)
+export interface AdminProduct {
+  id: string
+  slug: string
+  name: string
+  platform: string
+  isActive: boolean
+  imageKey?: string
+  imageUrl: string
+  description: string
+  variants: AdminVariant[]
+}
+
+// mirrors admin-dashboard design.md D3 "PUT /admin/catalog/products/{id}" request body
+export interface UpdateProductRequest {
+  name: string
+  platform: string
+  description?: string
+  imageKey?: string
+  isActive: boolean
+}
+
+// mirrors admin-dashboard design.md D3 "PUT /admin/catalog/variants/{id}" request body
+export interface UpdateProductVariantRequest {
+  price: number
+  oldPrice?: number
+  currency: string
+  region?: string
+  edition?: string
+  sortOrder: number
+  isActive: boolean
+}
+
+// mirrors admin-dashboard design.md D2 "GET /catalog/carousel" response item (public; title/caption already resolved)
+export interface CarouselSlideDto {
+  id: string
+  title: string
+  caption?: string
+  imageUrl: string
+  productSlug: string
+  sortOrder: number
+}
+
+// mirrors admin-dashboard design.md D2 "GET /admin/carousel" response item (raw overrides + product context)
+export interface AdminCarouselSlideDto {
+  id: string
+  productId: string
+  productName: string
+  productSlug: string
+  productIsActive: boolean
+  sortOrder: number
+  isActive: boolean
+  title?: string
+  caption?: string
+  imageKey?: string
+  imageUrl: string
+}
+
+// mirrors admin-dashboard design.md D2 "POST /admin/carousel" and "PUT /admin/carousel/{id}" request body
+export interface CarouselSlideRequest {
+  productId: string
+  sortOrder: number
+  isActive: boolean
+  title?: string
+  caption?: string
+  imageKey?: string
+}
