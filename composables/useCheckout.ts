@@ -4,6 +4,17 @@ import { ApiError } from '~/composables/useApi'
 export const LAST_ORDER_STORAGE_KEY = 'nexo.lastOrderId'
 export type CheckoutStatus = 'idle' | 'submitting' | 'redirecting' | 'error'
 
+/**
+ * Payment methods offered at checkout. Client-side only for now: `POST /checkout/orders` does not accept a
+ * method yet (Mercado Pago is the sole gateway), so the selection never travels in the request body.
+ */
+export type PaymentMethod = 'mercadopago'
+export interface PaymentMethodOption { id: PaymentMethod; name: string; description: string }
+export const PAYMENT_METHODS: readonly PaymentMethodOption[] = [
+  { id: 'mercadopago', name: 'Mercado Pago', description: 'Tarjetas, dinero en cuenta y más' },
+]
+export const DEFAULT_PAYMENT_METHOD: PaymentMethod = 'mercadopago'
+
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** Client-side shape check only; the server is authoritative (422 on invalid email). */
 export function isValidEmail(email: string) {
@@ -28,10 +39,12 @@ export function useCheckout() {
   const status = ref<CheckoutStatus>('idle')
   const error = ref<ApiError | null>(null)
   const errorMessage = computed(() => checkoutErrorMessage(error.value))
+  // Required selection; pre-set because a single method exists. See `PaymentMethod` above for why it stays client-side.
+  const paymentMethod = ref<PaymentMethod | null>(DEFAULT_PAYMENT_METHOD)
 
   async function submit(email: string) {
     const trimmed = email.trim()
-    if (!isValidEmail(trimmed) || lines.value.length === 0 || status.value === 'submitting') return false
+    if (!isValidEmail(trimmed) || lines.value.length === 0 || status.value === 'submitting' || !paymentMethod.value) return false
     status.value = 'submitting'
     error.value = null
     // Only ids and quantities travel; the server recomputes prices and names (cart-checkout spec).
@@ -49,5 +62,5 @@ export function useCheckout() {
     }
   }
 
-  return { status, error, errorMessage, submit }
+  return { status, error, errorMessage, paymentMethod, submit }
 }

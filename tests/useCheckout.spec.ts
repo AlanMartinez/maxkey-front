@@ -5,7 +5,7 @@ import { clearNuxtState } from '#app'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ApiError } from '~/composables/useApi'
 import { useCart } from '~/composables/useCart'
-import { LAST_ORDER_STORAGE_KEY, useCheckout } from '~/composables/useCheckout'
+import { DEFAULT_PAYMENT_METHOD, LAST_ORDER_STORAGE_KEY, PAYMENT_METHODS, useCheckout } from '~/composables/useCheckout'
 
 mockNuxtImport('useSupabaseSession', () => () => ref(null))
 
@@ -57,6 +57,31 @@ describe('useCheckout', () => {
     expect(assign).toHaveBeenCalledWith('https://mp.test/init')
     // The cart survives the hand-off; only the result page clears it.
     expect(cart.lines.value).toHaveLength(2)
+  })
+
+  it('preselects Mercado Pago and keeps the method out of the request body', async () => {
+    useCart().add(line)
+    const fetchMock = stubFetch(201, { orderId: 'order-2', initPoint: 'https://mp.test/init' })
+    const checkout = useCheckout()
+
+    expect(checkout.paymentMethod.value).toBe('mercadopago')
+    expect(DEFAULT_PAYMENT_METHOD).toBe('mercadopago')
+    expect(PAYMENT_METHODS.map((m) => m.id)).toEqual(['mercadopago'])
+
+    await expect(checkout.submit('buyer@example.com')).resolves.toBe(true)
+    expect(Object.keys(sentRequest(fetchMock).body as object)).toEqual(['email', 'items'])
+    expect(checkout.status.value).toBe('redirecting')
+  })
+
+  it('refuses to submit without a payment method', async () => {
+    useCart().add(line)
+    const fetchMock = stubFetch(201, {})
+    const checkout = useCheckout()
+    checkout.paymentMethod.value = null
+
+    await expect(checkout.submit('buyer@example.com')).resolves.toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(checkout.status.value).toBe('idle')
   })
 
   it('exposes the ApiError and its field message on 422', async () => {

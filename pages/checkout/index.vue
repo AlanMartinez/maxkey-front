@@ -4,7 +4,7 @@ import { isValidEmail } from '~/composables/useCheckout'
 useHead({ title: 'Checkout · Nexo' })
 
 const { lines, subtotal, isEmpty } = useCart()
-const { status, error, errorMessage, submit } = useCheckout()
+const { status, error, errorMessage, paymentMethod, submit } = useCheckout()
 // Prefills from the signed-in user's email but keeps it editable — an edited email still links the order
 // to the account server-side via the bearer token, per auth spec.
 const { email: authEmail } = useAuth()
@@ -32,6 +32,7 @@ async function pay() {
       <div class="flex flex-col gap-6">
         <h1 class="text-3xl font-bold">Checkout</h1>
         <ContactForm v-model="email" :disabled="busy" :error="fieldError" />
+        <PaymentMethodSelector v-model="paymentMethod" :disabled="busy" />
       </div>
       <OrderSummary :lines="lines" :subtotal="subtotal">
         <PayWithMercadoPago :status="status" />

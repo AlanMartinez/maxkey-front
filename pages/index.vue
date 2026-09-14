@@ -2,7 +2,8 @@
 import type { ProductSummary } from '~/types/api'
 
 const api = useApi()
-const platform = ref<string | null>(null)
+// Pre-selected from `?platform=` so the product breadcrumb can link back to a filtered catalog.
+const platform = ref<string | null>((useRoute().query.platform as string | undefined) || null)
 // Typed in AppHeader's search box; debounced into `q` before hitting the API.
 const search = useState('catalog-search', () => '')
 const q = ref(search.value.trim())
@@ -28,7 +29,10 @@ watch(data, (list) => {
 
 <template>
   <div class="flex flex-col gap-10">
-    <HeroCarousel />
+    <div class="flex flex-col gap-6">
+      <HeroCarousel />
+      <TrustStrip />
+    </div>
     <section id="catalogo" class="flex flex-col gap-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-2xl font-bold">Catálogo</h2>
