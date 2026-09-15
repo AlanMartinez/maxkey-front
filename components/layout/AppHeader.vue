@@ -18,7 +18,9 @@ async function handleSignOut() {
 <template>
   <header class="glass sticky top-0 z-40 border-x-0 border-t-0">
     <div class="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4">
-      <NuxtLink to="/" class="font-display text-xl font-bold tracking-tight text-accent">Chekeys</NuxtLink>
+      <NuxtLink to="/" class="flex items-center" aria-label="Chekeys">
+        <img src="/images/icono.png" alt="Chekeys" class="h-8 w-auto" />
+      </NuxtLink>
       <label class="relative ml-auto hidden w-full max-w-xs sm:block">
         <span class="sr-only">Buscar</span>
         <input v-model="search" type="search" placeholder="Buscar juegos, tarjetas..." class="w-full rounded-xl border border-white/10 bg-bg/60 px-4 py-2 text-sm placeholder:text-white/40 focus:border-accent focus:outline-none" />
