@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // TEMP diagnostic page — remove after debugging the /admin SSR session issue.
+definePageMeta({ middleware: ['auth', 'admin'] })
 const session = useSupabaseSession()
 const user = useSupabaseUser()
 const isAdminState = useState<boolean | null>('admin-check', () => null)
