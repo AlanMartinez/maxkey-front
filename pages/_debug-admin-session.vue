@@ -1,15 +1,34 @@
 <script setup lang="ts">
 // TEMP diagnostic page — remove after debugging the /admin SSR session issue.
-definePageMeta({ middleware: ['auth', 'admin'] })
+import { serverSupabaseSession } from '#supabase/server'
+
+definePageMeta({
+  middleware: [
+    async (to) => {
+      const composableSession = useSupabaseSession()
+      let directSession = null
+      if (import.meta.server) {
+        directSession = await serverSupabaseSession(useRequestEvent()!).catch(() => null)
+      }
+      const state = useState<Record<string, unknown>>('debug-mw-result', () => ({}))
+      state.value = {
+        composableHadSession: !!composableSession.value,
+        directHadSession: !!directSession,
+        ranOnServer: import.meta.server,
+      }
+    },
+  ],
+})
+
 const session = useSupabaseSession()
 const user = useSupabaseUser()
-const isAdminState = useState<boolean | null>('admin-check', () => null)
+const mwResult = useState<Record<string, unknown>>('debug-mw-result', () => ({}))
 
 const info = {
   hasSession: !!session.value,
   hasUser: !!user.value,
-  isAdminState: isAdminState.value,
   onServer: import.meta.server,
+  middleware: mwResult.value,
 }
 </script>
 
