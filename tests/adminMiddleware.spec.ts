@@ -9,15 +9,16 @@ import adminMiddleware from '~/middleware/admin'
 
 type FakeSession = { access_token: string } | null
 
-const { navigateToMock, apiMock, getSessionMock } = vi.hoisted(() => ({
+const { navigateToMock, apiMock, useApiMock, getSessionMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn((to: unknown) => ({ __navigateTo: to })),
   apiMock: vi.fn(),
+  useApiMock: vi.fn(),
   getSessionMock: vi.fn(),
 }))
 
 mockNuxtImport('useSupabaseClient', () => () => ({ auth: { getSession: getSessionMock } }))
 mockNuxtImport('navigateTo', () => navigateToMock)
-mockNuxtImport('useApi', () => () => apiMock)
+mockNuxtImport('useApi', () => useApiMock)
 
 function route(fullPath: string) {
   return { fullPath } as RouteLocationNormalized
@@ -31,6 +32,8 @@ beforeEach(() => {
   clearNuxtState()
   navigateToMock.mockClear()
   apiMock.mockReset()
+  useApiMock.mockReset()
+  useApiMock.mockReturnValue(apiMock)
   getSessionMock.mockReset()
   mockSession(null)
 })
@@ -53,6 +56,7 @@ describe('middleware/admin', () => {
     const result = await adminMiddleware(route('/admin'), route('/'))
     expect(result).toBeUndefined()
     expect(apiMock).toHaveBeenCalledWith('/admin/me')
+    expect(useApiMock).toHaveBeenCalledWith('t1')
 
     const second = await adminMiddleware(route('/admin/catalog'), route('/admin'))
     expect(second).toBeUndefined()

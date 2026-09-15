@@ -12,7 +12,11 @@ import { ApiError } from '~/composables/useApi'
  * (`Promise.all([serverSupabaseSession(...), serverSupabaseUser(...)])`); on the very first SSR
  * navigation, route middleware can run before that promise settles, seeing a stale `null` even with
  * a valid session cookie. The client itself is provided synchronously at the top of the plugin, so
- * asking it directly for the session is race-free. `useApi()` needed the same fix for its bearer token.
+ * asking it directly for the session is race-free.
+ *
+ * Passes the resolved access token straight into `useApi()` rather than letting it call
+ * `getSession()` again: a second, independent call in the same request intermittently came back
+ * without a session even right after this one succeeded, which 401'd `/admin/me` for a logged-in admin.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
   const isAdmin = useState<boolean | null>('admin-check', () => null)
@@ -24,16 +28,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  const debugCookie = useCookie<string | null>('debug-admin-mw', { path: '/', maxAge: 60 })
-  const { data, error } = await supabase.auth.getSession()
-  debugCookie.value = JSON.stringify({ hasSession: !!data.session, error: error?.message ?? null, t: Date.now() })
+  const { data } = await supabase.auth.getSession()
 
   if (!data.session) return redirectToLogin()
   if (isAdmin.value === true) return
   if (isAdmin.value === false) return navigateTo('/')
 
   try {
-    await useApi()('/admin/me')
+    await useApi(data.session.access_token)('/admin/me')
     isAdmin.value = true
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return redirectToLogin()

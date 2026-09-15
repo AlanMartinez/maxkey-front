@@ -71,4 +71,14 @@ describe('useApi', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe('http://localhost:8080/catalog/products')
     expect(sentHeaders(fetchMock).has('authorization')).toBe(false)
   })
+
+  it('uses an explicit access token instead of calling getSession() again', async () => {
+    mockSession(null)
+    const fetchMock = stubFetch(200, [])
+
+    await useApi('jwt-from-caller')('/admin/me')
+
+    expect(sentHeaders(fetchMock).get('authorization')).toBe('Bearer jwt-from-caller')
+    expect(getSessionMock).not.toHaveBeenCalled()
+  })
 })

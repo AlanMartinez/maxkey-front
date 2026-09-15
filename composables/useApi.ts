@@ -28,19 +28,21 @@ function toProblemDetails(status: number, statusText: string, body: unknown): Pr
 /**
  * Typed `$fetch` bound to the backend: attaches the Supabase bearer and maps errors to `ApiError`.
  *
- * Reads the session fresh from the shared client on every request instead of `useSupabaseSession()`:
- * that reactive ref can still be null on the first SSR request (see `middleware/admin.ts`), which
- * silently dropped the Authorization header and made the backend 401 a logged-in admin.
+ * Pass `accessToken` when the caller already resolved the session (e.g. a middleware that just ran
+ * `auth.getSession()` to gate the route) instead of letting this call `getSession()` again — a second,
+ * independent call in the same request was observed to intermittently come back without a session even
+ * though the first one, moments earlier, succeeded. Without an explicit token, this reads the session
+ * fresh from the shared client rather than `useSupabaseSession()`, since that reactive ref can still be
+ * null on the first SSR request (see `middleware/admin.ts`).
  */
-export function useApi() {
+export function useApi(accessToken?: string) {
   const config = useRuntimeConfig()
   const supabase = useSupabaseClient()
 
   return $fetch.create({
     baseURL: config.public.apiBaseUrl,
     async onRequest({ options }) {
-      const { data } = await supabase.auth.getSession()
-      const token = data.session?.access_token
+      const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token
       if (token) options.headers.set('Authorization', `Bearer ${token}`)
     },
     onResponseError({ response }) {
