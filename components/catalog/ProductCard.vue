@@ -32,6 +32,7 @@ async function addDefaultVariant() {
     const variant = defaultVariant(detail.variants)
     if (!variant) return showFeedback('error')
     const result = cart.add(toCartLine(detail, variant))
+    if (result.ok) cart.open()
     showFeedback(result.ok ? 'added' : result.reason)
   } catch {
     showFeedback('error')
