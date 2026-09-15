@@ -1,19 +1,15 @@
 <script setup lang="ts">
 // TEMP diagnostic page — remove after debugging the /admin SSR session issue.
-import { serverSupabaseSession } from '#supabase/server'
-
 definePageMeta({
   middleware: [
-    async (to) => {
+    async () => {
       const composableSession = useSupabaseSession()
-      let directSession = null
-      if (import.meta.server) {
-        directSession = await serverSupabaseSession(useRequestEvent()!).catch(() => null)
-      }
+      const { $supabase } = useNuxtApp() as unknown as { $supabase: { client: { auth: { getSession: () => Promise<{ data: { session: unknown } }> } } } }
+      const { data } = await $supabase.client.auth.getSession()
       const state = useState<Record<string, unknown>>('debug-mw-result', () => ({}))
       state.value = {
         composableHadSession: !!composableSession.value,
-        directHadSession: !!directSession,
+        directHadSession: !!data.session,
         ranOnServer: import.meta.server,
       }
     },
