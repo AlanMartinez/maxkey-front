@@ -12,7 +12,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
   const supabase = useSupabaseClient()
 
-  const { data } = await supabase.auth.getSession()
+  const debugCookie = useCookie<string | null>('debug-auth-mw', { path: '/', maxAge: 60 })
+  const { data, error } = await supabase.auth.getSession()
+  debugCookie.value = JSON.stringify({ hasSession: !!data.session, error: error?.message ?? null, t: Date.now() })
   if (data.session) return
 
   redirectCookie.value = to.fullPath
