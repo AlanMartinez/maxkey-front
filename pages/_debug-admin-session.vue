@@ -5,8 +5,8 @@ definePageMeta({
     async () => {
       const composableSession = useSupabaseSession()
       const { $supabase } = useNuxtApp() as unknown as { $supabase: { client: { auth: { getSession: () => Promise<{ data: { session: unknown } }> } } } }
-      const { data } = await $supabase.client.auth.getSession()
       const state = useState<Record<string, unknown>>('debug-mw-result', () => ({}))
+      const { data } = await $supabase.client.auth.getSession()
       state.value = {
         composableHadSession: !!composableSession.value,
         directHadSession: !!data.session,
