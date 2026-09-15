@@ -12,7 +12,7 @@ const { data: product, status, error, refresh } = await useAsyncData(`product-${
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
 
-useHead({ title: () => (product.value ? `${product.value.name} · Nexo` : 'Nexo') })
+useHead({ title: () => (product.value ? `${product.value.name} · Chekeys` : 'Chekeys') })
 
 // PLACEHOLDER: the API exposes no ratings yet; static figures mirror the mock until reviews land backend-side.
 const PLACEHOLDER_RATING: { value: number; reviews: number } = { value: 4.9, reviews: 3400 }

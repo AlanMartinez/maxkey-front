@@ -1,4 +1,4 @@
-export const CART_STORAGE_KEY = 'nexo.cart.v1'
+export const CART_STORAGE_KEY = 'chekeys.cart.v1'
 export const MIN_QUANTITY = 1
 export const MAX_QUANTITY = 10
 /** Mirrors the backend `Order.Create` cap of 20 distinct lines (cart-checkout spec). */

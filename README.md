@@ -1,6 +1,6 @@
 # maxkeys-front
 
-Nuxt 3 storefront for the Maxkeys digital game-key marketplace (Nexo UI).
+Nuxt 3 storefront for the Maxkeys digital game-key marketplace (Chekeys UI).
 
 ## Local development
 

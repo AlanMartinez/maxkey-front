@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isValidEmail } from '~/composables/useCheckout'
 
-useHead({ title: 'Checkout · Nexo' })
+useHead({ title: 'Checkout · Chekeys' })
 
 const { lines, subtotal, isEmpty } = useCart()
 const { status, error, errorMessage, paymentMethod, submit } = useCheckout()

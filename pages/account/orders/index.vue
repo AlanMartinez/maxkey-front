@@ -2,7 +2,7 @@
 import type { OrderSummaryDto } from '~/types/api'
 
 definePageMeta({ middleware: 'auth' })
-useHead({ title: 'Mis compras · Nexo' })
+useHead({ title: 'Mis compras · Chekeys' })
 
 // orders-history spec: My Orders Listing (owner-scoped; anonymous access rejected by the auth middleware/API).
 const api = useApi()

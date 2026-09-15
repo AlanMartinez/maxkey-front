@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss'
 
-// Design tokens from the Nexo mock (design.md §9).
+// Design tokens from the Chekeys mock (design.md §9).
 export default <Partial<Config>>{
   theme: {
     extend: {

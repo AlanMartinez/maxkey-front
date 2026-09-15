@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Mirrors the "TRUST BAR" block of the Nexo mock: three centered reassurance items.
+// Mirrors the "TRUST BAR" block of the Chekeys mock: three centered reassurance items.
 const items = [
   { label: 'Entrega instantánea', icon: 'bolt' },
   { label: 'Keys 100% verificadas', icon: 'shield' },

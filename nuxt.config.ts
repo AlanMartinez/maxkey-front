@@ -20,9 +20,10 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'es' },
-      title: 'Nexo',
+      title: 'Chekeys',
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap' },
+        { rel: 'icon', type: 'image/png', href: '/images/icono.png' },
       ],
     },
   },

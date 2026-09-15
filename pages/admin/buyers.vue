@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Compradores · Admin · Nexo' })
+useHead({ title: 'Compradores · Admin · Chekeys' })
 
 // admin-buyers spec: Buyer Listing Grouped By Email + Resend Delivery Email; design D4.
 const { buyers, total, page, pageSize, status, error, load, search, goToPage, resending, resendError, resendSuccess, resendDelivery } = useAdminBuyers()

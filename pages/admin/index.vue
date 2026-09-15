@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Admin · Nexo' })
+useHead({ title: 'Admin · Chekeys' })
 </script>
 
 <template>

@@ -2,7 +2,7 @@
 import type { UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Catálogo · Admin · Nexo' })
+useHead({ title: 'Catálogo · Admin · Chekeys' })
 
 const { products, status, error, refresh, saving, saveError, saveProduct, saveVariant } = await useAdminCatalog()
 </script>

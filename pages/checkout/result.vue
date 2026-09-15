@@ -6,7 +6,7 @@ const POLL_INTERVAL_MS = 3000
 const POLL_MAX_TRIES = 20
 type Outcome = 'approved' | 'pending' | 'rejected' | 'unknown'
 
-useHead({ title: 'Resultado del pago · Nexo' })
+useHead({ title: 'Resultado del pago · Chekeys' })
 
 const route = useRoute()
 const api = useApi()
