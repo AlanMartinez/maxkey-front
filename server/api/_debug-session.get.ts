@@ -1,5 +1,5 @@
 import { getHeader } from 'h3'
-import { serverSupabaseSession, serverSupabaseUser } from '@nuxtjs/supabase/dist/runtime/server/services'
+import { serverSupabaseSession, serverSupabaseUser } from '#supabase/server'
 
 // TEMP diagnostic route — remove after debugging the /admin SSR session issue.
 function safeError(error: unknown) {
