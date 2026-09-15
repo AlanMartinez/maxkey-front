@@ -17,6 +17,8 @@ import { ApiError } from '~/composables/useApi'
 export default defineNuxtRouteMiddleware(async (to) => {
   const isAdmin = useState<boolean | null>('admin-check', () => null)
   const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
+  // TEMP debug cookie -- remove once the SSR session race is confirmed/fixed.
+  const debugCookie = useCookie<string | null>('debug-admin-mw', { path: '/', maxAge: 60 })
   const supabase = useSupabaseClient()
 
   function redirectToLogin() {
@@ -24,9 +26,18 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  const { data } = await supabase.auth.getSession()
+  let debugInfo: Record<string, unknown> = { onServer: import.meta.server, hasClient: !!supabase }
+  let session: unknown = null
+  try {
+    const { data, error } = await supabase.auth.getSession()
+    session = data.session
+    debugInfo = { ...debugInfo, hasSession: !!data.session, getSessionError: error?.message ?? null }
+  } catch (error) {
+    debugInfo = { ...debugInfo, threw: error instanceof Error ? error.message : String(error) }
+  }
+  debugCookie.value = JSON.stringify(debugInfo)
 
-  if (!data.session) return redirectToLogin()
+  if (!session) return redirectToLogin()
   if (isAdmin.value === true) return
   if (isAdmin.value === false) return navigateTo('/')
 
