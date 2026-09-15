@@ -1,11 +1,21 @@
-import { describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFetch } from 'ofetch'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ApiError, useApi } from '~/composables/useApi'
 
-const session = ref<{ access_token: string } | null>(null)
-mockNuxtImport('useSupabaseSession', () => () => session)
+type FakeSession = { access_token: string } | null
+
+const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }))
+mockNuxtImport('useSupabaseClient', () => () => ({ auth: { getSession: getSessionMock } }))
+
+function mockSession(session: FakeSession) {
+  getSessionMock.mockResolvedValue({ data: { session } })
+}
+
+beforeEach(() => {
+  getSessionMock.mockReset()
+  mockSession(null)
+})
 
 function stubFetch(status: number, body: unknown, contentType = 'application/json') {
   const fetchMock = vi.fn<typeof fetch>(async () =>
@@ -44,7 +54,7 @@ describe('useApi', () => {
   })
 
   it('attaches the Supabase bearer token when a session exists', async () => {
-    session.value = { access_token: 'jwt-123' }
+    mockSession({ access_token: 'jwt-123' })
     const fetchMock = stubFetch(200, [])
 
     await useApi()('/me/orders')
@@ -53,7 +63,7 @@ describe('useApi', () => {
   })
 
   it('sends no Authorization header without a session and targets apiBaseUrl', async () => {
-    session.value = null
+    mockSession(null)
     const fetchMock = stubFetch(200, [])
 
     await useApi()('/catalog/products')

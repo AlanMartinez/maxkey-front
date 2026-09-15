@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
 import { createFetch } from 'ofetch'
 import { clearNuxtState } from '#app'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import ProductCard from '~/components/catalog/ProductCard.vue'
 import { useCart } from '~/composables/useCart'
 
-mockNuxtImport('useSupabaseSession', () => () => ref(null))
+mockNuxtImport('useSupabaseClient', () => () => ({ auth: { getSession: async () => ({ data: { session: null } }) } }))
 
 const product = { id: 'p1', slug: 'riot-points', name: 'Riot Points', platform: 'Riot Games', imageUrl: 'https://cdn/x.png', fromPrice: 9990, oldPrice: 11350 }
 const variants = [

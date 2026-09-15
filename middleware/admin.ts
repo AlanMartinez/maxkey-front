@@ -12,13 +12,11 @@ import { ApiError } from '~/composables/useApi'
  * (`Promise.all([serverSupabaseSession(...), serverSupabaseUser(...)])`); on the very first SSR
  * navigation, route middleware can run before that promise settles, seeing a stale `null` even with
  * a valid session cookie. The client itself is provided synchronously at the top of the plugin, so
- * asking it directly for the session is race-free.
+ * asking it directly for the session is race-free. `useApi()` needed the same fix for its bearer token.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
   const isAdmin = useState<boolean | null>('admin-check', () => null)
   const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
-  // TEMP debug cookie -- remove once the SSR session race is confirmed/fixed.
-  const debugCookie = useCookie<string | null>('debug-admin-mw', { path: '/', maxAge: 60 })
   const supabase = useSupabaseClient()
 
   function redirectToLogin() {
@@ -26,18 +24,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  let debugInfo: Record<string, unknown> = { onServer: import.meta.server, hasClient: !!supabase }
-  let session: unknown = null
-  try {
-    const { data, error } = await supabase.auth.getSession()
-    session = data.session
-    debugInfo = { ...debugInfo, hasSession: !!data.session, getSessionError: error?.message ?? null }
-  } catch (error) {
-    debugInfo = { ...debugInfo, threw: error instanceof Error ? error.message : String(error) }
-  }
-  debugCookie.value = JSON.stringify(debugInfo)
+  const { data } = await supabase.auth.getSession()
 
-  if (!session) return redirectToLogin()
+  if (!data.session) return redirectToLogin()
   if (isAdmin.value === true) return
   if (isAdmin.value === false) return navigateTo('/')
 

@@ -7,7 +7,7 @@ import { ApiError } from '~/composables/useApi'
 import { useCart } from '~/composables/useCart'
 import { DEFAULT_PAYMENT_METHOD, LAST_ORDER_STORAGE_KEY, PAYMENT_METHODS, useCheckout } from '~/composables/useCheckout'
 
-mockNuxtImport('useSupabaseSession', () => () => ref(null))
+mockNuxtImport('useSupabaseClient', () => () => ({ auth: { getSession: async () => ({ data: { session: null } }) } }))
 
 const line = { variantId: 'v1', productSlug: 'riot-points', productName: 'Riot Points', variantName: '1.750 RP', unitPrice: 9990, currency: 'ARS' }
 
