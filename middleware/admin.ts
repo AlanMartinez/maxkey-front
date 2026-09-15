@@ -7,22 +7,26 @@ import { ApiError } from '~/composables/useApi'
  * result in `useState('admin-check')`. Non-admins are redirected to `/`; a missing/expired session
  * (no session, or a 401 from the API) is sent back through the same `/?login=1` flow as `middleware/auth.ts`.
  *
- * Uses `useSupabaseSession()` rather than `useSupabaseUser()`: the module's SSR user plugin resolves
- * via Supabase's `getClaims()`, which needs JWKS and fails on projects without asymmetric JWT signing
- * keys enabled — silently nulling `user.value` even with a valid session. `getSession()` only reads
- * the cookie, so it stays reliable; the real admin check still happens against `/admin/me`.
+ * Calls `auth.getSession()` on the shared Supabase client instead of reading `useSupabaseSession()`.
+ * The reactive ref is only populated once the module's SSR plugin finishes an async round-trip
+ * (`Promise.all([serverSupabaseSession(...), serverSupabaseUser(...)])`); on the very first SSR
+ * navigation, route middleware can run before that promise settles, seeing a stale `null` even with
+ * a valid session cookie. The client itself is provided synchronously at the top of the plugin, so
+ * asking it directly for the session is race-free.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
-  const session = useSupabaseSession()
   const isAdmin = useState<boolean | null>('admin-check', () => null)
+  const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
+  const supabase = useSupabaseClient()
 
   function redirectToLogin() {
-    const redirect = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
-    redirect.value = to.fullPath
+    redirectCookie.value = to.fullPath
     return navigateTo('/?login=1')
   }
 
-  if (!session.value) return redirectToLogin()
+  const { data } = await supabase.auth.getSession()
+
+  if (!data.session) return redirectToLogin()
   if (isAdmin.value === true) return
   if (isAdmin.value === false) return navigateTo('/')
 

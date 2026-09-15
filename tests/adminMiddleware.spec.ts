@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick, ref } from 'vue'
+import { nextTick } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
 import { clearNuxtState, useCookie } from '#app'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
@@ -9,14 +9,13 @@ import adminMiddleware from '~/middleware/admin'
 
 type FakeSession = { access_token: string } | null
 
-const { navigateToMock, apiMock } = vi.hoisted(() => ({
+const { navigateToMock, apiMock, getSessionMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn((to: unknown) => ({ __navigateTo: to })),
   apiMock: vi.fn(),
+  getSessionMock: vi.fn(),
 }))
 
-const session = ref<FakeSession>(null)
-
-mockNuxtImport('useSupabaseSession', () => () => session)
+mockNuxtImport('useSupabaseClient', () => () => ({ auth: { getSession: getSessionMock } }))
 mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useApi', () => () => apiMock)
 
@@ -24,11 +23,16 @@ function route(fullPath: string) {
   return { fullPath } as RouteLocationNormalized
 }
 
+function mockSession(session: FakeSession) {
+  getSessionMock.mockResolvedValue({ data: { session } })
+}
+
 beforeEach(() => {
   clearNuxtState()
-  session.value = null
   navigateToMock.mockClear()
   apiMock.mockReset()
+  getSessionMock.mockReset()
+  mockSession(null)
 })
 
 describe('middleware/admin', () => {
@@ -43,7 +47,7 @@ describe('middleware/admin', () => {
   })
 
   it('lets an admin through and caches the check so it is not repeated', async () => {
-    session.value = { access_token: 't1' }
+    mockSession({ access_token: 't1' })
     apiMock.mockResolvedValue({ sub: 'u1' })
 
     const result = await adminMiddleware(route('/admin'), route('/'))
@@ -56,7 +60,7 @@ describe('middleware/admin', () => {
   })
 
   it('redirects to / when the API rejects with 403', async () => {
-    session.value = { access_token: 't1' }
+    mockSession({ access_token: 't1' })
     apiMock.mockRejectedValue(new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403 }))
 
     const result = await adminMiddleware(route('/admin'), route('/'))
@@ -66,7 +70,7 @@ describe('middleware/admin', () => {
   })
 
   it('redirects to /?login=1 when the API rejects with 401', async () => {
-    session.value = { access_token: 't1' }
+    mockSession({ access_token: 't1' })
     apiMock.mockRejectedValue(new ApiError({ type: 'about:blank', title: 'Unauthorized', status: 401 }))
 
     const result = await adminMiddleware(route('/account'), route('/'))
