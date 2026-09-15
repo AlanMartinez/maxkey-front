@@ -95,14 +95,19 @@ export interface ProblemDetails {
 // mirrors admin-dashboard design.md D5 "GET /admin/me" response
 export interface AdminMeResponse { sub: string }
 
+// mirrors admin-dashboard design.md D3 currency whitelist (backend rejects any other ISO4217 code)
+export type AdminCurrency = 'ARS' | 'USD'
+
 // mirrors admin-dashboard design.md D3 "GET /admin/catalog/products" response `variants[]` item
+// (admin-catalog-crud contract) oldPrice is now backend-computed from price/discountPercentage — never send it back
 export interface AdminVariant {
   id: string
   region?: string
   edition?: string
   price: number
   oldPrice?: number
-  currency: string
+  discountPercentage?: number
+  currency: AdminCurrency
   sortOrder: number
   isActive: boolean
 }
@@ -129,13 +134,35 @@ export interface UpdateProductRequest {
   isActive: boolean
 }
 
-// mirrors admin-dashboard design.md D3 "PUT /admin/catalog/variants/{id}" request body
+// mirrors admin-catalog-crud contract "POST /admin/catalog/products" request body
+export interface CreateProductRequest {
+  slug: string
+  name: string
+  platform: string
+  description?: string
+  imageKey?: string
+  isActive: boolean
+}
+
+// mirrors admin-catalog-crud contract "PUT /admin/catalog/variants/{id}" request body
+// discountPercentage replaces oldPrice as input (0 < pct < 100); oldPrice stays response-only, computed
 export interface UpdateProductVariantRequest {
   price: number
-  oldPrice?: number
-  currency: string
+  discountPercentage?: number
+  currency: AdminCurrency
   region?: string
   edition?: string
+  sortOrder: number
+  isActive: boolean
+}
+
+// mirrors admin-catalog-crud contract "POST /admin/catalog/products/{productId}/variants" request body
+export interface CreateProductVariantRequest {
+  region?: string
+  edition?: string
+  price: number
+  discountPercentage?: number
+  currency: AdminCurrency
   sortOrder: number
   isActive: boolean
 }
