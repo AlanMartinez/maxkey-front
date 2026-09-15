@@ -5,10 +5,15 @@ import { ApiError } from '~/composables/useApi'
  * Named route middleware (design.md admin-dashboard D5). Meant to run after `auth` — confirms the
  * caller passes the backend's `AdminPolicy` via `GET /admin/me`, once per app instance, caching the
  * result in `useState('admin-check')`. Non-admins are redirected to `/`; a missing/expired session
- * (no user, or a 401 from the API) is sent back through the same `/?login=1` flow as `middleware/auth.ts`.
+ * (no session, or a 401 from the API) is sent back through the same `/?login=1` flow as `middleware/auth.ts`.
+ *
+ * Uses `useSupabaseSession()` rather than `useSupabaseUser()`: the module's SSR user plugin resolves
+ * via Supabase's `getClaims()`, which needs JWKS and fails on projects without asymmetric JWT signing
+ * keys enabled — silently nulling `user.value` even with a valid session. `getSession()` only reads
+ * the cookie, so it stays reliable; the real admin check still happens against `/admin/me`.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
-  const user = useSupabaseUser()
+  const session = useSupabaseSession()
   const isAdmin = useState<boolean | null>('admin-check', () => null)
 
   function redirectToLogin() {
@@ -17,7 +22,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  if (!user.value) return redirectToLogin()
+  if (!session.value) return redirectToLogin()
   if (isAdmin.value === true) return
   if (isAdmin.value === false) return navigateTo('/')
 

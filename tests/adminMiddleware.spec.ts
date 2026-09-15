@@ -7,16 +7,16 @@ import { REDIRECT_COOKIE_KEY } from '~/composables/useAuth'
 import { ApiError } from '~/composables/useApi'
 import adminMiddleware from '~/middleware/admin'
 
-type FakeUser = { id: string } | null
+type FakeSession = { access_token: string } | null
 
 const { navigateToMock, apiMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn((to: unknown) => ({ __navigateTo: to })),
   apiMock: vi.fn(),
 }))
 
-const user = ref<FakeUser>(null)
+const session = ref<FakeSession>(null)
 
-mockNuxtImport('useSupabaseUser', () => () => user)
+mockNuxtImport('useSupabaseSession', () => () => session)
 mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useApi', () => () => apiMock)
 
@@ -26,7 +26,7 @@ function route(fullPath: string) {
 
 beforeEach(() => {
   clearNuxtState()
-  user.value = null
+  session.value = null
   navigateToMock.mockClear()
   apiMock.mockReset()
 })
@@ -43,7 +43,7 @@ describe('middleware/admin', () => {
   })
 
   it('lets an admin through and caches the check so it is not repeated', async () => {
-    user.value = { id: 'u1' }
+    session.value = { access_token: 't1' }
     apiMock.mockResolvedValue({ sub: 'u1' })
 
     const result = await adminMiddleware(route('/admin'), route('/'))
@@ -56,7 +56,7 @@ describe('middleware/admin', () => {
   })
 
   it('redirects to / when the API rejects with 403', async () => {
-    user.value = { id: 'u1' }
+    session.value = { access_token: 't1' }
     apiMock.mockRejectedValue(new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403 }))
 
     const result = await adminMiddleware(route('/admin'), route('/'))
@@ -66,7 +66,7 @@ describe('middleware/admin', () => {
   })
 
   it('redirects to /?login=1 when the API rejects with 401', async () => {
-    user.value = { id: 'u1' }
+    session.value = { access_token: 't1' }
     apiMock.mockRejectedValue(new ApiError({ type: 'about:blank', title: 'Unauthorized', status: 401 }))
 
     const result = await adminMiddleware(route('/account'), route('/'))

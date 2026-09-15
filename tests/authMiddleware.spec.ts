@@ -6,15 +6,15 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { REDIRECT_COOKIE_KEY } from '~/composables/useAuth'
 import authMiddleware from '~/middleware/auth'
 
-type FakeUser = { id: string } | null
+type FakeSession = { access_token: string } | null
 
 const { navigateToMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn((to: unknown) => ({ __navigateTo: to })),
 }))
 
-const user = ref<FakeUser>(null)
+const session = ref<FakeSession>(null)
 
-mockNuxtImport('useSupabaseUser', () => () => user)
+mockNuxtImport('useSupabaseSession', () => () => session)
 mockNuxtImport('navigateTo', () => navigateToMock)
 
 function route(fullPath: string) {
@@ -23,7 +23,7 @@ function route(fullPath: string) {
 
 beforeEach(() => {
   clearNuxtState()
-  user.value = null
+  session.value = null
   navigateToMock.mockClear()
 })
 
@@ -40,7 +40,7 @@ describe('middleware/auth', () => {
   })
 
   it('lets authenticated visitors through', () => {
-    user.value = { id: 'u1' }
+    session.value = { access_token: 't1' }
 
     const result = authMiddleware(route('/account/orders'), route('/'))
 
