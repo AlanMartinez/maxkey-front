@@ -1,5 +1,5 @@
 /** Cookie carrying the path to return to after Google sign-in (design.md §6e, §9), read+cleared by pages/auth/callback.vue. */
-export const REDIRECT_COOKIE_KEY = 'nexo.redirect'
+export const REDIRECT_COOKIE_KEY = 'chekeys.redirect'
 
 /**
  * Session state and Google sign-in flow. Guests can browse and check out without an account (auth spec);

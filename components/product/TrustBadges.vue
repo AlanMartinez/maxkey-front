@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Reassurance lines of the purchase card in the Nexo mock.
+// Reassurance lines of the purchase card in the Chekeys mock.
 const badges = [
   { label: 'Entrega automática en minutos', icon: 'bolt' },
   { label: 'Garantía de reembolso 24h', icon: 'shield' },

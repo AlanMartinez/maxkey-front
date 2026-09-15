@@ -1,7 +1,7 @@
 import type { CreateOrderRequest, CreateOrderResponse } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
 
-export const LAST_ORDER_STORAGE_KEY = 'nexo.lastOrderId'
+export const LAST_ORDER_STORAGE_KEY = 'chekeys.lastOrderId'
 export type CheckoutStatus = 'idle' | 'submitting' | 'redirecting' | 'error'
 
 /**
