@@ -28,9 +28,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  const debugCookie = useCookie<string | null>('debug-admin-mw', { path: '/', maxAge: 60 })
-  const { data, error: sessionError } = await supabase.auth.getSession()
-  debugCookie.value = JSON.stringify({ hasSession: !!data.session, error: sessionError?.message ?? null, isAdminCached: isAdmin.value, t: Date.now() })
+  const { data } = await supabase.auth.getSession()
 
   if (!data.session) return redirectToLogin()
   if (isAdmin.value === true) return
@@ -40,13 +38,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     await useApi(data.session.access_token)('/admin/me')
     isAdmin.value = true
   } catch (error) {
-    const apiDebug = useCookie<string | null>('debug-admin-api', { path: '/', maxAge: 60 })
-    apiDebug.value = JSON.stringify({
-      isApiError: error instanceof ApiError,
-      status: error instanceof ApiError ? error.status : null,
-      message: error instanceof Error ? error.message : String(error),
-      t: Date.now(),
-    })
     if (error instanceof ApiError && error.status === 401) return redirectToLogin()
     isAdmin.value = false
     return navigateTo('/')
