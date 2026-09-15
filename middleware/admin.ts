@@ -24,7 +24,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?login=1')
   }
 
-  const { data } = await supabase.auth.getSession()
+  const debugCookie = useCookie<string | null>('debug-admin-mw', { path: '/', maxAge: 60 })
+  const { data, error } = await supabase.auth.getSession()
+  debugCookie.value = JSON.stringify({ hasSession: !!data.session, error: error?.message ?? null, t: Date.now() })
 
   if (!data.session) return redirectToLogin()
   if (isAdmin.value === true) return
