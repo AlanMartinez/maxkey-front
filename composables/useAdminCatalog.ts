@@ -103,20 +103,22 @@ export async function useAdminCatalog() {
     }
   }
 
-  // Same reasoning as deleteProduct — no DELETE endpoint, reuse PUT with isActive: false.
+  // Hard delete — backend exposes DELETE /admin/catalog/variants/{id} for this one (unlike
+  // product deletion, which still has no DELETE endpoint and stays a soft isActive:false PUT).
   async function deleteVariant(productId: string, variantId: string) {
-    const product = products.value.find((p) => p.id === productId)
-    const variant = product?.variants.find((v) => v.id === variantId)
-    if (!variant) return false
-    return saveVariant(productId, variantId, {
-      price: variant.price,
-      discountPercentage: variant.discountPercentage,
-      currency: variant.currency,
-      region: variant.region,
-      edition: variant.edition,
-      sortOrder: variant.sortOrder,
-      isActive: false,
-    })
+    saving.value = true
+    saveError.value = null
+    try {
+      await api(`/admin/catalog/variants/${variantId}`, { method: 'DELETE' })
+      const product = products.value.find((p) => p.id === productId)
+      if (product) product.variants = product.variants.filter((v) => v.id !== variantId)
+      return true
+    } catch (e) {
+      saveError.value = toApiError(e)
+      return false
+    } finally {
+      saving.value = false
+    }
   }
 
   return {
