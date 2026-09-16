@@ -31,7 +31,11 @@ export function useAuth() {
   const isAdmin = useState<boolean | null>('admin-check', () => null)
   const adminCheckWatcherRegistered = useState('admin-check-watcher', () => false)
 
-  const isAuthenticated = computed(() => !!user.value)
+  // DEV-ONLY: always a signed-in admin, no Google login or real admin account needed locally.
+  // `import.meta.dev` is a compile-time constant — false (and dead-code-eliminated) in production builds.
+  if (import.meta.dev) isAdmin.value = true
+
+  const isAuthenticated = computed(() => import.meta.dev || !!user.value)
 
   async function checkAdminStatus() {
     if (isAdmin.value !== null) return
@@ -52,8 +56,9 @@ export function useAuth() {
     effectScope(true).run(() => watch(isAuthenticated, (value) => { if (value) checkAdminStatus() }))
   }
 
-  const email = computed(() => user.value?.email ?? null)
+  const email = computed(() => (import.meta.dev ? 'dev@localhost' : user.value?.email ?? null))
   const displayName = computed(() => {
+    if (import.meta.dev) return 'Dev Admin'
     const metadata = user.value?.user_metadata as Record<string, unknown> | undefined
     return (metadata?.full_name as string | undefined) ?? (metadata?.name as string | undefined) ?? email.value
   })
@@ -74,7 +79,7 @@ export function useAuth() {
 
   async function signOut() {
     await supabase.auth.signOut()
-    isAdmin.value = null
+    if (!import.meta.dev) isAdmin.value = null
     await navigateTo('/')
   }
 

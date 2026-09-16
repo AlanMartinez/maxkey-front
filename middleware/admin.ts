@@ -19,6 +19,10 @@ import { ApiError } from '~/composables/useApi'
  * without a session even right after this one succeeded, which 401'd `/admin/me` for a logged-in admin.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
+  // DEV-ONLY: skip the admin gate entirely so local development never needs a real admin account.
+  // `import.meta.dev` is a compile-time constant — false (and dead-code-eliminated) in production builds.
+  if (import.meta.dev) return
+
   const isAdmin = useState<boolean | null>('admin-check', () => null)
   const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
   const supabase = useSupabaseClient()

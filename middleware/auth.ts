@@ -9,6 +9,10 @@ import { REDIRECT_COOKIE_KEY } from '~/composables/useAuth'
  * when route middleware runs, racing the module's async session-resolution plugin.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
+  // DEV-ONLY: skip the login gate entirely so local development never needs a real Google session.
+  // `import.meta.dev` is a compile-time constant — false (and dead-code-eliminated) in production builds.
+  if (import.meta.dev) return
+
   const redirectCookie = useCookie(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })
   const supabase = useSupabaseClient()
 
