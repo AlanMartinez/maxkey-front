@@ -2,7 +2,7 @@
 import type { CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Catálogo · Admin · Chekeys' })
+useHead({ title: 'Catálogo · Admin · CHEKEYS' })
 
 const {
   products,

@@ -2,7 +2,7 @@
 import type { CarouselSlideRequest } from '~/types/api'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Carrusel · Admin · Chekeys' })
+useHead({ title: 'Carrusel · Admin · CHEKEYS' })
 
 const { slides, products, status, error, refresh, saving, saveError, createSlide, updateSlide, deleteSlide } = await useAdminCarousel()
 
