@@ -14,7 +14,7 @@ const { data: order, status, error, refresh } = await useAsyncData(`order-${id}`
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Pedido no encontrado', fatal: true })
 
-useHead({ title: 'Detalle de compra · Chekeys' })
+useHead({ title: 'Detalle de compra · CHEKEYS' })
 </script>
 
 <template>

@@ -24,8 +24,8 @@ async function handleSignOut() {
 <template>
   <header class="glass sticky top-0 z-40 border-x-0 border-t-0">
     <div class="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-4">
-      <NuxtLink to="/" class="flex items-center" aria-label="Chekeys">
-        <img src="/images/icono.png" alt="Chekeys" class="h-8 w-auto" />
+      <NuxtLink to="/" class="flex items-center" aria-label="CHEKEYS">
+        <img src="/images/icono.png" alt="CHEKEYS" class="h-8 w-auto" />
       </NuxtLink>
       <label class="relative ml-auto hidden w-full max-w-xs sm:block">
         <span class="sr-only">Buscar</span>

@@ -28,7 +28,12 @@ export function recommendedVariant<T extends ProductVariantDto>(variants: T[]): 
   return variants.find((v) => v.oldPrice !== undefined && v.oldPrice > v.price)
 }
 
-/** Gallery sources for the product page: the optional `images` list, else the single catalog image. */
-export function galleryImages(product: Pick<ProductDetail, 'slug' | 'imageUrl' | 'images'>): string[] {
-  return product.images?.length ? product.images : [productImageUrl(product)]
+/**
+ * Gallery sources for the product page: the optional `images` list, else the dedicated
+ * `detailImageUrl` (sized for the wider product view), falling back to the catalog `imageUrl`
+ * only when no detail image was configured.
+ */
+export function galleryImages(product: Pick<ProductDetail, 'slug' | 'imageUrl' | 'detailImageUrl' | 'images'>): string[] {
+  if (product.images?.length) return product.images
+  return [product.detailImageUrl || productImageUrl(product)]
 }

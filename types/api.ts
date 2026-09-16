@@ -26,7 +26,9 @@ export interface ProductVariantDto {
 export interface ProductDetail extends ProductSummary {
   description: string
   variants: ProductVariantDto[]
-  /** Gallery URLs (main image first). Not served by the API yet — needs a `Product.Images` list backend-side; the UI falls back to `imageUrl`. */
+  /** Wider product-view image (backend field `DetailImageUrl`); falls back to `imageUrl` when unset. */
+  detailImageUrl?: string
+  /** Gallery URLs (main image first). Not served by the API yet — needs a `Product.Images` list backend-side; the UI falls back to `detailImageUrl`/`imageUrl`. */
   images?: string[]
 }
 
@@ -121,6 +123,10 @@ export interface AdminProduct {
   isActive: boolean
   imageKey?: string
   imageUrl: string
+  /** R2 key for the wider product-detail image (backend field `DetailImageKey`). */
+  detailImageKey?: string
+  /** Built the same way as `imageUrl`; falls back to it when unset. */
+  detailImageUrl?: string
   description: string
   variants: AdminVariant[]
 }
@@ -131,6 +137,7 @@ export interface UpdateProductRequest {
   platform: string
   description?: string
   imageKey?: string
+  detailImageKey?: string
   isActive: boolean
 }
 
@@ -141,6 +148,7 @@ export interface CreateProductRequest {
   platform: string
   description?: string
   imageKey?: string
+  detailImageKey?: string
   isActive: boolean
 }
 

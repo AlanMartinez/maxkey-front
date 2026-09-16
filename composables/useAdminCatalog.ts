@@ -73,21 +73,18 @@ export async function useAdminCatalog() {
     }
   }
 
-  // Backend never deletes the row — it soft-deletes (isActive: false) and returns the updated record.
+  // No DELETE endpoint exists backend-side — "delete" reuses the existing PUT, flipping isActive
+  // to false. Row stays in the list (greyed out via isActive), same as any other product edit.
   async function deleteProduct(id: string) {
-    saving.value = true
-    saveError.value = null
-    try {
-      const updated = await api<AdminProduct>(`/admin/catalog/products/${id}`, { method: 'DELETE' })
-      const index = products.value.findIndex((p) => p.id === id)
-      if (index !== -1) products.value[index] = updated
-      return true
-    } catch (e) {
-      saveError.value = toApiError(e)
-      return false
-    } finally {
-      saving.value = false
-    }
+    const product = products.value.find((p) => p.id === id)
+    if (!product) return false
+    return saveProduct(id, {
+      name: product.name,
+      platform: product.platform,
+      description: product.description,
+      imageKey: product.imageKey,
+      isActive: false,
+    })
   }
 
   async function createVariant(productId: string, body: CreateProductVariantRequest) {
@@ -106,22 +103,20 @@ export async function useAdminCatalog() {
     }
   }
 
-  // Soft-delete, same as deleteProduct — the row stays, isActive flips to false.
+  // Same reasoning as deleteProduct — no DELETE endpoint, reuse PUT with isActive: false.
   async function deleteVariant(productId: string, variantId: string) {
-    saving.value = true
-    saveError.value = null
-    try {
-      const updated = await api<AdminVariant>(`/admin/catalog/variants/${variantId}`, { method: 'DELETE' })
-      const product = products.value.find((p) => p.id === productId)
-      const index = product?.variants.findIndex((v) => v.id === variantId) ?? -1
-      if (product && index !== -1) product.variants[index] = updated
-      return true
-    } catch (e) {
-      saveError.value = toApiError(e)
-      return false
-    } finally {
-      saving.value = false
-    }
+    const product = products.value.find((p) => p.id === productId)
+    const variant = product?.variants.find((v) => v.id === variantId)
+    if (!variant) return false
+    return saveVariant(productId, variantId, {
+      price: variant.price,
+      discountPercentage: variant.discountPercentage,
+      currency: variant.currency,
+      region: variant.region,
+      edition: variant.edition,
+      sortOrder: variant.sortOrder,
+      isActive: false,
+    })
   }
 
   return {

@@ -12,7 +12,7 @@ const { data: product, status, error, refresh } = await useAsyncData(`product-${
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
 
-useHead({ title: () => (product.value ? `${product.value.name} · Chekeys` : 'Chekeys') })
+useHead({ title: () => (product.value ? `${product.value.name} · CHEKEYS` : 'CHEKEYS') })
 
 const selectedId = ref<string | null>(defaultVariant(product.value?.variants ?? [])?.id ?? null)
 const selected = computed(() => product.value?.variants.find((v) => v.id === selectedId.value) ?? defaultVariant(product.value?.variants ?? []))

@@ -15,12 +15,14 @@ const emit = defineEmits<{
 const name = ref(props.product.name)
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
+const detailImageKey = ref(props.product.detailImageKey ?? '')
 const isActive = ref(props.product.isActive)
 
 watch(() => props.product, (product) => {
   name.value = product.name
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
+  detailImageKey.value = product.detailImageKey ?? ''
   isActive.value = product.isActive
 })
 
@@ -30,6 +32,7 @@ function submit() {
     platform: props.product.platform,
     description: description.value,
     imageKey: imageKey.value || undefined,
+    detailImageKey: detailImageKey.value || undefined,
     isActive: isActive.value,
   })
 }
@@ -74,8 +77,13 @@ function submitNewVariant() {
     </label>
 
     <label class="flex flex-col gap-2 text-sm">
-      <span class="text-white/70">Clave de imagen (R2)</span>
+      <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
       <input v-model="imageKey" type="text" placeholder="products/slug.png" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+    </label>
+
+    <label class="flex flex-col gap-2 text-sm">
+      <span class="text-white/70">Clave de imagen — vista de producto (R2)</span>
+      <input v-model="detailImageKey" type="text" placeholder="products/slug-detail.png" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2 text-sm text-white/70">

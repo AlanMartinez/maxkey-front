@@ -57,27 +57,29 @@ const overlayButton = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 ite
       </NuxtLink>
     </div>
 
-    <button type="button" aria-label="Oferta anterior" :class="overlayButton" class="left-3 sm:left-4" @click="prev()">‹</button>
-    <button type="button" aria-label="Oferta siguiente" :class="overlayButton" class="right-3 sm:right-4" @click="next()">›</button>
+    <template v-if="slides.length > 1">
+      <button type="button" aria-label="Oferta anterior" :class="overlayButton" class="left-3 sm:left-4" @click="prev()">‹</button>
+      <button type="button" aria-label="Oferta siguiente" :class="overlayButton" class="right-3 sm:right-4" @click="next()">›</button>
 
-    <div
-      class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-bg/55 px-3 py-2 backdrop-blur-sm sm:bottom-5"
-      role="tablist"
-      aria-label="Diapositivas"
-      @keydown="onTablistKeydown"
-    >
-      <button
-        v-for="(slide, i) in slides"
-        :key="slide.id"
-        type="button"
-        role="tab"
-        :aria-selected="i === active"
-        :tabindex="i === active ? 0 : -1"
-        :aria-label="`Ir a la oferta ${i + 1}`"
-        class="h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        :class="i === active ? 'w-6 bg-accent' : 'w-2 bg-white/30 hover:bg-white/60'"
-        @click="goTo(i)"
-      />
-    </div>
+      <div
+        class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-bg/55 px-3 py-2 backdrop-blur-sm sm:bottom-5"
+        role="tablist"
+        aria-label="Diapositivas"
+        @keydown="onTablistKeydown"
+      >
+        <button
+          v-for="(slide, i) in slides"
+          :key="slide.id"
+          type="button"
+          role="tab"
+          :aria-selected="i === active"
+          :tabindex="i === active ? 0 : -1"
+          :aria-label="`Ir a la oferta ${i + 1}`"
+          class="h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          :class="i === active ? 'w-6 bg-accent' : 'w-2 bg-white/30 hover:bg-white/60'"
+          @click="goTo(i)"
+        />
+      </div>
+    </template>
   </section>
 </template>
