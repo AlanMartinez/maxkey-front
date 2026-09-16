@@ -1,3 +1,5 @@
+import { ApiError } from '~/composables/useApi'
+
 /** Cookie carrying the path to return to after Google sign-in (design.md §6e, §9), read+cleared by pages/auth/callback.vue. */
 export const REDIRECT_COOKIE_KEY = 'chekeys.redirect'
 
@@ -24,9 +26,39 @@ export function useAuth() {
     effectScope(true).run(() => watch(() => route.query.login, (value) => { if (value === '1') openLogin() }))
   }
 
-  const isAuthenticated = computed(() => !!user.value)
-  const email = computed(() => user.value?.email ?? null)
+  // Shared with `middleware/admin.ts`, which caches `GET /admin/me` under the same key. Checked here too so
+  // the admin nav link + avatar glow can light up on any page, not only after visiting an /admin/* route.
+  const isAdmin = useState<boolean | null>('admin-check', () => null)
+  const adminCheckWatcherRegistered = useState('admin-check-watcher', () => false)
+
+  // DEV-ONLY: always a signed-in admin, no Google login or real admin account needed locally.
+  // `import.meta.dev` is a compile-time constant — false (and dead-code-eliminated) in production builds.
+  if (import.meta.dev) isAdmin.value = true
+
+  const isAuthenticated = computed(() => import.meta.dev || !!user.value)
+
+  async function checkAdminStatus() {
+    if (isAdmin.value !== null) return
+    try {
+      await useApi()('/admin/me')
+      isAdmin.value = true
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) return
+      isAdmin.value = false
+    }
+  }
+
+  // Client-only: SSR would double the request (once per render pass) and the middleware already
+  // covers the server-side gate on /admin/* routes.
+  if (import.meta.client && !adminCheckWatcherRegistered.value) {
+    adminCheckWatcherRegistered.value = true
+    if (isAuthenticated.value) checkAdminStatus()
+    effectScope(true).run(() => watch(isAuthenticated, (value) => { if (value) checkAdminStatus() }))
+  }
+
+  const email = computed(() => (import.meta.dev ? 'dev@localhost' : user.value?.email ?? null))
   const displayName = computed(() => {
+    if (import.meta.dev) return 'Dev Admin'
     const metadata = user.value?.user_metadata as Record<string, unknown> | undefined
     return (metadata?.full_name as string | undefined) ?? (metadata?.name as string | undefined) ?? email.value
   })
@@ -47,8 +79,9 @@ export function useAuth() {
 
   async function signOut() {
     await supabase.auth.signOut()
+    if (!import.meta.dev) isAdmin.value = null
     await navigateTo('/')
   }
 
-  return { user, isAuthenticated, email, displayName, avatarUrl, isLoginOpen, openLogin, closeLogin, signInWithGoogle, signOut }
+  return { user, isAuthenticated, isAdmin, email, displayName, avatarUrl, isLoginOpen, openLogin, closeLogin, signInWithGoogle, signOut }
 }

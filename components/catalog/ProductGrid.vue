@@ -3,7 +3,7 @@ import type { ProductSummary } from '~/types/api'
 
 withDefaults(defineProps<{ products: ProductSummary[]; pending?: boolean }>(), { pending: false })
 
-const grid = 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'
+const grid = 'grid gap-5 sm:grid-cols-2 lg:grid-cols-4'
 </script>
 
 <template>

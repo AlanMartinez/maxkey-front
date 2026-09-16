@@ -14,11 +14,6 @@ if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Pro
 
 useHead({ title: () => (product.value ? `${product.value.name} · Chekeys` : 'Chekeys') })
 
-// PLACEHOLDER: the API exposes no ratings yet; static figures mirror the mock until reviews land backend-side.
-const PLACEHOLDER_RATING: { value: number; reviews: number } = { value: 4.9, reviews: 3400 }
-const ratingValue = PLACEHOLDER_RATING.value.toLocaleString('es-AR', { minimumFractionDigits: 1 })
-const ratingReviews = `${PLACEHOLDER_RATING.reviews.toLocaleString('es-AR')} reseñas`
-
 const selectedId = ref<string | null>(defaultVariant(product.value?.variants ?? [])?.id ?? null)
 const selected = computed(() => product.value?.variants.find((v) => v.id === selectedId.value) ?? defaultVariant(product.value?.variants ?? []))
 const recommendedId = computed(() => recommendedVariant(product.value?.variants ?? [])?.id ?? null)
@@ -83,12 +78,6 @@ async function buyNow() {
         <header class="flex flex-col gap-2">
           <p class="text-sm text-white/60">{{ product.platform }}</p>
           <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{{ product.name }}</h1>
-          <p class="flex items-center gap-1.5 text-sm text-white/60" aria-label="Valoración">
-            <svg class="h-3.5 w-3.5 text-[#E8B923]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.3l7.1-.7z" />
-            </svg>
-            <span class="text-white">{{ ratingValue }}</span> · {{ ratingReviews }}
-          </p>
         </header>
 
         <VariantSelector v-model="selectedId" :variants="product.variants" :recommended-id="recommendedId" />
