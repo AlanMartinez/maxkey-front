@@ -22,6 +22,14 @@ const {
 const showNewProduct = ref(false)
 const newProduct = ref({ slug: '', name: '', platform: '', description: '' })
 
+// Client-side filter — the admin list has no pagination, and a text filter is enough at this scale.
+const search = ref('')
+const filteredProducts = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return products.value
+  return products.value.filter((p) => p.name.toLowerCase().includes(term) || p.platform.toLowerCase().includes(term) || p.slug.toLowerCase().includes(term))
+})
+
 async function submitNewProduct() {
   const created = await createProduct({
     slug: newProduct.value.slug,
@@ -65,16 +73,25 @@ async function submitNewProduct() {
       <AppButton type="submit" size="sm" :loading="saving" class="self-start">Crear producto</AppButton>
     </form>
 
+    <input
+      v-if="products.length"
+      v-model="search"
+      type="search"
+      placeholder="Buscar por nombre, plataforma o slug…"
+      class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent"
+    />
+
     <div v-if="status === 'pending'" class="grid gap-4">
-      <Skeleton v-for="n in 3" :key="n" class="h-48 w-full" />
+      <Skeleton v-for="n in 3" :key="n" class="h-24 w-full" />
     </div>
     <ErrorState v-else-if="error">
       <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
     </ErrorState>
     <EmptyState v-else-if="!products.length" title="Todavía no hay productos" />
+    <EmptyState v-else-if="!filteredProducts.length" title="Ningún producto coincide con la búsqueda" />
     <div v-else class="grid gap-4">
       <ProductEditor
-        v-for="product in products"
+        v-for="product in filteredProducts"
         :key="product.id"
         :product="product"
         :saving="saving"
