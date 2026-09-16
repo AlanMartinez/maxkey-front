@@ -23,3 +23,5 @@ Thumbs.db
 
 # CodeGraph index (per checkout)
 .codegraph/
+.vercel
+.env*
