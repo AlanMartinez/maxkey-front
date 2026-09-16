@@ -53,7 +53,7 @@ const buttonLabel = computed(() => {
   <article class="glass group flex flex-col overflow-hidden rounded-2xl transition hover:border-accent/50">
     <!-- The link covers image and copy; the add button stays a sibling so it never triggers navigation. -->
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
-      <div class="relative aspect-[4/3] overflow-hidden bg-white/5">
+      <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
         <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
         <AppBadge tone="accent" class="absolute left-3 top-3">{{ product.platform }}</AppBadge>
         <AppBadge v-if="discount > 0" tone="success" class="absolute right-3 top-3">-{{ discount }}%</AppBadge>
