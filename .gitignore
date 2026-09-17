@@ -6,6 +6,9 @@ dist/
 .nitro/
 .cache/
 
+# Vercel CLI (local project link, org/project IDs)
+.vercel/
+
 # Environment
 .env
 .env.*

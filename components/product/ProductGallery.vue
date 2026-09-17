@@ -1,31 +1,144 @@
 <script setup lang="ts">
 const props = defineProps<{ images: string[]; alt: string }>()
 
-const activeIndex = ref(0)
-const active = computed(() => props.images[activeIndex.value] ?? props.images[0])
-watch(() => props.images, () => (activeIndex.value = 0))
+const mainImage = computed(() => props.images[0])
+const visibleThumbnails = computed(() => props.images.slice(0, 3))
+const extraCount = computed(() => Math.max(props.images.length - 3, 0))
+
+const isZoomOpen = ref(false)
+const zoomIndex = ref(0)
+const scrollContainer = ref<HTMLDivElement | null>(null)
+
+function openZoom(index = 0) {
+  zoomIndex.value = index
+  isZoomOpen.value = true
+}
+function closeZoom() {
+  isZoomOpen.value = false
+}
+function nextImage() {
+  zoomIndex.value = (zoomIndex.value + 1) % props.images.length
+}
+function prevImage() {
+  zoomIndex.value = (zoomIndex.value - 1 + props.images.length) % props.images.length
+}
+let scrollSettleTimer: ReturnType<typeof setTimeout> | null = null
+function onModalScroll() {
+  if (scrollSettleTimer) clearTimeout(scrollSettleTimer)
+  scrollSettleTimer = setTimeout(() => {
+    const el = scrollContainer.value
+    if (!el || el.clientWidth === 0) return
+    const i = Math.round(el.scrollLeft / el.clientWidth)
+    if (i !== zoomIndex.value) zoomIndex.value = i
+  }, 120)
+}
+function onKeydown(event: KeyboardEvent) {
+  if (!isZoomOpen.value) return
+  if (event.key === 'Escape') closeZoom()
+  else if (event.key === 'ArrowRight') nextImage()
+  else if (event.key === 'ArrowLeft') prevImage()
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
+watch(zoomIndex, async (i) => {
+  await nextTick()
+  scrollContainer.value?.scrollTo({ left: i * scrollContainer.value.clientWidth, behavior: 'smooth' })
+})
+watch(isZoomOpen, async (open) => {
+  if (!open) return
+  await nextTick()
+  scrollContainer.value?.scrollTo({ left: zoomIndex.value * scrollContainer.value.clientWidth })
+})
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
-    <div class="glass aspect-[4/3] overflow-hidden rounded-2xl bg-white/5">
-      <img v-if="active" :src="active" :alt="alt" class="h-full w-full object-cover" />
+    <div class="glass group relative aspect-[3/4] overflow-hidden rounded-2xl bg-white/5">
+      <img v-if="mainImage" :src="mainImage" :alt="alt" class="h-full w-full object-cover" />
+      <button
+        v-if="mainImage"
+        type="button"
+        aria-label="Ver imagen completa"
+        class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100 focus-visible:opacity-100"
+        @click="openZoom(0)"
+      >
+        <span class="glass flex h-11 w-11 items-center justify-center rounded-full text-white">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </span>
+      </button>
     </div>
     <!-- Thumbnails only make sense with a real gallery; a single image renders no empty tiles. -->
-    <div v-if="images.length > 1" class="grid grid-cols-4 gap-3" role="tablist" aria-label="Vistas del producto">
+    <div v-if="images.length > 1" class="grid grid-cols-3 gap-3">
       <button
-        v-for="(image, i) in images"
+        v-for="(image, i) in visibleThumbnails"
         :key="`${i}-${image}`"
         type="button"
-        role="tab"
-        :aria-selected="i === activeIndex"
-        :aria-label="`Vista ${i + 1}`"
-        class="glass aspect-square overflow-hidden rounded-xl bg-white/5 transition"
-        :class="i === activeIndex ? 'border-accent ring-1 ring-accent/60' : 'hover:border-white/30'"
-        @click="activeIndex = i"
+        :aria-label="i === 2 && extraCount > 0 ? `Ver ${extraCount} imágenes más` : `Ver vista ${i + 1}`"
+        class="glass relative aspect-square overflow-hidden rounded-xl bg-white/5 transition hover:border-white/30"
+        @click="openZoom(i)"
       >
         <img :src="image" :alt="`${alt} — vista ${i + 1}`" loading="lazy" class="h-full w-full object-cover" />
+        <span
+          v-if="i === 2 && extraCount > 0"
+          class="absolute inset-0 flex items-center justify-center bg-black/60 text-lg font-semibold text-white"
+        >
+          +{{ extraCount }}
+        </span>
       </button>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="isZoomOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/80" aria-hidden="true" @click="closeZoom()" />
+      <div role="dialog" aria-modal="true" :aria-label="alt" class="relative flex max-h-full w-full max-w-4xl items-center justify-center">
+        <button type="button" aria-label="Cerrar" class="absolute right-0 top-0 -translate-y-full rounded-xl p-2 text-white/70 transition hover:text-white" @click="closeZoom()">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+
+        <button
+          v-if="images.length > 1"
+          type="button"
+          aria-label="Imagen anterior"
+          class="absolute left-2 z-10 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
+          @click="prevImage()"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+        </button>
+
+        <div
+          ref="scrollContainer"
+          class="flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          @scroll="onModalScroll"
+        >
+          <div v-for="(image, i) in images" :key="`${i}-${image}`" class="flex w-full flex-none snap-center items-center justify-center">
+            <img :src="image" :alt="`${alt} — vista ${i + 1}`" class="max-h-[85vh] w-auto max-w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+
+        <button
+          v-if="images.length > 1"
+          type="button"
+          aria-label="Imagen siguiente"
+          class="absolute right-2 z-10 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
+          @click="nextImage()"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      </div>
+
+      <div v-if="images.length > 1" class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
+        <span
+          v-for="(image, i) in images"
+          :key="`dot-${i}-${image}`"
+          class="h-1.5 w-1.5 rounded-full transition"
+          :class="i === zoomIndex ? 'bg-white' : 'bg-white/30'"
+        />
+      </div>
+    </div>
+  </Teleport>
 </template>
