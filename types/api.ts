@@ -145,6 +145,7 @@ export interface AdminProduct {
 
 // mirrors admin-dashboard design.md D3 "PUT /admin/catalog/products/{id}" request body
 export interface UpdateProductRequest {
+  slug: string
   name: string
   platform: string
   description?: string
