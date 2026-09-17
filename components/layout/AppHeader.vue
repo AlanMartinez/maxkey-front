@@ -89,7 +89,7 @@ const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-wh
             </button>
             <div v-if="isAccountMenuOpen" class="glass absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-white/10 p-1.5 text-sm">
               <NuxtLink to="/account/orders" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Mis compras</NuxtLink>
-              <NuxtLink v-if="isAdmin" to="/admin/buyers" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Panel admin</NuxtLink>
+              <NuxtLink v-if="isAdmin" to="/admin" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Panel admin</NuxtLink>
               <button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-white/80 transition hover:bg-white/5 hover:text-white" @click="handleSignOut()">Cerrar sesión</button>
             </div>
           </div>
