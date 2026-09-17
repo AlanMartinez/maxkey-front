@@ -28,8 +28,8 @@ watch(data, (list) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-10">
-    <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-8 sm:gap-10">
+    <div class="flex flex-col gap-4 sm:gap-6">
       <HeroCarousel />
       <TrustStrip />
     </div>

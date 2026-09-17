@@ -50,35 +50,43 @@ const buttonLabel = computed(() => {
 </script>
 
 <template>
-  <article class="glass group flex flex-col overflow-hidden rounded-2xl transition hover:border-accent/50">
+  <!-- Below `sm` the card sits three-per-row on a phone (~110px wide), so paddings, type and the
+       add button collapse; the button keeps its label for screen readers but shows icon only. -->
+  <article class="glass group flex flex-col overflow-hidden rounded-xl transition hover:border-accent/50 sm:rounded-2xl">
     <!-- The link covers image and copy; the add button stays a sibling so it never triggers navigation. -->
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
         <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
-        <AppBadge tone="accent" class="absolute left-3 top-3">{{ product.platform }}</AppBadge>
-        <AppBadge v-if="discount > 0" tone="success" class="absolute right-3 top-3">-{{ discount }}%</AppBadge>
+        <!-- Long platform names ("Cross-platform") wrap inside a ~110px card, so the badge waits for `sm`. -->
+        <div class="absolute left-3 top-3 hidden sm:block">
+          <AppBadge tone="accent">{{ product.platform }}</AppBadge>
+        </div>
       </div>
-      <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
-        <h3 class="font-semibold leading-tight">{{ product.name }}</h3>
-        <p class="mt-auto flex items-baseline gap-2 text-sm">
-          <span class="text-white/50">Desde</span>
-          <span class="text-lg font-semibold">{{ formatMoney(product.fromPrice) }}</span>
-          <span v-if="product.oldPrice" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</span>
-        </p>
+      <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-4 sm:pb-3">
+        <h3 class="line-clamp-2 text-sm font-semibold leading-tight sm:text-base">{{ product.name }}</h3>
+        <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="hidden text-white/50 sm:inline">Desde</span>
+            <span class="text-base font-semibold sm:text-lg">{{ formatMoney(product.fromPrice) }}</span>
+            <AppBadge v-if="discount > 0" tone="discount">-{{ discount }}%</AppBadge>
+          </p>
+          <p v-if="product.oldPrice" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
+        </div>
       </div>
     </NuxtLink>
-    <div class="px-4 pb-4">
+    <div class="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
       <AppButton
         variant="ghost"
         size="sm"
         class="w-full hover:border-accent hover:text-accent"
         :loading="adding"
+        :aria-label="buttonLabel"
         :aria-live="feedback ? 'polite' : undefined"
         :class="{ 'border-success/60 text-success': feedback === 'added', 'border-red-400/60 text-red-300': feedback === 'max-items' || feedback === 'error' }"
         @click.stop.prevent="addDefaultVariant()"
       >
         <CartIcon v-if="!adding" />
-        {{ buttonLabel }}
+        <span class="hidden sm:inline">{{ buttonLabel }}</span>
       </AppButton>
     </div>
   </article>

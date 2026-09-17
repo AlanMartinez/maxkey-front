@@ -3,13 +3,14 @@ import type { ProductSummary } from '~/types/api'
 
 withDefaults(defineProps<{ products: ProductSummary[]; pending?: boolean }>(), { pending: false })
 
-const grid = 'grid gap-5 sm:grid-cols-2 lg:grid-cols-4'
+// Three per row from phones up (cards go compact below `sm`), four on desktop.
+const grid = 'grid grid-cols-3 gap-3 sm:gap-5 lg:grid-cols-4'
 </script>
 
 <template>
   <div v-if="pending" :class="grid" aria-busy="true">
     <slot name="loading">
-      <Skeleton v-for="n in 6" :key="n" class="h-72" />
+      <Skeleton v-for="n in 6" :key="n" class="h-52 sm:h-72" />
     </slot>
   </div>
   <slot v-else-if="products.length === 0" name="empty" />

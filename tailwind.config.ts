@@ -9,6 +9,7 @@ export default <Partial<Config>>{
         surface: '#12121A',
         accent: { DEFAULT: '#7C5CFC', hover: '#8F6FFF' },
         success: '#22D3A8',
+        discount: '#FF7A45',
       },
       fontFamily: {
         display: ['Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
