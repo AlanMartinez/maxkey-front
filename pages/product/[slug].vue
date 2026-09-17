@@ -112,7 +112,7 @@ async function buyNow() {
 
     <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{{ product.name }}</h1>
 
-    <div class="grid items-start gap-8 lg:grid-cols-[1fr_0.95fr_0.85fr] lg:gap-10">
+    <div class="grid items-start gap-8 lg:grid-cols-[0.85fr_1.1fr_0.85fr] lg:gap-10">
       <ProductGallery :images="images" :alt="product.name" />
 
       <div class="flex flex-col gap-10">
