@@ -99,26 +99,31 @@ async function buyNow() {
   <ErrorState v-else-if="!product">
     <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
   </ErrorState>
-  <article v-else class="flex flex-col gap-10">
+  <article v-else class="flex flex-col gap-6 sm:gap-8 lg:gap-10">
     <nav aria-label="Migas de pan" class="text-sm text-white/50">
       <ol class="flex flex-wrap items-center gap-2">
         <li><NuxtLink to="/" class="transition hover:text-white">Inicio</NuxtLink></li>
         <li aria-hidden="true">/</li>
         <li><NuxtLink :to="{ path: '/', query: { platform: product.platform } }" class="transition hover:text-white">{{ product.platform }}</NuxtLink></li>
         <li aria-hidden="true">/</li>
-        <li class="text-white/80" aria-current="page">{{ product.name }}</li>
+        <li class="min-w-0 truncate text-white/80" aria-current="page">{{ product.name }}</li>
       </ol>
     </nav>
 
-    <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{{ product.name }}</h1>
+    <h1 class="text-2xl font-bold leading-tight tracking-tight sm:text-3xl lg:text-4xl">{{ product.name }}</h1>
 
-    <div class="grid items-start gap-8 lg:grid-cols-[0.85fr_1.1fr_0.85fr] lg:gap-10">
-      <ProductGallery :images="images" :alt="product.name" />
+    <!-- Below `lg` the three columns stack; `order-*` puts the variant picker right under the gallery
+         (where a buyer looks first) and pushes specs/description below it. -->
+    <div class="grid items-start gap-6 sm:gap-8 lg:grid-cols-[0.85fr_1.1fr_0.85fr] lg:gap-10">
+      <div class="mx-auto w-full max-w-xs lg:max-w-none">
+        <ProductGallery :images="images" :alt="product.name" />
+      </div>
 
-      <div class="flex flex-col gap-10">
-        <dl v-if="specs.length" class="flex flex-col gap-7">
-          <div v-for="spec in specs" :key="spec.label" class="flex items-start gap-3">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70">
+      <div class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
+        <!-- Two specs per row on phones/tablets; desktop keeps the vertical list in its column. -->
+        <dl v-if="specs.length" class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
+          <div v-for="spec in specs" :key="spec.label" class="flex items-start gap-2.5 lg:gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 lg:h-9 lg:w-9">
               <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <template v-if="spec.icon === 'platform'">
                   <rect x="3" y="7" width="18" height="10" rx="3" />
@@ -153,10 +158,18 @@ async function buyNow() {
         </section>
       </div>
 
-      <div class="flex flex-col gap-7 lg:sticky lg:top-24">
-        <VariantSelector v-model="selectedId" :variants="product.variants" :recommended-id="recommendedId" />
-
-        <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+      <div class="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:gap-7">
+        <!-- Desktop keeps the picker and full panel in the sticky column; phones/tablets get both inside
+             the floating PurchaseBar at the end of the article, so only the reassurance lines stay here. -->
+        <div class="hidden lg:block">
+          <VariantSelector v-model="selectedId" :variants="product.variants" :recommended-id="recommendedId" />
+        </div>
+        <div class="hidden lg:block">
+          <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+        </div>
+        <div class="border-y border-white/10 py-4 lg:hidden">
+          <TrustBadges compact />
+        </div>
       </div>
     </div>
 
@@ -169,5 +182,17 @@ async function buyNow() {
       </h2>
       <div class="markdown-body leading-relaxed text-white/70" v-html="descriptionHtml" />
     </section>
+
+    <PurchaseBar
+      v-model="selectedId"
+      :variants="product.variants"
+      :recommended-id="recommendedId"
+      :variant="selected"
+      :busy="buying"
+      :added-label="feedback === 'added'"
+      :error="errorMessage"
+      @buy="buyNow()"
+      @add="addToCart()"
+    />
   </article>
 </template>

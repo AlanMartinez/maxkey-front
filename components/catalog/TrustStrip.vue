@@ -9,8 +9,9 @@ const items = [
 
 <template>
   <div class="flex justify-center">
-    <ul class="flex flex-wrap justify-center gap-x-10 gap-y-3 text-sm text-white/60" aria-label="Garantías">
-      <li v-for="item in items" :key="item.label" class="flex items-center gap-2">
+    <!-- Phones: one row of three stacked icon+label cells so the strip never wraps to a second line. -->
+    <ul class="grid w-full grid-cols-3 justify-center gap-x-2 text-[11px] leading-tight text-white/60 sm:flex sm:w-auto sm:flex-wrap sm:gap-x-10 sm:gap-y-3 sm:text-sm" aria-label="Garantías">
+      <li v-for="item in items" :key="item.label" class="flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-2 sm:text-left">
         <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path v-if="item.icon === 'bolt'" d="M13 3L4 14h6l-1 7 9-11h-6z" />
           <template v-else-if="item.icon === 'shield'">
