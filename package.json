@@ -29,6 +29,7 @@
     "vue-tsc": "^3.3.11"
   },
   "overrides": {
-    "html-encoding-sniffer": "4.0.0"
+    "html-encoding-sniffer": "4.0.0",
+    "whatwg-url": "15.1.0"
   }
 }
