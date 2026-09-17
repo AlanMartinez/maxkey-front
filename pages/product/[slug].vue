@@ -35,17 +35,19 @@ type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: st
 const specs = computed<SpecItem[]>(() => {
   if (!product.value) return []
   const items: SpecItem[] = [
-    {
-      icon: 'platform',
-      label: 'Plataforma',
-      value: product.value.platform,
-      link: product.value.activationGuideUrl ? { text: 'Consultar guía de activación', href: product.value.activationGuideUrl } : undefined,
-    },
+    { icon: 'platform', label: 'Plataforma', value: product.value.platform },
   ]
   // Reuses the same per-variant regions VariantSelector shows chips for — there's no separate
   // product-level "activation region" field, and these are the regions the product actually sells in.
   const regions = [...new Set(product.value.variants.map((v) => v.region).filter((r): r is string => !!r))]
-  if (regions.length) items.push({ icon: 'region', label: 'Puede activarse en', value: regions.join(' / ') })
+  if (regions.length) {
+    items.push({
+      icon: 'region',
+      label: 'Puede activarse en',
+      value: regions.join(' / '),
+      link: product.value.activationGuideUrl ? { text: 'Consultar guía de activación', href: product.value.activationGuideUrl } : undefined,
+    })
+  }
   // Defaults to "Enlace de activación" — the common case for this catalog — when the product hasn't set one yet.
   items.push({ icon: 'type', label: 'Tipo', value: product.value.activationType || 'Enlace de activación' })
   return items
@@ -159,7 +161,12 @@ async function buyNow() {
     </div>
 
     <section v-if="isDescriptionLong" id="full-description" class="glass scroll-mt-24 rounded-2xl border border-white/10 p-6 sm:p-8">
-      <h2 class="mb-4 text-xl font-semibold">Descripción completa</h2>
+      <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold">
+        <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h10" />
+        </svg>
+        Descripción completa
+      </h2>
       <div class="markdown-body leading-relaxed text-white/70" v-html="descriptionHtml" />
     </section>
   </article>
