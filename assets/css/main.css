@@ -9,6 +9,17 @@
   h1, h2, h3 {
     @apply font-display;
   }
+  /* Native <option> popups ignore Tailwind's bg/text utilities and fall back to the OS light
+     theme, making white text on white invisible. color-scheme forces the dark native chrome;
+     the explicit colors are a belt-and-suspenders fallback for browsers that still render
+     options at OS default regardless (older Firefox/Safari). */
+  select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: #12121A;
+    color: #F2F1F5;
+  }
 }
 
 @layer components {
