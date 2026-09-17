@@ -79,6 +79,7 @@ export async function useAdminCatalog() {
     const product = products.value.find((p) => p.id === id)
     if (!product) return false
     return saveProduct(id, {
+      slug: product.slug,
       name: product.name,
       platform: product.platform,
       description: product.description,

@@ -15,12 +15,13 @@ const emit = defineEmits<{
 // Collapsed by default so the list stays scannable with many products; click the header to expand.
 const expanded = ref(false)
 
-// Name/description/imageKey/isActive are the editable fields (design D3 UI scope); platform and
-// slug travel through unchanged since PUT takes the full record.
+// Name/description/imageKey/isActive are the editable fields (design D3 UI scope); platform
+// travels through unchanged since PUT takes the full record. Slug is editable too — renaming it
+// breaks any bookmarked or previously shared /product/{slug} link.
+const slug = ref(props.product.slug)
 const name = ref(props.product.name)
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
-const detailImageKey = ref(props.product.detailImageKey ?? '')
 const activationGuideUrl = ref(props.product.activationGuideUrl ?? '')
 const activationType = ref(props.product.activationType ?? '')
 const imageKeys = ref<string[]>([...(props.product.imageKeys ?? [])])
@@ -78,10 +79,10 @@ let savedTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => clearTimeout(savedTimer))
 
 watch(() => props.product, (product) => {
+  slug.value = product.slug
   name.value = product.name
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
-  detailImageKey.value = product.detailImageKey ?? ''
   activationGuideUrl.value = product.activationGuideUrl ?? ''
   activationType.value = product.activationType ?? ''
   imageKeys.value = [...(product.imageKeys ?? [])]
@@ -90,11 +91,11 @@ watch(() => props.product, (product) => {
 
 async function submit() {
   emit('save', {
+    slug: slug.value.trim().toLowerCase(),
     name: name.value,
     platform: props.product.platform,
     description: description.value,
     imageKey: imageKey.value || undefined,
-    detailImageKey: detailImageKey.value || undefined,
     activationGuideUrl: activationGuideUrl.value || null,
     activationType: activationType.value || null,
     imageKeys: imageKeys.value.map((k) => k.trim()).filter(Boolean),
@@ -151,6 +152,12 @@ function submitNewVariant() {
 
     <form v-if="expanded" class="flex flex-col gap-4" @submit.prevent="submit">
       <label class="flex flex-col gap-2 text-sm">
+        <span class="text-white/70">Slug (URL: /product/…)</span>
+        <input v-model="slug" type="text" required pattern="[a-z0-9-]+" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+        <p class="text-xs text-amber-300/80">Cambiarlo rompe cualquier link ya compartido o indexado con el slug anterior.</p>
+      </label>
+
+      <label class="flex flex-col gap-2 text-sm">
         <span class="text-white/70">Nombre</span>
         <input v-model="name" type="text" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
       </label>
@@ -186,24 +193,14 @@ function submitNewVariant() {
         </div>
       </Teleport>
 
-      <div class="flex flex-wrap gap-4">
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
-          <div class="flex items-center gap-3">
-            <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-            <input v-model="imageKey" type="text" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-          </div>
-        </label>
-
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Clave de imagen — vista de producto (R2)</span>
-          <div class="flex items-center gap-3">
-            <img :src="product.detailImageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-            <input v-model="detailImageKey" type="text" placeholder="products/slug-detail.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-          </div>
-        </label>
-      </div>
-      <p class="-mt-2 text-xs text-white/40">La miniatura se actualiza al guardar el producto.</p>
+      <label class="flex flex-col gap-2 text-sm">
+        <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
+        <div class="flex items-center gap-3">
+          <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
+          <input v-model="imageKey" type="text" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+        </div>
+        <p class="text-xs text-white/40">Es la primera imagen del carrusel en la vista de producto; la miniatura se actualiza al guardar.</p>
+      </label>
 
       <div class="flex flex-wrap gap-4">
         <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
