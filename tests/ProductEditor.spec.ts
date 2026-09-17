@@ -13,6 +13,10 @@ const product: AdminProduct = {
   imageUrl: 'https://cdn/robux.png',
   detailImageKey: undefined,
   detailImageUrl: undefined,
+  activationGuideUrl: null,
+  activationType: null,
+  imageKeys: [],
+  images: [],
   description: 'desc',
   variants: [
     { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true },
@@ -44,5 +48,30 @@ describe('ProductEditor', () => {
     await wrapper.find('button').trigger('click')
 
     expect(wrapper.text().match(/-\d+%/g)).toEqual(['-20%'])
+  })
+
+  it('bold button keeps a trailing space outside the markers, since CommonMark won\'t close emphasis right after whitespace', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const textarea = wrapper.find('textarea')
+    await textarea.setValue('currency ')
+    const el = textarea.element as HTMLTextAreaElement
+    el.setSelectionRange(0, el.value.length)
+    await wrapper.find('button[title="Negrita"]').trigger('click')
+
+    expect(el.value).toBe('**currency** ')
+  })
+
+  it('opens a preview modal that renders the description as Markdown', async () => {
+    // Teleport renders the modal onto document.body, outside the mounted wrapper's own tree.
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false }, attachTo: document.body })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.find('textarea').setValue('**bold**')
+    const previewButton = wrapper.findAll('button').find((b) => b.text() === 'Vista previa')
+    await previewButton?.trigger('click')
+
+    expect(document.querySelector('[role="dialog"]')?.innerHTML).toContain('<strong')
   })
 })

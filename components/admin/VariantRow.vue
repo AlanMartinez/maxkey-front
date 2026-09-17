@@ -10,23 +10,43 @@ const currencies: AdminCurrency[] = ['ARS', 'USD']
 // like every other field, so renaming a variant after creation doesn't need delete + recreate.
 const region = ref(props.variant.region ?? '')
 const edition = ref(props.variant.edition ?? '')
-const price = ref(props.variant.price)
-const discountPercentage = ref(props.variant.discountPercentage)
+// The admin types the real/list price here (what shows struck-through to buyers). The backend's
+// `price` field means something else — the already-discounted charge amount — so we compute that
+// on submit; sending the typed value as-is was the bug (10% off 36000 saved literally as 36000,
+// then the backend's own oldPrice math *inflated* it to 40000 instead of discounting it).
+const basePrice = ref(props.variant.oldPrice ?? props.variant.price)
+// Backend bug (confirmed against localhost:8080): the PUT/GET response never echoes
+// `discountPercentage` back, even though it correctly used it to compute price/oldPrice — so the
+// field always comes back undefined and this input would go blank right after saving. Rebuild it
+// from the two prices we DO get back until the backend returns it directly.
+function deriveDiscount(variant: AdminVariant) {
+  if (variant.discountPercentage != null) return variant.discountPercentage
+  if (variant.oldPrice && variant.oldPrice > variant.price) {
+    return Math.round((1 - variant.price / variant.oldPrice) * 100)
+  }
+  return undefined
+}
+const discountPercentage = ref(deriveDiscount(props.variant))
 const currency = ref<AdminCurrency>(props.variant.currency)
 const isActive = ref(props.variant.isActive)
+
+const finalPrice = computed(() => {
+  if (!discountPercentage.value || !basePrice.value) return basePrice.value
+  return Math.round(basePrice.value * (1 - discountPercentage.value / 100) * 100) / 100
+})
 
 watch(() => props.variant, (variant) => {
   region.value = variant.region ?? ''
   edition.value = variant.edition ?? ''
-  price.value = variant.price
-  discountPercentage.value = variant.discountPercentage
+  basePrice.value = variant.oldPrice ?? variant.price
+  discountPercentage.value = deriveDiscount(variant)
   currency.value = variant.currency
   isActive.value = variant.isActive
 })
 
 function submit() {
   emit('save', {
-    price: price.value,
+    price: finalPrice.value,
     discountPercentage: discountPercentage.value || undefined,
     currency: currency.value,
     region: region.value || undefined,
@@ -53,8 +73,8 @@ const confirming = ref(false)
     </label>
 
     <label class="flex items-center gap-2">
-      <span class="sr-only">Precio</span>
-      <input v-model.number="price" type="number" min="0" step="0.01" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <span class="sr-only">Precio real</span>
+      <input v-model.number="basePrice" type="number" min="0" step="0.01" title="Precio real (sin descuento)" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2">
@@ -69,10 +89,11 @@ const confirming = ref(false)
         class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent"
       />
     </label>
-    <!-- Only shown when a discount is actually applied (oldPrice is backend-computed from discountPercentage, null otherwise). -->
-    <span v-if="variant.oldPrice && variant.discountPercentage" class="flex items-center gap-1.5 text-xs">
-      <span class="text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</span>
-      <AppBadge tone="success">-{{ variant.discountPercentage }}%</AppBadge>
+    <!-- Live preview: final = real price with the % applied, computed before hitting Guardar. -->
+    <span v-if="discountPercentage" class="flex items-center gap-1.5 text-xs">
+      <span class="text-white/40 line-through">{{ formatMoney(basePrice, currency) }}</span>
+      <span class="font-semibold text-emerald-300">{{ formatMoney(finalPrice, currency) }}</span>
+      <AppBadge tone="success">-{{ discountPercentage }}%</AppBadge>
     </span>
 
     <label class="flex items-center gap-2">

@@ -28,8 +28,12 @@ export interface ProductDetail extends ProductSummary {
   variants: ProductVariantDto[]
   /** Wider product-view image (backend field `DetailImageUrl`); falls back to `imageUrl` when unset. */
   detailImageUrl?: string
-  /** Gallery URLs (main image first). Not served by the API yet — needs a `Product.Images` list backend-side; the UI falls back to `detailImageUrl`/`imageUrl`. */
-  images?: string[]
+  /** Resolved gallery URLs, gallery order, main image first (always an array). */
+  images: string[]
+  /** Link to the activation guide, shown on the product page. */
+  activationGuideUrl: string | null
+  /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
+  activationType: string | null
 }
 
 // mirrors design.md §7 "POST /checkout/orders" request `items[]`
@@ -127,6 +131,14 @@ export interface AdminProduct {
   detailImageKey?: string
   /** Built the same way as `imageUrl`; falls back to it when unset. */
   detailImageUrl?: string
+  /** Link to the activation guide, shown on the product page. */
+  activationGuideUrl: string | null
+  /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
+  activationType: string | null
+  /** Raw gallery image R2 keys beyond imageKey/detailImageKey, for re-editing (always an array). */
+  imageKeys: string[]
+  /** Resolved gallery URLs parallel to imageKeys (same pairing pattern as imageKey/imageUrl). */
+  images: string[]
   description: string
   variants: AdminVariant[]
 }
@@ -138,6 +150,9 @@ export interface UpdateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
+  activationGuideUrl: string | null
+  activationType: string | null
+  imageKeys: string[]
   isActive: boolean
 }
 
@@ -149,6 +164,9 @@ export interface CreateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
+  activationGuideUrl: string | null
+  activationType: string | null
+  imageKeys: string[]
   isActive: boolean
 }
 

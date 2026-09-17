@@ -15,6 +15,11 @@ export default defineNuxtConfig({
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
       apiBaseUrl: 'http://localhost:8080',
       siteUrl: 'http://localhost:3000',
+      // DEV-ONLY fallback bearer for /admin/* calls when there's no real Supabase session locally.
+      // Mint one with `dotnet run --project src/Maxkeys.Api -- --print-dev-admin-token` (backend,
+      // Development env only) and set NUXT_PUBLIC_DEV_ADMIN_TOKEN in .env.local. Ignored outside dev
+      // (see useApi.ts) and never read in a production build.
+      devAdminToken: '',
     },
   },
   app: {

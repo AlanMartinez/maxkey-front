@@ -29,7 +29,7 @@ export function recommendedVariant<T extends ProductVariantDto>(variants: T[]): 
 }
 
 /**
- * Gallery sources for the product page: the optional `images` list, else the dedicated
+ * Gallery sources for the product page: the `images` list when non-empty, else the dedicated
  * `detailImageUrl` (sized for the wider product view), falling back to the catalog `imageUrl`
  * only when no detail image was configured.
  */
