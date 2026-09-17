@@ -15,6 +15,11 @@ export default defineNuxtConfig({
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
       apiBaseUrl: 'http://localhost:8080',
       siteUrl: 'http://localhost:3000',
+      // DEV-ONLY fallback bearer for /admin/* calls when there's no real Supabase session locally.
+      // Mint one with `dotnet run --project src/Maxkeys.Api -- --print-dev-admin-token` (backend,
+      // Development env only) and set NUXT_PUBLIC_DEV_ADMIN_TOKEN in .env.local. Ignored outside dev
+      // (see useApi.ts) and never read in a production build.
+      devAdminToken: '',
     },
   },
   app: {
@@ -23,7 +28,6 @@ export default defineNuxtConfig({
       title: 'CHEKEYS',
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap' },
-        { rel: 'icon', type: 'image/svg+xml', href: '/icon/favicon.svg' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icon/favicon-32x32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icon/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/icon/apple-touch-icon.png' },

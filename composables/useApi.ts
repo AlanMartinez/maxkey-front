@@ -42,7 +42,10 @@ export function useApi(accessToken?: string) {
   return $fetch.create({
     baseURL: config.public.apiBaseUrl,
     async onRequest({ options }) {
-      const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token
+      const sessionToken = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token
+      // DEV-ONLY: falls back to a minted admin JWT (see nuxt.config.ts) when there's no real Supabase
+      // session locally — `import.meta.dev` is compile-time-false (dead-code-eliminated) in production.
+      const token = sessionToken ?? (import.meta.dev ? config.public.devAdminToken || undefined : undefined)
       if (token) options.headers.set('Authorization', `Bearer ${token}`)
     },
     onResponseError({ response }) {

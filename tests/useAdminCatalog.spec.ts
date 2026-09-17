@@ -18,6 +18,10 @@ function buildProduct(): AdminProduct {
     imageUrl: '',
     detailImageKey: undefined,
     detailImageUrl: undefined,
+    activationGuideUrl: null,
+    activationType: null,
+    imageKeys: [],
+    images: [],
     description: '',
     variants: [
       { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true },
