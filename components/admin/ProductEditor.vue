@@ -3,7 +3,7 @@ import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, UpdatePr
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
 import { renderMarkdown } from '~/utils/markdown'
 
-const props = defineProps<{ product: AdminProduct; saving: boolean }>()
+const props = defineProps<{ product: AdminProduct; saving: boolean; initiallyExpanded?: boolean }>()
 const emit = defineEmits<{
   save: [body: UpdateProductRequest]
   saveVariant: [variantId: string, body: UpdateProductVariantRequest]
@@ -13,7 +13,8 @@ const emit = defineEmits<{
 }>()
 
 // Collapsed by default so the list stays scannable with many products; click the header to expand.
-const expanded = ref(false)
+// initiallyExpanded lets /admin/catalog?product=<id> (coming from the "Ver en Catálogo" Vault link) open pre-expanded.
+const expanded = ref(props.initiallyExpanded ?? false)
 
 // Name/description/imageKey/isActive are the editable fields (design D3 UI scope); platform
 // travels through unchanged since PUT takes the full record. Slug is editable too — renaming it
@@ -135,20 +136,21 @@ function submitNewVariant() {
 </script>
 
 <template>
-  <div class="glass flex flex-col gap-4 rounded-2xl p-6" :class="{ 'opacity-50': !product.isActive }">
-    <button type="button" class="flex items-center justify-between gap-3 text-left" @click="expanded = !expanded">
-      <div class="flex min-w-0 items-center gap-3">
+  <div :id="`catalog-product-${product.id}`" class="glass flex flex-col gap-4 rounded-2xl p-6" :class="{ 'opacity-50': !product.isActive }">
+    <div class="flex items-center justify-between gap-3">
+      <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left" @click="expanded = !expanded">
         <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-14 w-11 shrink-0 rounded-lg object-cover" />
         <div class="min-w-0">
           <h2 class="truncate text-lg font-semibold">{{ product.name }}</h2>
           <p class="truncate text-xs text-white/50">{{ product.slug }} · {{ product.platform }} · {{ product.variants.length }} variante(s)</p>
         </div>
-      </div>
-      <div class="flex shrink-0 items-center gap-2">
+      </button>
+      <div class="flex shrink-0 items-center gap-3">
+        <NuxtLink :to="`/admin/vault?product=${product.id}`" class="text-sm text-accent hover:text-accent-hover">Ver en Vault →</NuxtLink>
         <AppBadge :tone="isActive ? 'success' : 'neutral'">{{ isActive ? 'Activo' : 'Inactivo' }}</AppBadge>
-        <span class="text-white/50 transition" :class="{ 'rotate-180': expanded }">⌄</span>
+        <button type="button" class="text-white/50 transition" :class="{ 'rotate-180': expanded }" @click="expanded = !expanded">⌄</button>
       </div>
-    </button>
+    </div>
 
     <form v-if="expanded" class="flex flex-col gap-4" @submit.prevent="submit">
       <label class="flex flex-col gap-2 text-sm">
