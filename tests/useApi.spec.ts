@@ -82,3 +82,33 @@ describe('useApi', () => {
     expect(getSessionMock).not.toHaveBeenCalled()
   })
 })
+
+describe('ApiError.friendlyMessage', () => {
+  it('maps 404 to a clear "not found" message instead of the raw backend title', () => {
+    const error = new ApiError({ type: 'about:blank', title: 'Not Found', status: 404 })
+    expect(error.friendlyMessage()).toBe('Pedido no encontrado.')
+  })
+
+  it('prefers the backend detail for 409, falling back to the title when there is no detail', () => {
+    const withDetail = new ApiError({ type: 'about:blank', title: 'Conflict', status: 409, detail: 'No todas las keys están asignadas todavía.' })
+    expect(withDetail.friendlyMessage()).toBe('No todas las keys están asignadas todavía.')
+
+    const withoutDetail = new ApiError({ type: 'about:blank', title: 'Conflict', status: 409 })
+    expect(withoutDetail.friendlyMessage()).toBe('Conflict')
+  })
+
+  it('maps 401/403 to a permissions message', () => {
+    expect(new ApiError({ type: 'about:blank', title: 'Unauthorized', status: 401 }).friendlyMessage()).toBe('No tenés permisos para esta acción.')
+    expect(new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403 }).friendlyMessage()).toBe('No tenés permisos para esta acción.')
+  })
+
+  it('maps the network-failure fallback (status 0) to a connectivity message', () => {
+    const error = new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+    expect(error.friendlyMessage()).toBe('No se pudo conectar con el servidor.')
+  })
+
+  it('falls back to detail/title for unmapped statuses', () => {
+    const error = new ApiError({ type: 'about:blank', title: 'Validation failed', status: 422, detail: 'Buyer email is required' })
+    expect(error.friendlyMessage()).toBe('Buyer email is required')
+  })
+})
