@@ -66,7 +66,7 @@ async function reveal(itemId: string) {
         </div>
         <div v-else-if="canRevealKeys(item)" class="flex flex-col gap-2">
           <AppButton type="button" variant="ghost" size="sm" :loading="revealing[item.itemId]" @click="reveal(item.itemId)">Revelar key</AppButton>
-          <span v-if="revealError[item.itemId]" role="alert" class="text-xs text-red-300">{{ revealError[item.itemId]?.detail ?? revealError[item.itemId]?.title }}</span>
+          <span v-if="revealError[item.itemId]" role="alert" class="text-xs text-red-300">{{ revealError[item.itemId]?.friendlyMessage() }}</span>
         </div>
         <p v-else class="text-xs text-white/50">Tus keys aparecerán aquí cuando la orden esté entregada</p>
       </li>

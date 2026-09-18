@@ -46,6 +46,7 @@ const buyers = ref<AdminBuyer[]>([
 ])
 
 const loadMock = vi.fn(async () => {})
+const assignIncomplete = reactive<Record<string, string | null>>({})
 
 mockNuxtImport('useAdminBuyers', () => () => ({
   buyers,
@@ -64,6 +65,7 @@ mockNuxtImport('useAdminBuyers', () => () => ({
   assigning: reactive({}),
   assignError: reactive({}),
   assignSuccess: reactive({}),
+  assignIncomplete,
   assignKeys: vi.fn(async () => true),
   delivering: reactive({}),
   deliverError: reactive({}),
@@ -72,14 +74,24 @@ mockNuxtImport('useAdminBuyers', () => () => ({
 }))
 
 describe('pages/admin/buyers', () => {
-  it('groups orders under the buyer and shows assigned/revealed-key counts, never a key code', async () => {
+  it('renders a table with one row per order, showing item counts, never a key code', async () => {
     const wrapper = await mountSuspended(BuyersPage)
 
+    expect(wrapper.find('table').exists()).toBe(true)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(4)
     expect(wrapper.text()).toContain('buyer@example.com')
-    expect(wrapper.text()).toContain('Riot Points')
-    expect(wrapper.text()).toContain('Robux')
-    expect(wrapper.text()).toContain('1 clave(s) asignada(s), 1 revelada(s)')
-    expect(wrapper.text()).toContain('0 clave(s) asignada(s), 0 revelada(s)')
+    expect(wrapper.text()).toContain('1 asignada(s), 1 revelada(s)')
+    expect(wrapper.text()).toContain('0 asignada(s), 0 revelada(s)')
+  })
+
+  it('renders order status as a mapped badge label, not the raw status', async () => {
+    const wrapper = await mountSuspended(BuyersPage)
+
+    expect(wrapper.text()).toContain('Entregado')
+    expect(wrapper.text()).toContain('Preparando entrega')
+    expect(wrapper.text()).toContain('Claves asignadas')
+    expect(wrapper.text()).toContain('Cancelado')
+    expect(wrapper.text()).not.toContain('AwaitingFulfillment')
   })
 
   it('offers resend only on Delivered orders (key-delivery-gate PR #49)', async () => {
@@ -102,5 +114,20 @@ describe('pages/admin/buyers', () => {
 
     const deliverButtons = wrapper.findAll('button').filter((b) => b.text() === 'Entregar')
     expect(deliverButtons).toHaveLength(1)
+  })
+
+  it('renders the "Asignar" trigger with the primary button style, not the muted ghost variant', async () => {
+    const wrapper = await mountSuspended(BuyersPage)
+
+    const assignButton = wrapper.findAll('button').find((b) => b.text() === 'Asignar')
+    expect(assignButton?.classes().join(' ')).toContain('bg-accent')
+  })
+
+  it('shows a distinct warning when assign-keys ran but stock was insufficient', async () => {
+    assignIncomplete['order-pending'] = 'Sin stock suficiente: 0 de 1 clave(s) asignada(s).'
+    const wrapper = await mountSuspended(BuyersPage)
+
+    expect(wrapper.text()).toContain('Sin stock suficiente: 0 de 1 clave(s) asignada(s).')
+    delete assignIncomplete['order-pending']
   })
 })
