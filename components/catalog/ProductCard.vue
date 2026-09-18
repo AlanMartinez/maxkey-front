@@ -52,7 +52,7 @@ const buttonLabel = computed(() => {
 <template>
   <!-- Below `sm` the card sits three-per-row on a phone (~110px wide), so paddings, type and the
        add button collapse; the button keeps its label for screen readers but shows icon only. -->
-  <article class="glass group flex flex-col overflow-hidden rounded-xl border-accent/40 transition hover:border-accent/50 sm:rounded-2xl sm:border-white/10">
+  <article class="glass group flex flex-col overflow-hidden rounded-xl border-white/20 transition hover:border-accent/50 sm:rounded-2xl sm:border-white/10">
     <!-- The link covers image and copy; the add button stays a sibling so it never triggers navigation. -->
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
