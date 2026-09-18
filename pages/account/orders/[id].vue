@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { OrderDetailDto } from '~/types/api'
-import type { ApiError } from '~/composables/useApi'
-import { visibleKeys } from '~/utils/orders'
+import type { OrderDetailDto, RevealKeysResponse } from '~/types/api'
+import { ApiError } from '~/composables/useApi'
+import { canRevealKeys } from '~/utils/orders'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -15,6 +15,26 @@ const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | 
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Pedido no encontrado', fatal: true })
 
 useHead({ title: 'Detalle de compra · CHEKEYS' })
+
+// key-delivery-gate (PR #49): decrypt-and-return is server-side, idempotent, and permanent — once
+// revealed, `item.keys` holds the codes for good, so no client-side "revealed" flag needs persisting.
+const revealing = reactive<Record<string, boolean>>({})
+const revealError = reactive<Record<string, ApiError | null>>({})
+
+async function reveal(itemId: string) {
+  if (!order.value) return
+  revealing[itemId] = true
+  revealError[itemId] = null
+  try {
+    const result = await api<RevealKeysResponse>(`/me/orders/${id}/items/${itemId}/keys/reveal`, { method: 'POST' })
+    const item = order.value.items.find((i) => i.itemId === itemId)
+    if (item) item.keys = result.codes
+  } catch (e) {
+    revealError[itemId] = e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+  } finally {
+    revealing[itemId] = false
+  }
+}
 </script>
 
 <template>
@@ -40,9 +60,13 @@ useHead({ title: 'Detalle de compra · CHEKEYS' })
           </div>
           <p class="text-sm font-medium">{{ formatMoney(item.unitPrice * item.quantity, order.currency) }}</p>
         </div>
-        <!-- Never render key codes for a non-Delivered order, even if present in the payload. -->
-        <div v-if="order.status === 'Delivered'" class="flex flex-col gap-2">
-          <KeyReveal v-for="code in visibleKeys(order, item)" :key="code" :code="code" />
+        <!-- Key visibility is per-item now (item.keys / item.revealable), not gated by order.status. -->
+        <div v-if="item.keys.length" class="flex flex-col gap-2">
+          <KeyReveal v-for="code in item.keys" :key="code" :code="code" />
+        </div>
+        <div v-else-if="canRevealKeys(item)" class="flex flex-col gap-2">
+          <AppButton type="button" variant="ghost" size="sm" :loading="revealing[item.itemId]" @click="reveal(item.itemId)">Revelar key</AppButton>
+          <span v-if="revealError[item.itemId]" role="alert" class="text-xs text-red-300">{{ revealError[item.itemId]?.detail ?? revealError[item.itemId]?.title }}</span>
         </div>
         <p v-else class="text-xs text-white/50">Tus keys aparecerán aquí cuando la orden esté entregada</p>
       </li>
