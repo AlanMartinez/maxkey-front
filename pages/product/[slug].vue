@@ -142,7 +142,10 @@ async function buyNow() {
             </span>
             <div class="flex flex-col gap-0.5 text-sm">
               <dt class="text-white/50">{{ spec.label }}</dt>
-              <dd class="font-semibold text-white">{{ spec.value }}</dd>
+              <dd class="font-semibold text-white">
+                <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" />
+                <template v-else>{{ spec.value }}</template>
+              </dd>
               <a v-if="spec.link" :href="spec.link.href" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-accent hover:text-accent-hover">{{ spec.link.text }}</a>
             </div>
           </div>

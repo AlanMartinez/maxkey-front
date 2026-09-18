@@ -57,13 +57,13 @@ const buttonLabel = computed(() => {
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
         <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
-        <!-- Long platform names ("Cross-platform") wrap inside a ~110px card, so the badge waits for `sm`. -->
-        <div class="absolute left-3 top-3 hidden sm:block">
-          <AppBadge tone="accent">{{ product.platform }}</AppBadge>
-        </div>
       </div>
       <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-4 sm:pb-3">
         <h3 class="line-clamp-2 text-sm font-semibold leading-tight sm:text-base">{{ product.name }}</h3>
+        <!-- A 16px mark fits the ~110px phone card where the old text badge had to wait for `sm`. -->
+        <div class="flex items-center">
+          <PlatformLogo :platform="product.platform" />
+        </div>
         <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="hidden text-white/50 sm:inline">Desde</span>

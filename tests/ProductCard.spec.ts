@@ -40,6 +40,14 @@ describe('ProductCard', () => {
     expect(wrapper.text()).toContain('-12%')
   })
 
+  it('shows the platform logo instead of its name for a known platform', async () => {
+    const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, platform: 'Steam' } } })
+
+    const logo = wrapper.find('img[alt="Steam"]')
+    expect(logo.attributes('src')).toBe('/images/platforms/steam.svg')
+    expect(wrapper.text()).not.toContain('Steam')
+  })
+
   it('hides the discount badge without an old price', async () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, oldPrice: undefined } } })
 
