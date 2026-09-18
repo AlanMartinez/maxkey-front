@@ -100,7 +100,7 @@ function submit() {
     <Teleport to="body">
       <div v-if="keysModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" aria-hidden="true" @click="keysModalOpen = false" />
-        <div role="dialog" aria-modal="true" aria-labelledby="vault-keys-modal-title" class="glass relative flex max-h-[80vh] w-full max-w-4xl flex-col gap-4 overflow-hidden rounded-2xl p-6">
+        <div role="dialog" aria-modal="true" aria-labelledby="vault-keys-modal-title" class="glass relative flex max-h-[80vh] w-fit max-w-[92vw] flex-col gap-4 overflow-hidden rounded-2xl p-6">
           <button type="button" aria-label="Cerrar" class="absolute right-3 top-3 rounded-xl p-2 text-white/70 transition hover:bg-white/5 hover:text-white" @click="keysModalOpen = false">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
@@ -112,23 +112,35 @@ function submit() {
             <p v-if="fetchingKeys" class="text-xs text-white/50">Cargando keys…</p>
             <p v-else-if="keysError" role="alert" class="text-xs text-red-300">{{ keysError.detail ?? keysError.title }}</p>
             <p v-else-if="!keys?.length" class="text-xs text-white/50">Todavía no se cargaron keys para esta variante.</p>
-            <!-- Grid with fixed columns instead of flex-wrap: a wide loadedBy/orderItemId value used to
-                 push "Orden" onto a second line — grid tracks keep every key row to exactly one line,
-                 truncating overflow instead of wrapping. -->
-            <ul v-else class="flex min-w-max flex-col gap-1.5">
-              <li
-                v-for="key in keys"
-                :key="key.keyId"
-                class="grid grid-cols-[5rem_5.5rem_minmax(9rem,1fr)_6.5rem_6.5rem_9rem] items-center gap-x-3 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs"
-              >
-                <span class="truncate font-mono text-white/40">{{ key.keyId.slice(0, 8) }}</span>
-                <AppBadge :tone="key.status === 'Available' ? 'success' : 'neutral'">{{ key.status === 'Available' ? 'Disponible' : 'Asignada' }}</AppBadge>
-                <span class="truncate text-white/60">{{ key.loadedBy }}</span>
-                <span class="truncate text-white/40">Cargada: {{ formatDate(key.createdAt) }}</span>
-                <span class="truncate text-white/40">Asignada: {{ key.assignedAt ? formatDate(key.assignedAt) : '—' }}</span>
-                <span class="truncate text-right text-white/40">Orden: {{ key.orderItemId ?? '—' }}</span>
-              </li>
-            </ul>
+            <!-- A real <table> instead of flex rows: the browser's table auto-layout sizes each column
+                 to its own widest cell (no truncation) while keeping every column aligned across rows —
+                 flex rows couldn't do both at once. The dialog is width:fit-content, so it grows with the
+                 table; overflow-x-auto above is only a fallback for the extreme case of a single value
+                 still exceeding max-[92vw]. -->
+            <table v-else class="w-max border-separate border-spacing-y-1.5 text-left text-xs">
+              <thead>
+                <tr class="text-white/40">
+                  <th class="px-2.5 pb-1 font-medium">Key</th>
+                  <th class="px-2.5 pb-1 font-medium">Estado</th>
+                  <th class="px-2.5 pb-1 font-medium">Cargada por</th>
+                  <th class="px-2.5 pb-1 font-medium">Cargada</th>
+                  <th class="px-2.5 pb-1 font-medium">Asignada</th>
+                  <th class="px-2.5 pb-1 font-medium">Orden</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="key in keys" :key="key.keyId">
+                  <td class="whitespace-nowrap rounded-l-lg border-y border-l border-white/10 bg-white/5 px-2.5 py-1.5 font-mono text-white/40">{{ key.keyId.slice(0, 8) }}</td>
+                  <td class="whitespace-nowrap border-y border-white/10 bg-white/5 px-2.5 py-1.5">
+                    <AppBadge :tone="key.status === 'Available' ? 'success' : 'neutral'">{{ key.status === 'Available' ? 'Disponible' : 'Asignada' }}</AppBadge>
+                  </td>
+                  <td class="whitespace-nowrap border-y border-white/10 bg-white/5 px-2.5 py-1.5 text-white/60">{{ key.loadedBy }}</td>
+                  <td class="whitespace-nowrap border-y border-white/10 bg-white/5 px-2.5 py-1.5 text-white/40">{{ formatDate(key.createdAt) }}</td>
+                  <td class="whitespace-nowrap border-y border-white/10 bg-white/5 px-2.5 py-1.5 text-white/40">{{ key.assignedAt ? formatDate(key.assignedAt) : '—' }}</td>
+                  <td class="whitespace-nowrap rounded-r-lg border-y border-r border-white/10 bg-white/5 px-2.5 py-1.5 text-white/40">{{ key.orderItemId ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
