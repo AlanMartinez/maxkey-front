@@ -265,3 +265,43 @@ export interface AdminBuyersPage {
 
 // mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
 export interface ResendDeliveryResponse { outboxEventId: string }
+
+// mirrors vault spec "GET /admin/vault/products" response `variants[]` item (maxkeys-back PR #48, fixed contract)
+export interface AdminVaultVariant {
+  id: string
+  region: string | null
+  edition: string | null
+  availableCount: number
+  assignedCount: number
+}
+
+// mirrors vault spec "GET /admin/vault/products" response item. vaultEnabled is product-wide —
+// there is no per-variant toggle, matching PUT /admin/vault/products/{id}/toggle applying to all variants.
+export interface AdminVaultProduct {
+  id: string
+  name: string
+  vaultEnabled: boolean
+  variants: AdminVaultVariant[]
+}
+
+// mirrors vault spec "POST /admin/vault/variants/{id}/keys" request body
+export interface UploadVaultKeysRequest {
+  codes: string[]
+}
+
+// mirrors vault spec "POST /admin/vault/variants/{id}/keys" 200 response.
+// availableCount is the variant's updated total, not a delta — always reflect it, never increment locally.
+export interface UploadVaultKeysResponse {
+  addedCount: number
+  availableCount: number
+}
+
+// mirrors vault spec "PUT /admin/vault/products/{id}/toggle" request body
+export interface ToggleVaultProductRequest {
+  enabled: boolean
+}
+
+// mirrors vault spec "PUT /admin/vault/products/{id}/toggle" response
+export interface ToggleVaultProductResponse {
+  vaultEnabled: boolean
+}

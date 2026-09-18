@@ -4,6 +4,9 @@ import type { CreateProductVariantRequest, UpdateProductRequest, UpdateProductVa
 definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Catálogo · Admin · CHEKEYS' })
 
+const route = useRoute()
+const highlightedProductId = typeof route.query.product === 'string' ? route.query.product : undefined
+
 const {
   products,
   status,
@@ -18,6 +21,15 @@ const {
   createVariant,
   deleteVariant,
 } = await useAdminCatalog()
+
+// Coming from the "Ver en Catálogo" Vault link: the card itself opens pre-expanded (initiallyExpanded
+// prop below), this just brings it into view. No-op if the id doesn't match any rendered card.
+onMounted(() => {
+  if (!highlightedProductId) return
+  nextTick(() => {
+    document.getElementById(`catalog-product-${highlightedProductId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
+})
 
 const showNewProduct = ref(false)
 const newProduct = ref({ slug: '', name: '', platform: '', description: '' })
@@ -98,6 +110,7 @@ async function submitNewProduct() {
         :key="product.id"
         :product="product"
         :saving="saving"
+        :initially-expanded="product.id === highlightedProductId"
         @save="(body: UpdateProductRequest) => saveProduct(product.id, body)"
         @save-variant="(variantId: string, body: UpdateProductVariantRequest) => saveVariant(product.id, variantId, body)"
         @delete-product="deleteProduct(product.id)"
