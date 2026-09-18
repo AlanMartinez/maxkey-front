@@ -17,11 +17,6 @@ const emit = defineEmits<{ upload: [rawCodes: string]; viewKeys: [] }>()
 // Collapsed by default, same reasoning as VaultProductRow: keeps the list scannable with many items.
 const expanded = ref(false)
 
-// import.meta.dev can't be used directly in a template expression (Vue's template
-// compiler parses it separately from the <script> module, and errors on `import.meta`
-// there) — read it once here instead.
-const isDev = import.meta.dev
-
 // Modal instead of an inline list — a variant's key count is unbounded (could be thousands),
 // so it gets its own scrollable surface rather than growing the row indefinitely.
 const keysModalOpen = ref(false)
@@ -77,10 +72,7 @@ function submit() {
         <AppBadge :tone="stockTone">{{ variant.availableCount }} disponible(s)</AppBadge>
         <AppBadge tone="neutral">{{ variant.assignedCount }} asignada(s)</AppBadge>
       </button>
-      <!-- DEV-ONLY: unlike toggle/upload, GET /admin/vault/variants/{id}/keys has no real backend
-           at all yet (not a fallback-on-failure case) — hidden in prod so it never implies "no keys
-           loaded" when the truth is "not built yet". import.meta.dev is dead-code-eliminated in prod. -->
-      <button v-if="isDev" type="button" class="shrink-0 text-sm text-accent hover:text-accent-hover" @click="openKeysModal()">Ver keys →</button>
+      <button type="button" class="shrink-0 text-sm text-accent hover:text-accent-hover" @click="openKeysModal()">Ver keys →</button>
       <button type="button" class="shrink-0 text-white/50 transition" :class="{ 'rotate-180': expanded }" @click="expanded = !expanded">⌄</button>
     </div>
 
@@ -121,8 +113,8 @@ function submit() {
             <p v-else-if="keysError" role="alert" class="text-xs text-red-300">{{ keysError.detail ?? keysError.title }}</p>
             <p v-else-if="!keys?.length" class="text-xs text-white/50">Todavía no se cargaron keys para esta variante.</p>
             <ul v-else class="flex flex-col gap-1.5">
-              <li v-for="key in keys" :key="key.id" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs">
-                <span class="font-mono text-white/40">{{ key.id.slice(0, 8) }}</span>
+              <li v-for="key in keys" :key="key.keyId" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs">
+                <span class="font-mono text-white/40">{{ key.keyId.slice(0, 8) }}</span>
                 <AppBadge :tone="key.status === 'Available' ? 'success' : 'neutral'">{{ key.status === 'Available' ? 'Disponible' : 'Asignada' }}</AppBadge>
                 <span class="text-white/60">{{ key.loadedBy }}</span>
                 <span class="text-white/40">Cargada: {{ formatDate(key.createdAt) }}</span>

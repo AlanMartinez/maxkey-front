@@ -124,19 +124,18 @@ export async function useAdminVault() {
     }
   }
 
-  // GET /admin/vault/variants/{id}/keys was requested from the backend team (PR #48 follow-up) but
-  // isn't built yet, so this is pure dev-mock — no real call to try first. Isolated in one function so
-  // swapping in `api<AdminVaultKey[]>(...)` later is a one-function change.
+  // Dev-only fallback for mock product/variant ids (see mockVaultProducts above), which don't exist
+  // in the real backend and would otherwise 404 the real endpoint on every dev run.
   function mockKeysForVariant(variantId: string): AdminVaultKey[] {
     // mock-variant-2a doubles as the empty-state fixture.
     if (variantId === 'mock-variant-2a') return []
     const day = 86_400_000
     const now = Date.now()
     return [
-      { id: `${variantId}-key-1`, status: 'Available', loadedBy: 'admin@maxkeys.com', createdAt: new Date(now - 5 * day).toISOString(), assignedAt: null, orderItemId: null },
-      { id: `${variantId}-key-2`, status: 'Assigned', loadedBy: 'admin@maxkeys.com', createdAt: new Date(now - 5 * day).toISOString(), assignedAt: new Date(now - 2 * day).toISOString(), orderItemId: 'mock-order-item-1' },
-      { id: `${variantId}-key-3`, status: 'Available', loadedBy: 'soporte@maxkeys.com', createdAt: new Date(now - 3 * day).toISOString(), assignedAt: null, orderItemId: null },
-      { id: `${variantId}-key-4`, status: 'Assigned', loadedBy: 'soporte@maxkeys.com', createdAt: new Date(now - 1 * day).toISOString(), assignedAt: new Date(now - 1 * day).toISOString(), orderItemId: 'mock-order-item-2' },
+      { keyId: `${variantId}-key-1`, status: 'Available', loadedBy: 'admin@maxkeys.com', createdAt: new Date(now - 5 * day).toISOString(), assignedAt: null, orderItemId: null },
+      { keyId: `${variantId}-key-2`, status: 'Assigned', loadedBy: 'admin@maxkeys.com', createdAt: new Date(now - 5 * day).toISOString(), assignedAt: new Date(now - 2 * day).toISOString(), orderItemId: 'mock-order-item-1' },
+      { keyId: `${variantId}-key-3`, status: 'Available', loadedBy: 'soporte@maxkeys.com', createdAt: new Date(now - 3 * day).toISOString(), assignedAt: null, orderItemId: null },
+      { keyId: `${variantId}-key-4`, status: 'Assigned', loadedBy: 'soporte@maxkeys.com', createdAt: new Date(now - 1 * day).toISOString(), assignedAt: new Date(now - 1 * day).toISOString(), orderItemId: 'mock-order-item-2' },
     ]
   }
 
@@ -148,13 +147,15 @@ export async function useAdminVault() {
     fetchingKeys.value[variantId] = true
     keysError.value[variantId] = null
     try {
-      if (!import.meta.dev) {
-        variantKeys.value[variantId] = []
-        return true
+      let keys: AdminVaultKey[]
+      try {
+        keys = await api<AdminVaultKey[]>(`/admin/vault/variants/${variantId}/keys`)
+      } catch (e) {
+        if (!import.meta.dev) throw e
+        console.warn('[useAdminVault] variant keys backend unavailable, using dev mock data:', e)
+        keys = mockKeysForVariant(variantId)
       }
-      console.warn(`[useAdminVault] GET /admin/vault/variants/${variantId}/keys not built yet, using dev mock data`)
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      variantKeys.value[variantId] = mockKeysForVariant(variantId)
+      variantKeys.value[variantId] = keys
       return true
     } catch (e) {
       keysError.value[variantId] = toApiError(e)

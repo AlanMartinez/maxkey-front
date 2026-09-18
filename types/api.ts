@@ -306,12 +306,11 @@ export interface ToggleVaultProductResponse {
   vaultEnabled: boolean
 }
 
-// anticipates "GET /admin/vault/variants/{id}/keys", requested from the backend team but not yet part
-// of the fixed vault spec contract (PR #48) — dev-only mock until it ships, see useAdminVault.fetchVariantKeys
+// mirrors vault spec "GET /admin/vault/variants/{id}/keys" response item (PR #48, commit 82d37ec)
 export type VaultKeyStatus = 'Available' | 'Assigned'
 
 export interface AdminVaultKey {
-  id: string
+  keyId: string
   status: VaultKeyStatus
   loadedBy: string
   createdAt: string
