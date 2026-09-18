@@ -1,4 +1,4 @@
-import type { AdminBuyer, AdminBuyersPage, ResendDeliveryResponse } from '~/types/api'
+import type { AdminBuyer, AdminBuyersPage, AssignKeysResponse, DeliverOrderResponse, ResendDeliveryResponse } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
 
 /**
@@ -70,5 +70,67 @@ export function useAdminBuyers() {
     }
   }
 
-  return { email, page, pageSize, buyers, total, status, error, load, search, goToPage, resending, resendError, resendSuccess, resendDelivery }
+  // key-delivery-gate (PR #49): find the order in local state to patch its status in place after
+  // assign/deliver succeeds, so button visibility recomputes without a full page refetch.
+  function findOrder(orderId: string) {
+    for (const buyer of buyers.value) {
+      const order = buyer.orders.find((o) => o.id === orderId)
+      if (order) return order
+    }
+    return undefined
+  }
+
+  const assigning = ref<Record<string, boolean>>({})
+  const assignError = ref<Record<string, ApiError | null>>({})
+  const assignSuccess = ref<Record<string, boolean>>({})
+
+  // "Asignar": retries auto-assignment (in case stock wasn't available at payment time).
+  async function assignKeys(orderId: string) {
+    assigning.value[orderId] = true
+    assignError.value[orderId] = null
+    assignSuccess.value[orderId] = false
+    try {
+      const result = await api<AssignKeysResponse>(`/admin/orders/${orderId}/assign-keys`, { method: 'POST' })
+      const order = findOrder(orderId)
+      if (order) order.status = result.orderStatus
+      assignSuccess.value[orderId] = true
+      return true
+    } catch (e) {
+      assignError.value[orderId] = toApiError(e)
+      return false
+    } finally {
+      assigning.value[orderId] = false
+    }
+  }
+
+  const delivering = ref<Record<string, boolean>>({})
+  const deliverError = ref<Record<string, ApiError | null>>({})
+  const deliverSuccess = ref<Record<string, boolean>>({})
+
+  // "Entregar": only valid when KeysAssigned — API 409s otherwise (e.g. status changed between page
+  // load and click), handled the same way as any other ApiError and shown inline via deliverError.
+  async function deliverOrder(orderId: string) {
+    delivering.value[orderId] = true
+    deliverError.value[orderId] = null
+    deliverSuccess.value[orderId] = false
+    try {
+      const result = await api<DeliverOrderResponse>(`/admin/orders/${orderId}/deliver`, { method: 'POST' })
+      const order = findOrder(orderId)
+      if (order) order.status = result.status
+      deliverSuccess.value[orderId] = true
+      return true
+    } catch (e) {
+      deliverError.value[orderId] = toApiError(e)
+      return false
+    } finally {
+      delivering.value[orderId] = false
+    }
+  }
+
+  return {
+    email, page, pageSize, buyers, total, status, error, load, search, goToPage,
+    resending, resendError, resendSuccess, resendDelivery,
+    assigning, assignError, assignSuccess, assignKeys,
+    delivering, deliverError, deliverSuccess, deliverOrder,
+  }
 }

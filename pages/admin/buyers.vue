@@ -3,7 +3,12 @@ definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Compradores · Admin · CHEKEYS' })
 
 // admin-buyers spec: Buyer Listing Grouped By Email + Resend Delivery Email; design D4.
-const { buyers, total, page, pageSize, status, error, load, search, goToPage, resending, resendError, resendSuccess, resendDelivery } = useAdminBuyers()
+const {
+  buyers, total, page, pageSize, status, error, load, search, goToPage,
+  resending, resendError, resendSuccess, resendDelivery,
+  assigning, assignError, assignSuccess, assignKeys,
+  delivering, deliverError, deliverSuccess, deliverOrder,
+} = useAdminBuyers()
 
 await load()
 
@@ -47,7 +52,15 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
         :resending="resending"
         :resend-error="resendError"
         :resend-success="resendSuccess"
+        :assigning="assigning"
+        :assign-error="assignError"
+        :assign-success="assignSuccess"
+        :delivering="delivering"
+        :deliver-error="deliverError"
+        :deliver-success="deliverSuccess"
         @resend="resendDelivery"
+        @assign="assignKeys"
+        @deliver="deliverOrder"
       />
     </div>
 
