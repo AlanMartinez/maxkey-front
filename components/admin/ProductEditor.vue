@@ -2,6 +2,7 @@
 import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
 import { renderMarkdown } from '~/utils/markdown'
+import { PLATFORMS, findPlatform } from '~/utils/platforms'
 
 const props = defineProps<{ product: AdminProduct; saving: boolean; initiallyExpanded?: boolean }>()
 const emit = defineEmits<{
@@ -16,11 +17,17 @@ const emit = defineEmits<{
 // initiallyExpanded lets /admin/catalog?product=<id> (coming from the "Ver en Catálogo" Vault link) open pre-expanded.
 const expanded = ref(props.initiallyExpanded ?? false)
 
-// Name/description/imageKey/isActive are the editable fields (design D3 UI scope); platform
-// travels through unchanged since PUT takes the full record. Slug is editable too — renaming it
-// breaks any bookmarked or previously shared /product/{slug} link.
+// Name/platform/description/imageKey/isActive are the editable fields (design D3 UI scope); PUT
+// takes the full record. Slug is editable too — renaming it breaks any bookmarked or previously
+// shared /product/{slug} link.
 const slug = ref(props.product.slug)
 const name = ref(props.product.name)
+const platform = ref(props.product.platform)
+// Products created before the platform enum may hold a free-text value; keep it as an extra option
+// so the select shows the real stored value instead of silently swapping it on save.
+const platformOptions = computed(() =>
+  findPlatform(platform.value) ? PLATFORMS : [{ value: platform.value, logo: '' }, ...PLATFORMS],
+)
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
 const activationGuideUrl = ref(props.product.activationGuideUrl ?? '')
@@ -82,6 +89,7 @@ onUnmounted(() => clearTimeout(savedTimer))
 watch(() => props.product, (product) => {
   slug.value = product.slug
   name.value = product.name
+  platform.value = product.platform
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
   activationGuideUrl.value = product.activationGuideUrl ?? ''
@@ -94,7 +102,7 @@ async function submit() {
   emit('save', {
     slug: slug.value.trim().toLowerCase(),
     name: name.value,
-    platform: props.product.platform,
+    platform: platform.value,
     description: description.value,
     imageKey: imageKey.value || undefined,
     activationGuideUrl: activationGuideUrl.value || null,
@@ -142,7 +150,7 @@ function submitNewVariant() {
         <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-14 w-11 shrink-0 rounded-lg object-cover" />
         <div class="min-w-0">
           <h2 class="truncate text-lg font-semibold">{{ product.name }}</h2>
-          <p class="truncate text-xs text-white/50">{{ product.slug }} · {{ product.platform }} · {{ product.variants.length }} variante(s)</p>
+          <p class="flex items-center gap-1.5 truncate text-xs text-white/50">{{ product.slug }} · <PlatformLogo :platform="product.platform" /> · {{ product.variants.length }} variante(s)</p>
         </div>
       </button>
       <div class="flex shrink-0 items-center gap-3">
@@ -162,6 +170,13 @@ function submitNewVariant() {
       <label class="flex flex-col gap-2 text-sm">
         <span class="text-white/70">Nombre</span>
         <input v-model="name" type="text" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+      </label>
+
+      <label class="flex flex-col gap-2 text-sm">
+        <span class="text-white/70">Plataforma</span>
+        <select v-model="platform" name="platform" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+          <option v-for="option in platformOptions" :key="option.value" :value="option.value">{{ option.value }}</option>
+        </select>
       </label>
 
       <div class="flex flex-col gap-2 text-sm">

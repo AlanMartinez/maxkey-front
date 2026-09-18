@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
+import { PLATFORMS } from '~/utils/platforms'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Catálogo · Admin · CHEKEYS' })
@@ -79,7 +80,10 @@ async function submitNewProduct() {
       </label>
       <label class="flex flex-col gap-2 text-sm">
         <span class="text-white/70">Plataforma</span>
-        <input v-model="newProduct.platform" type="text" required placeholder="Steam" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+        <select v-model="newProduct.platform" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+          <option value="" disabled>Seleccionar plataforma</option>
+          <option v-for="platform in PLATFORMS" :key="platform.value" :value="platform.value">{{ platform.value }}</option>
+        </select>
       </label>
       <label class="flex flex-col gap-2 text-sm">
         <span class="text-white/70">Descripción</span>

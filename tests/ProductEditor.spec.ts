@@ -39,8 +39,27 @@ describe('ProductEditor', () => {
 
     await wrapper.find('button').trigger('click')
 
-    expect((wrapper.find('input[required]').element as HTMLInputElement).value).toBe('Roblox - 100 Robux')
+    expect((wrapper.findAll('input[required]')[1]!.element as HTMLInputElement).value).toBe('Roblox - 100 Robux')
     expect(wrapper.text()).toContain('Guardar producto')
+  })
+
+  it('keeps a legacy platform value selectable so saving does not silently drop it', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const select = wrapper.find('select[name="platform"]')
+    expect((select.element as HTMLSelectElement).value).toBe('Cross-platform')
+    expect(select.findAll('option').map((o) => o.text())).toContain('Steam')
+  })
+
+  it('emits the selected platform in the save payload', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.find('select[name="platform"]').setValue('Steam')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ platform: 'Steam' })
   })
 
   it('only shows the discount badge on the variant that actually has one', async () => {

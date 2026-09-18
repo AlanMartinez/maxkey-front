@@ -26,7 +26,7 @@ async function continueWithGoogle() {
         <button type="button" aria-label="Cerrar" class="absolute right-3 top-3 rounded-xl p-2 text-white/70 transition hover:bg-white/5 hover:text-white" @click="closeLogin()">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
-        <h2 id="login-title" class="text-lg font-semibold">Iniciar sesión</h2>
+        <img id="login-title" src="/images/logo/logo.png" alt="Iniciar sesión en CHEKEYS" width="80" height="80" class="mt-2 h-20 w-20 object-contain" />
         <p class="text-sm text-white/60">Accedé para ver tu historial de compras y tus keys.</p>
         <AppButton variant="ghost" size="lg" class="w-full border-[#8E918F] bg-[#131314] text-[#E3E3E3]" :loading="pending" @click="continueWithGoogle()">
           <img v-if="!pending" src="/images/brands/google-g.png" alt="" aria-hidden="true" width="20" height="20" class="h-5 w-5 flex-none rounded-full bg-white" />
