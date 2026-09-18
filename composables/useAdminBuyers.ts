@@ -83,17 +83,27 @@ export function useAdminBuyers() {
   const assigning = ref<Record<string, boolean>>({})
   const assignError = ref<Record<string, ApiError | null>>({})
   const assignSuccess = ref<Record<string, boolean>>({})
+  // Not every 200 means keys were actually assigned — `allItemsComplete: false` means stock ran out
+  // again, so this tracks that distinct "nothing to do yet" outcome separately from success/error.
+  const assignIncomplete = ref<Record<string, string | null>>({})
 
   // "Asignar": retries auto-assignment (in case stock wasn't available at payment time).
   async function assignKeys(orderId: string) {
     assigning.value[orderId] = true
     assignError.value[orderId] = null
     assignSuccess.value[orderId] = false
+    assignIncomplete.value[orderId] = null
     try {
       const result = await api<AssignKeysResponse>(`/admin/orders/${orderId}/assign-keys`, { method: 'POST' })
       const order = findOrder(orderId)
       if (order) order.status = result.orderStatus
-      assignSuccess.value[orderId] = true
+      if (result.allItemsComplete) {
+        assignSuccess.value[orderId] = true
+      } else {
+        const assigned = result.items.reduce((sum, i) => sum + i.assignedKeys, 0)
+        const requested = result.items.reduce((sum, i) => sum + i.quantity, 0)
+        assignIncomplete.value[orderId] = `Sin stock suficiente: ${assigned} de ${requested} clave(s) asignada(s).`
+      }
       return true
     } catch (e) {
       assignError.value[orderId] = toApiError(e)
@@ -130,7 +140,7 @@ export function useAdminBuyers() {
   return {
     email, page, pageSize, buyers, total, status, error, load, search, goToPage,
     resending, resendError, resendSuccess, resendDelivery,
-    assigning, assignError, assignSuccess, assignKeys,
+    assigning, assignError, assignSuccess, assignIncomplete, assignKeys,
     delivering, deliverError, deliverSuccess, deliverOrder,
   }
 }

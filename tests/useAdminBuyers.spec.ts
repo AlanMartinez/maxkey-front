@@ -103,6 +103,25 @@ describe('useAdminBuyers', () => {
     expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
   })
 
+  it('assignKeys with allItemsComplete: false does not mark success (stock ran out again)', async () => {
+    const awaitingPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'AwaitingFulfillment' }] }] }
+    apiMock.mockResolvedValueOnce(awaitingPage).mockResolvedValueOnce({
+      orderStatus: 'AwaitingFulfillment',
+      allItemsComplete: false,
+      items: [{ itemId: 'item-1', quantity: 3, assignedKeys: 1 }],
+    })
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.assignKeys('order-1')
+
+    expect(result).toBe(true)
+    expect(buyers.assignSuccess.value['order-1']).toBeFalsy()
+    expect(buyers.assignIncomplete.value['order-1']).toBe('Sin stock suficiente: 1 de 3 clave(s) asignada(s).')
+    // status stays whatever the server reports — still AwaitingFulfillment, not silently advanced
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('AwaitingFulfillment')
+  })
+
   it('deliverOrder succeeds and patches the order status in local state', async () => {
     const assignedPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'KeysAssigned' }] }] }
     apiMock.mockResolvedValueOnce(assignedPage).mockResolvedValueOnce({ status: 'Delivered' })
