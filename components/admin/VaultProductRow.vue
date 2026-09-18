@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AdminVaultProduct } from '~/types/api'
+import type { AdminVaultKey, AdminVaultProduct } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
 
 const props = defineProps<{
@@ -9,9 +9,12 @@ const props = defineProps<{
   uploading: Record<string, boolean>
   uploadError: Record<string, ApiError | null>
   uploadSuccess: Record<string, boolean>
+  fetchingKeys: Record<string, boolean>
+  keysError: Record<string, ApiError | null>
+  variantKeys: Record<string, AdminVaultKey[]>
   initiallyExpanded?: boolean
 }>()
-const emit = defineEmits<{ toggle: [enabled: boolean]; upload: [variantId: string, rawCodes: string] }>()
+const emit = defineEmits<{ toggle: [enabled: boolean]; upload: [variantId: string, rawCodes: string]; viewKeys: [variantId: string] }>()
 
 // Collapsed by default, same reasoning as ProductEditor: keeps the list scannable with many products.
 // initiallyExpanded lets /admin/vault?product=<id> (coming from the "Ver en Vault" catalog link) open pre-expanded.
@@ -54,7 +57,11 @@ function onToggle(event: Event) {
         :uploading="!!uploading[variant.id]"
         :upload-error="uploadError[variant.id] ?? null"
         :upload-success="!!uploadSuccess[variant.id]"
+        :fetching-keys="!!fetchingKeys[variant.id]"
+        :keys-error="keysError[variant.id] ?? null"
+        :keys="variantKeys[variant.id]"
         @upload="(rawCodes) => emit('upload', variant.id, rawCodes)"
+        @view-keys="emit('viewKeys', variant.id)"
       />
     </div>
   </div>

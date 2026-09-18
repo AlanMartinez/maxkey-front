@@ -17,6 +17,10 @@ const {
   uploadError,
   uploadSuccess,
   uploadKeys,
+  fetchingKeys,
+  keysError,
+  variantKeys,
+  fetchVariantKeys,
 } = await useAdminVault()
 
 // Coming from the "Ver en Vault" catalog link: the row itself opens pre-expanded (initiallyExpanded
@@ -51,9 +55,13 @@ onMounted(() => {
         :uploading="uploading"
         :upload-error="uploadError"
         :upload-success="uploadSuccess"
+        :fetching-keys="fetchingKeys"
+        :keys-error="keysError"
+        :variant-keys="variantKeys"
         :initially-expanded="product.id === highlightedProductId"
         @toggle="(enabled) => toggleVault(product.id, enabled)"
         @upload="(variantId, rawCodes) => uploadKeys(product.id, variantId, rawCodes)"
+        @view-keys="(variantId) => fetchVariantKeys(variantId)"
       />
     </div>
   </section>
