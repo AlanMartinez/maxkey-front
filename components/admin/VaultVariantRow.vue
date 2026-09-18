@@ -100,7 +100,7 @@ function submit() {
     <Teleport to="body">
       <div v-if="keysModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" aria-hidden="true" @click="keysModalOpen = false" />
-        <div role="dialog" aria-modal="true" aria-labelledby="vault-keys-modal-title" class="glass relative flex max-h-[80vh] w-full max-w-2xl flex-col gap-4 overflow-hidden rounded-2xl p-6">
+        <div role="dialog" aria-modal="true" aria-labelledby="vault-keys-modal-title" class="glass relative flex max-h-[80vh] w-full max-w-4xl flex-col gap-4 overflow-hidden rounded-2xl p-6">
           <button type="button" aria-label="Cerrar" class="absolute right-3 top-3 rounded-xl p-2 text-white/70 transition hover:bg-white/5 hover:text-white" @click="keysModalOpen = false">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
@@ -108,18 +108,25 @@ function submit() {
             Keys cargadas — {{ variant.region || variant.edition ? [variant.region, variant.edition].filter(Boolean).join(' · ') : 'Variante única' }}
           </h2>
 
-          <div class="flex flex-col gap-1.5 overflow-y-auto">
+          <div class="flex flex-col gap-1.5 overflow-x-auto overflow-y-auto">
             <p v-if="fetchingKeys" class="text-xs text-white/50">Cargando keys…</p>
             <p v-else-if="keysError" role="alert" class="text-xs text-red-300">{{ keysError.detail ?? keysError.title }}</p>
             <p v-else-if="!keys?.length" class="text-xs text-white/50">Todavía no se cargaron keys para esta variante.</p>
-            <ul v-else class="flex flex-col gap-1.5">
-              <li v-for="key in keys" :key="key.keyId" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs">
-                <span class="font-mono text-white/40">{{ key.keyId.slice(0, 8) }}</span>
+            <!-- Grid with fixed columns instead of flex-wrap: a wide loadedBy/orderItemId value used to
+                 push "Orden" onto a second line — grid tracks keep every key row to exactly one line,
+                 truncating overflow instead of wrapping. -->
+            <ul v-else class="flex min-w-max flex-col gap-1.5">
+              <li
+                v-for="key in keys"
+                :key="key.keyId"
+                class="grid grid-cols-[5rem_5.5rem_minmax(9rem,1fr)_6.5rem_6.5rem_9rem] items-center gap-x-3 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs"
+              >
+                <span class="truncate font-mono text-white/40">{{ key.keyId.slice(0, 8) }}</span>
                 <AppBadge :tone="key.status === 'Available' ? 'success' : 'neutral'">{{ key.status === 'Available' ? 'Disponible' : 'Asignada' }}</AppBadge>
-                <span class="text-white/60">{{ key.loadedBy }}</span>
-                <span class="text-white/40">Cargada: {{ formatDate(key.createdAt) }}</span>
-                <span class="text-white/40">Asignada: {{ key.assignedAt ? formatDate(key.assignedAt) : '—' }}</span>
-                <span class="ml-auto text-white/40">Orden: {{ key.orderItemId ?? '—' }}</span>
+                <span class="truncate text-white/60">{{ key.loadedBy }}</span>
+                <span class="truncate text-white/40">Cargada: {{ formatDate(key.createdAt) }}</span>
+                <span class="truncate text-white/40">Asignada: {{ key.assignedAt ? formatDate(key.assignedAt) : '—' }}</span>
+                <span class="truncate text-right text-white/40">Orden: {{ key.orderItemId ?? '—' }}</span>
               </li>
             </ul>
           </div>
