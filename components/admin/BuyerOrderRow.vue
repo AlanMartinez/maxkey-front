@@ -10,89 +10,85 @@ const props = defineProps<{
   order: AdminBuyerOrder
   resending: Record<string, boolean>
   resendError: Record<string, ApiError | null>
-  resendSuccess: Record<string, boolean>
   assigning: Record<string, boolean>
   assignError: Record<string, ApiError | null>
-  assignSuccess: Record<string, boolean>
   assignIncomplete: Record<string, string | null>
-  delivering: Record<string, boolean>
-  deliverError: Record<string, ApiError | null>
-  deliverSuccess: Record<string, boolean>
 }>()
-const emit = defineEmits<{ resend: [orderId: string]; assign: [orderId: string]; deliver: [orderId: string] }>()
+// `deliver` only asks the page to open the confirmation modal (DeliverOrderDialog); the row itself
+// never fires the delivery call. Assign is one-click, no confirmation step. `open` fires on a click
+// anywhere on the row (action buttons stop propagation) so the page can open OrderDetailDialog.
+const emit = defineEmits<{ resend: [orderId: string]; assign: [orderId: string]; deliver: [orderId: string]; open: [orderId: string] }>()
 
-// Inline confirm step instead of a browser `confirm()` dialog: first click asks, second click sends.
-type OrderAction = 'resend' | 'assign' | 'deliver'
-const confirmingAction = ref<OrderAction | null>(null)
+// One action per status (see buyerOrderAction in utils/orders.ts), each with its own button colour:
+// Asignar = accent, Entregar = success, Reenviar = ghost.
+const action = computed(() => buyerOrderAction(props.order.status))
 
-function confirmAction(action: OrderAction) {
-  confirmingAction.value = null
-  switch (action) {
-    case 'resend':
-      emit('resend', props.order.id)
-      break
-    case 'assign':
-      emit('assign', props.order.id)
-      break
-    case 'deliver':
-      emit('deliver', props.order.id)
-      break
-  }
-}
+// Per-item breakdown: an order only becomes deliverable once EVERY item has all its keys assigned,
+// so the row shows each item's assigned/quantity instead of an order-wide sum that hides which
+// item is still short. Defensive `?? 0` against a backend response missing a field (observed against
+// the local dev API) so a stale/partial row never renders "NaN".
+const itemRows = computed(() =>
+  props.order.items.map((i) => {
+    const quantity = i.quantity ?? 0
+    const assigned = i.assignedKeys ?? 0
+    return {
+      label: `${i.productName} × ${quantity}`,
+      title: `${i.productName} — ${i.variantName} × ${quantity} · ${assigned}/${quantity} asignada(s), ${i.revealedKeys ?? 0} revelada(s)`,
+      assigned,
+      quantity,
+      complete: quantity > 0 && assigned >= quantity,
+    }
+  }),
+)
 
-const itemsSummary = computed(() => {
-  // Defensive against a backend response missing a field (observed against the local dev API): a
-  // stale/partial row shouldn't render "NaN" in a table meant to scale to real traffic.
-  const assigned = props.order.items.reduce((sum, i) => sum + (i.assignedKeys ?? 0), 0)
-  const revealed = props.order.items.reduce((sum, i) => sum + (i.revealedKeys ?? 0), 0)
-  const quantity = props.order.items.reduce((sum, i) => sum + (i.quantity ?? 0), 0)
-  return `${quantity} item(s) · ${assigned} asignada(s), ${revealed} revelada(s)`
+// Status/outcome feedback lives in the Estado column (the composable patches order.status locally on
+// success), so the actions cell only ever shows the button plus errors — nothing stacks under it.
+const actionError = computed(() => {
+  const id = props.order.id
+  return props.assignError[id] ?? props.resendError[id] ?? null
 })
-const itemsDetail = computed(() => props.order.items.map((i) => `${i.productName} — ${i.variantName} × ${i.quantity}`).join('\n'))
+
+// Resend isn't wired up yet (backend outbox handler pending), so the button renders disabled rather
+// than hidden: the admin still sees that the action exists for Delivered orders.
+const resendAvailable = false
 </script>
 
 <template>
-  <tr class="border-b border-white/5 align-top last:border-0">
-    <td class="whitespace-nowrap px-3 py-3 text-sm">{{ email }}</td>
-    <td class="whitespace-nowrap px-3 py-3 font-mono text-xs text-white/60">{{ order.id.slice(0, 8) }}</td>
-    <td class="whitespace-nowrap px-3 py-3"><OrderStatusBadge :status="order.status" /></td>
-    <td class="whitespace-nowrap px-3 py-3 text-sm">{{ order.totalAmount }} {{ order.currency }}</td>
-    <td class="px-3 py-3 text-sm text-white/70" :title="itemsDetail">{{ itemsSummary }}</td>
-    <td class="px-3 py-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <template v-if="order.status !== 'Delivered' && order.status !== 'Cancelled'">
-          <template v-if="confirmingAction === 'assign'">
-            <span class="text-xs text-white/70">¿Reintentar asignación?</span>
-            <AppButton type="button" size="sm" :loading="assigning[order.id]" @click="confirmAction('assign')">Confirmar</AppButton>
-            <AppButton type="button" variant="ghost" size="sm" @click="confirmingAction = null">Cancelar</AppButton>
-          </template>
-          <AppButton v-else type="button" size="sm" @click="confirmingAction = 'assign'">Asignar</AppButton>
-          <span v-if="assignSuccess[order.id]" class="text-xs text-success">Keys asignadas.</span>
-          <AppBadge v-if="assignIncomplete[order.id]" tone="warning">{{ assignIncomplete[order.id] }}</AppBadge>
-          <span v-if="assignError[order.id]" role="alert" class="text-xs text-red-300">{{ assignError[order.id]?.friendlyMessage() }}</span>
-        </template>
+  <tr
+    class="cursor-pointer border-b border-white/5 transition hover:bg-white/[0.03] last:border-0"
+    :title="`Ver detalle del pedido ${order.id.slice(0, 8)}`"
+    @click="emit('open', order.id)"
+  >
+    <td class="whitespace-nowrap px-3 py-2 text-sm">{{ email }}</td>
+    <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-white/60">{{ order.id.slice(0, 8) }}</td>
+    <td class="whitespace-nowrap px-3 py-2"><OrderStatusBadge :status="order.status" /></td>
+    <td class="whitespace-nowrap px-3 py-2 text-sm">{{ order.totalAmount }} {{ order.currency }}</td>
+    <!-- Chips shrink (label truncates, count stays) so a multi-item order still fits one line. -->
+    <td class="px-3 py-2 text-sm">
+      <div class="flex max-w-[360px] items-center gap-1.5">
+        <span
+          v-for="(item, i) in itemRows"
+          :key="i"
+          :title="item.title"
+          class="inline-flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs"
+          :class="item.complete ? 'border-success/30 bg-success/10 text-success' : 'border-white/10 bg-white/5 text-white/70'"
+        >
+          <span class="min-w-0 truncate">{{ item.label }}</span>
+          <span class="shrink-0 font-mono" :class="item.complete ? 'text-success' : 'text-white/50'">{{ item.assigned }}/{{ item.quantity }}</span>
+        </span>
+      </div>
+    </td>
+    <td class="whitespace-nowrap px-3 py-2">
+      <div class="flex items-center gap-2">
+        <AppButton v-if="action === 'assign'" type="button" size="sm" :loading="assigning[order.id]" @click.stop="emit('assign', order.id)">Asignar keys</AppButton>
+        <AppButton v-else-if="action === 'deliver'" type="button" variant="success" size="sm" @click.stop="emit('deliver', order.id)">Entregar</AppButton>
+        <span v-else-if="action === 'resend'" title="Próximamente" @click.stop>
+          <AppButton type="button" variant="ghost" size="sm" :disabled="!resendAvailable" :loading="resending[order.id]" @click="emit('resend', order.id)">Reenviar email</AppButton>
+        </span>
+        <span v-else class="text-xs text-white/40">—</span>
 
-        <template v-if="order.status === 'KeysAssigned'">
-          <template v-if="confirmingAction === 'deliver'">
-            <span class="text-xs text-white/70">¿Confirmar entrega?</span>
-            <AppButton type="button" size="sm" :loading="delivering[order.id]" @click="confirmAction('deliver')">Confirmar</AppButton>
-            <AppButton type="button" variant="ghost" size="sm" @click="confirmingAction = null">Cancelar</AppButton>
-          </template>
-          <AppButton v-else type="button" size="sm" @click="confirmingAction = 'deliver'">Entregar</AppButton>
-          <span v-if="deliverSuccess[order.id]" class="text-xs text-success">Pedido entregado.</span>
-          <span v-if="deliverError[order.id]" role="alert" class="text-xs text-red-300">{{ deliverError[order.id]?.friendlyMessage() }}</span>
-        </template>
-
-        <template v-if="order.status === 'Delivered'">
-          <template v-if="confirmingAction === 'resend'">
-            <span class="text-xs text-white/70">¿Reenviar email?</span>
-            <AppButton type="button" size="sm" :loading="resending[order.id]" @click="confirmAction('resend')">Confirmar</AppButton>
-            <AppButton type="button" variant="ghost" size="sm" @click="confirmingAction = null">Cancelar</AppButton>
-          </template>
-          <AppButton v-else type="button" size="sm" @click="confirmingAction = 'resend'">Reenviar email de entrega</AppButton>
-          <span v-if="resendSuccess[order.id]" class="text-xs text-success">Email reenviado.</span>
-          <span v-if="resendError[order.id]" role="alert" class="text-xs text-red-300">{{ resendError[order.id]?.friendlyMessage() }}</span>
-        </template>
+        <AppBadge v-if="action === 'assign' && assignIncomplete[order.id]" tone="warning" :title="assignIncomplete[order.id]">Sin stock</AppBadge>
+        <span v-if="actionError" role="alert" class="max-w-[200px] truncate text-xs text-red-300" :title="actionError.friendlyMessage()">{{ actionError.friendlyMessage() }}</span>
       </div>
     </td>
   </tr>

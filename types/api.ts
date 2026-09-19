@@ -284,18 +284,21 @@ export interface AdminBuyersPage {
 // mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
 export interface ResendDeliveryResponse { outboxEventId: string }
 
-// PROPOSED contract for "GET /admin/orders/{id}" (admin order detail modal). Not implemented in
-// maxkeys-back yet — useAdminOrderDetail.ts falls back to dev mock data until it lands. Field names
-// follow the Order / OrderItem / OutboxEvent domain entities so the backend mapping is 1:1.
+// mirrors "GET /admin/orders/{id}" (maxkeys-back branch worktree-admin-order-detail) — admin order
+// detail modal. useAdminOrderDetail.ts falls back to dev mock data until that branch is merged and
+// deployed. Field names follow the Order / OrderItem / OutboxEvent domain entities 1:1.
 // Key Exposure rule still applies: keys expose ids, status and timestamps, never a key code.
-// The backend Key entity has no reveal concept (KeyStatus = Available | Assigned, no RevealedAt), so
-// a key attached to an order is always "Assigned" here — reveal tracking would be a backend change.
-export type AdminOrderKeyStatus = 'Assigned'
+// Reveal tracking is the dispute evidence ("I never got it"): the backend sets revealedAt/revealedBy
+// once on the first reveal (later reveals are no-ops), so status === 'Revealed' iff revealedAt != null.
+export type AdminOrderKeyStatus = 'Assigned' | 'Revealed'
 
 export interface AdminOrderKey {
   keyId: string
   status: AdminOrderKeyStatus
-  assignedAt: string
+  assignedAt: string | null
+  revealedAt: string | null
+  /** Authenticated Supabase user id (as string) that revealed the key; null until revealed. */
+  revealedBy: string | null
 }
 
 export interface AdminOrderDetailItem {
@@ -311,7 +314,7 @@ export interface AdminOrderDetailItem {
 export type AdminOrderEventStatus = 'Pending' | 'Processing' | 'Processed' | 'Failed'
 
 // One outbox event tied to the order (OrderApproved / OrderDelivered / OrderDeliveryResendRequested…),
-// which is the closest thing the backend has to an order history today.
+// oldest first. The outbox is a dispatch queue, not an audit log — reveals are NOT events here.
 export interface AdminOrderEvent {
   id: string
   type: string
