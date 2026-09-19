@@ -278,6 +278,64 @@ export interface AdminBuyersPage {
 // mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
 export interface ResendDeliveryResponse { outboxEventId: string }
 
+// mirrors "GET /admin/orders/{id}" (maxkeys-back branch worktree-admin-order-detail) — admin order
+// detail modal. useAdminOrderDetail.ts falls back to dev mock data until that branch is merged and
+// deployed. Field names follow the Order / OrderItem / OutboxEvent domain entities 1:1.
+// Key Exposure rule still applies: keys expose ids, status and timestamps, never a key code.
+// Reveal tracking is the dispute evidence ("I never got it"): the backend sets revealedAt/revealedBy
+// once on the first reveal (later reveals are no-ops), so status === 'Revealed' iff revealedAt != null.
+export type AdminOrderKeyStatus = 'Assigned' | 'Revealed'
+
+export interface AdminOrderKey {
+  keyId: string
+  status: AdminOrderKeyStatus
+  assignedAt: string | null
+  revealedAt: string | null
+  /** Authenticated Supabase user id (as string) that revealed the key; null until revealed. */
+  revealedBy: string | null
+}
+
+export interface AdminOrderDetailItem {
+  itemId: string
+  productName: string
+  variantName: string
+  unitPrice: number
+  quantity: number
+  keys: AdminOrderKey[]
+}
+
+// mirrors Maxkeys.Domain.Outbox.OutboxEventStatus
+export type AdminOrderEventStatus = 'Pending' | 'Processing' | 'Processed' | 'Failed'
+
+// One outbox event tied to the order (OrderApproved / OrderDelivered / OrderDeliveryResendRequested…),
+// oldest first. The outbox is a dispatch queue, not an audit log — reveals are NOT events here.
+export interface AdminOrderEvent {
+  id: string
+  type: string
+  status: AdminOrderEventStatus
+  createdAt: string
+  processedAt: string | null
+  attempts: number
+  lastError: string | null
+}
+
+export interface AdminOrderDetail {
+  id: string
+  buyerEmail: string
+  status: OrderStatus
+  totalAmount: number
+  currency: string
+  createdAt: string
+  paidAt: string | null
+  deliveredAt: string | null
+  updatedAt: string
+  mpPaymentId: string | null
+  lastPaymentAttemptStatus: string | null
+  lastPaymentAttemptAt: string | null
+  items: AdminOrderDetailItem[]
+  events: AdminOrderEvent[]
+}
+
 // mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/assign-keys" response.
 // items[].itemId does not correlate to anything on AdminBuyerOrderItem (that list DTO carries no id) —
 // only orderStatus is used to update local state after this call; per-item counts stay stale until the

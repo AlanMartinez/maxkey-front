@@ -9,9 +9,9 @@ useHead({ title: 'Compradores · Admin · CHEKEYS' })
 // to many buyers/orders.
 const {
   buyers, total, page, pageSize, status, error, load, search, goToPage,
-  resending, resendError, resendSuccess, resendDelivery,
-  assigning, assignError, assignSuccess, assignIncomplete, assignKeys,
-  delivering, deliverError, deliverSuccess, deliverOrder,
+  resending, resendError, resendDelivery,
+  assigning, assignError, assignIncomplete, assignKeys,
+  delivering, deliverError, deliverOrder,
 } = useAdminBuyers()
 
 await load()
@@ -38,20 +38,40 @@ const statusLabels: Record<OrderStatus, string> = {
   Cancelled: 'Cancelado',
 }
 
-type ActionKind = 'assign' | 'deliver' | 'resend'
-
-// Mirrors BuyerOrderRow.vue's action-gating exactly. KeysAssigned orders legitimately expose both
-// "assign" and "deliver" at once, so this returns an array rather than a single kind.
-function orderActionKinds(status: OrderStatus): ActionKind[] {
-  const kinds: ActionKind[] = []
-  if (status !== 'Delivered' && status !== 'Cancelled') kinds.push('assign')
-  if (status === 'KeysAssigned') kinds.push('deliver')
-  if (status === 'Delivered') kinds.push('resend')
-  return kinds
-}
-
 interface FlatRow { email: string; order: AdminBuyerOrder }
 const flatRows = computed<FlatRow[]>(() => buyers.value.flatMap((buyer) => buyer.orders.map((order) => ({ email: buyer.email, order }))))
+
+// --- Deliver confirmation modal ------------------------------------------------------------------
+// Delivery is the only action gated behind a confirmation (it emails keys and closes the order), and
+// it lives here rather than in each row so there's a single dialog + keydown listener on the page.
+const deliverTarget = ref<FlatRow | null>(null)
+
+function openDeliver(orderId: string) {
+  deliverTarget.value = flatRows.value.find((row) => row.order.id === orderId) ?? null
+}
+
+async function confirmDeliver(orderId: string) {
+  const ok = await deliverOrder(orderId)
+  // On failure the dialog stays open showing deliverError so the admin can retry or cancel.
+  if (ok) deliverTarget.value = null
+}
+
+// --- Order detail modal ------------------------------------------------------------------------
+// Any click on a row (outside its action buttons) opens the read-only detail for that order.
+const { detail: orderDetail, status: orderDetailStatus, error: orderDetailError, load: loadOrderDetail, reset: resetOrderDetail } = useAdminOrderDetail()
+const detailTarget = ref<FlatRow | null>(null)
+
+function openDetail(orderId: string) {
+  const row = flatRows.value.find((r) => r.order.id === orderId)
+  if (!row) return
+  detailTarget.value = row
+  loadOrderDetail(orderId, row)
+}
+
+function closeDetail() {
+  detailTarget.value = null
+  resetOrderDetail()
+}
 
 const itemOptions = computed(() => {
   const names = new Set<string>()
@@ -62,7 +82,7 @@ const itemOptions = computed(() => {
 })
 
 const filterStatus = ref<OrderStatus | 'all'>('all')
-const filterAction = ref<ActionKind | 'none' | 'all'>('all')
+const filterAction = ref<BuyerOrderAction | 'none' | 'all'>('all')
 const filterItem = ref<string>('all')
 
 const hasActiveFilters = computed(() => filterStatus.value !== 'all' || filterAction.value !== 'all' || filterItem.value !== 'all')
@@ -81,8 +101,8 @@ const filteredRows = computed(() =>
     if (filterStatus.value !== 'all' && row.order.status !== filterStatus.value) return false
     if (filterItem.value !== 'all' && !row.order.items.some((i) => i.productName === filterItem.value)) return false
     if (filterAction.value !== 'all') {
-      const kinds = orderActionKinds(row.order.status)
-      if (filterAction.value === 'none' ? kinds.length > 0 : !kinds.includes(filterAction.value)) return false
+      const action = buyerOrderAction(row.order.status)
+      if (filterAction.value === 'none' ? action !== null : action !== filterAction.value) return false
     }
     return true
   }),
@@ -174,7 +194,7 @@ const filteredRows = computed(() =>
                     class="h-8 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs font-normal normal-case text-white outline-none focus:border-accent"
                   >
                     <option value="all">Todas</option>
-                    <option value="assign">Asignar</option>
+                    <option value="assign">Asignar keys</option>
                     <option value="deliver">Entregar</option>
                     <option value="resend">Reenviar</option>
                     <option value="none">Sin acción</option>
@@ -192,17 +212,13 @@ const filteredRows = computed(() =>
                 :order="row.order"
                 :resending="resending"
                 :resend-error="resendError"
-                :resend-success="resendSuccess"
                 :assigning="assigning"
                 :assign-error="assignError"
-                :assign-success="assignSuccess"
                 :assign-incomplete="assignIncomplete"
-                :delivering="delivering"
-                :deliver-error="deliverError"
-                :deliver-success="deliverSuccess"
                 @resend="resendDelivery"
                 @assign="assignKeys"
-                @deliver="deliverOrder"
+                @deliver="openDeliver"
+                @open="openDetail"
               />
             </template>
             <tr v-else>
@@ -223,5 +239,25 @@ const filteredRows = computed(() =>
         <AppButton type="button" variant="ghost" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">Siguiente</AppButton>
       </div>
     </div>
+
+    <DeliverOrderDialog
+      v-if="deliverTarget"
+      :email="deliverTarget.email"
+      :order="deliverTarget.order"
+      :loading="delivering[deliverTarget.order.id] ?? false"
+      :error="deliverError[deliverTarget.order.id] ?? null"
+      @confirm="confirmDeliver"
+      @close="deliverTarget = null"
+    />
+
+    <OrderDetailDialog
+      v-if="detailTarget"
+      :order-id="detailTarget.order.id"
+      :detail="orderDetail"
+      :status="orderDetailStatus"
+      :error="orderDetailError"
+      @retry="loadOrderDetail(detailTarget.order.id, detailTarget)"
+      @close="closeDetail"
+    />
   </section>
 </template>
