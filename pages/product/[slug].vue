@@ -183,7 +183,7 @@ async function buyNow() {
         </svg>
         Descripción completa
       </h2>
-      <div class="markdown-body leading-relaxed text-white/70" v-html="descriptionHtml" />
+      <div class="markdown-body text-sm leading-relaxed text-white/70" v-html="descriptionHtml" />
     </section>
 
     <PurchaseBar

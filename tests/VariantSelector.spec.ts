@@ -25,6 +25,13 @@ describe('VariantSelector', () => {
     expect(wrapper.text()).toContain('21.000')
   })
 
+  it('shows the discount badge only on variants with an old price', () => {
+    const wrapper = mountSelector()
+
+    expect(amountRows(wrapper)[1]?.text()).toContain('-12%')
+    expect(amountRows(wrapper)[0]?.text()).not.toContain('%')
+  })
+
   it('tags the recommended variant with "Más elegido"', () => {
     const wrapper = mountSelector('v1', { recommendedId: 'v2' })
 

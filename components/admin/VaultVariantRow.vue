@@ -44,7 +44,7 @@ const parsedCount = computed(() => codesInput.value.split('\n').map((c) => c.tri
 // Stock badge tone gives an at-a-glance read without comparing raw numbers across rows.
 const stockTone = computed(() => {
   if (props.variant.availableCount === 0) return 'danger'
-  if (props.variant.availableCount < 10) return 'discount'
+  if (props.variant.availableCount < 10) return 'warning'
   return 'success'
 })
 

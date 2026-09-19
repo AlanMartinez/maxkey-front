@@ -7,6 +7,11 @@ type SelectableVariant = ProductVariantDto & { isActive?: boolean }
 const props = withDefaults(defineProps<{ variants: SelectableVariant[]; modelValue: string | null; recommendedId?: string | null }>(), { recommendedId: null })
 const emit = defineEmits<{ 'update:modelValue': [id: string]; select: [variant: SelectableVariant] }>()
 
+// Same derivation PurchasePanel/PurchaseBar use, so the % shown here matches the one in the purchase card.
+function discountOf(variant: SelectableVariant) {
+  return variant.oldPrice ? Math.round((1 - variant.price / variant.oldPrice) * 100) : 0
+}
+
 function choose(variant: SelectableVariant) {
   if (variant.isActive === false) return
   emit('update:modelValue', variant.id)
@@ -33,7 +38,10 @@ function choose(variant: SelectableVariant) {
           <span v-if="variant.id === recommendedId" class="mt-0.5 text-[11px] font-medium text-accent">Más elegido</span>
         </span>
         <span class="flex flex-col items-end">
-          <span class="font-display font-bold">{{ formatMoney(variant.price, variant.currency) }}</span>
+          <span class="flex items-center gap-2">
+            <AppBadge v-if="discountOf(variant) > 0" tone="discount">-{{ discountOf(variant) }}%</AppBadge>
+            <span class="font-display font-bold">{{ formatMoney(variant.price, variant.currency) }}</span>
+          </span>
           <span v-if="variant.oldPrice" class="text-xs text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</span>
         </span>
       </button>

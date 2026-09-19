@@ -52,14 +52,14 @@ const buttonLabel = computed(() => {
 <template>
   <!-- Below `sm` the card sits three-per-row on a phone (~110px wide), so paddings, type and the
        add button collapse; the button keeps its label for screen readers but shows icon only. -->
-  <article class="glass group flex flex-col overflow-hidden rounded-xl border-white/20 transition hover:border-accent/50 sm:rounded-2xl sm:border-white/10">
+  <article class="glass flex flex-col overflow-hidden rounded-xl border-0 transition duration-200 hover:z-10 hover:scale-[1.04] hover:shadow-xl hover:shadow-black/40 sm:rounded-2xl">
     <!-- The link covers image and copy; the add button stays a sibling so it never triggers navigation. -->
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
-        <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />
+        <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover" />
       </div>
-      <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-4 sm:pb-3">
-        <h3 class="line-clamp-2 text-sm font-semibold leading-tight sm:text-base">{{ product.name }}</h3>
+      <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-3 sm:pb-2">
+        <h3 class="line-clamp-2 text-sm font-semibold leading-tight">{{ product.name }}</h3>
         <!-- A 16px mark fits the ~110px phone card where the old text badge had to wait for `sm`. -->
         <div class="flex items-center">
           <PlatformLogo :platform="product.platform" />
@@ -67,14 +67,14 @@ const buttonLabel = computed(() => {
         <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="hidden text-white/50 sm:inline">Desde</span>
-            <span class="text-base font-semibold sm:text-lg">{{ formatMoney(product.fromPrice) }}</span>
+            <span class="text-base font-semibold">{{ formatMoney(product.fromPrice) }}</span>
             <AppBadge v-if="discount > 0" tone="discount">-{{ discount }}%</AppBadge>
           </p>
           <p v-if="product.oldPrice" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
         </div>
       </div>
     </NuxtLink>
-    <div class="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
+    <div class="px-2.5 pb-2.5 sm:px-3 sm:pb-3">
       <AppButton
         variant="ghost"
         size="sm"
