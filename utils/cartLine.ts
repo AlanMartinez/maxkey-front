@@ -2,9 +2,12 @@ import type { CartLine } from '~/composables/useCart'
 import type { ProductDetail, ProductVariantDto } from '~/types/api'
 import { productImageUrl } from '~/utils/productImage'
 
-/** The API only returns active variants in catalog order, so the first one is the default selection everywhere. */
+/**
+ * The backend-flagged recommended variant is preselected everywhere; the API only returns active
+ * variants in catalog order, so the first one is the fallback when none is flagged.
+ */
 export function defaultVariant<T extends ProductVariantDto>(variants: T[]): T | undefined {
-  return variants[0]
+  return recommendedVariant(variants) ?? variants[0]
 }
 
 /** Builds the cart line for a variant; prices are indicative, the server recomputes them at checkout. */
@@ -20,12 +23,9 @@ export function toCartLine(product: Pick<ProductDetail, 'slug' | 'name' | 'image
   }
 }
 
-/**
- * Placeholder heuristic for the "Más elegido" tag until the API exposes popularity:
- * the first discounted variant wins; without discounts nothing is tagged.
- */
+/** The "Más elegido" tag follows the admin-set `isRecommended` flag (at most one per product); nothing is tagged otherwise. */
 export function recommendedVariant<T extends ProductVariantDto>(variants: T[]): T | undefined {
-  return variants.find((v) => v.oldPrice !== undefined && v.oldPrice > v.price)
+  return variants.find((v) => v.isRecommended)
 }
 
 /**
