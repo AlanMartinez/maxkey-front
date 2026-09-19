@@ -11,8 +11,13 @@ import { ApiError } from '~/composables/useApi'
 // backend to hit locally. `import.meta.dev` is compile-time-false in production (same technique
 // as the dev admin token in useApi.ts), so this whole branch is dead-code-eliminated in prod builds
 // and never used to fall back on a genuine backend error there.
+// 10 products, each isolating one scenario the admin vault UI needs to render correctly —
+// see the scenario comment on each entry. mock-product-1/2 (and mock-variant-2a specifically)
+// predate this expansion and are kept byte-identical: mockKeysForVariant below special-cases
+// mock-variant-2a as its empty-state fixture.
 const mockVaultProducts: AdminVaultProduct[] = [
   {
+    // Multi-variant product with one variant already fully sold out.
     id: 'mock-product-1',
     name: 'Windows 11 Pro (mock)',
     vaultEnabled: true,
@@ -22,11 +27,85 @@ const mockVaultProducts: AdminVaultProduct[] = [
     ],
   },
   {
+    // Vault disabled, and its one variant has no region/edition metadata at all.
     id: 'mock-product-2',
     name: 'Office 2021 Pro Plus (mock)',
     vaultEnabled: false,
     variants: [
       { id: 'mock-variant-2a', region: null, edition: null, availableCount: 3, assignedCount: 0 },
+    ],
+  },
+  {
+    // Healthy single-variant product, vault enabled, plenty of stock.
+    id: 'mock-product-3',
+    name: 'Steam Wallet Gift Card (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-3a', region: 'AR', edition: 'Retail', availableCount: 40, assignedCount: 10 },
+    ],
+  },
+  {
+    // Vault disabled but still has stock loaded from before it was turned off.
+    id: 'mock-product-4',
+    name: 'Minecraft Java Edition (mock)',
+    vaultEnabled: false,
+    variants: [
+      { id: 'mock-variant-4a', region: 'Global', edition: 'Retail', availableCount: 25, assignedCount: 15 },
+    ],
+  },
+  {
+    // Vault enabled but nothing loaded yet — zero variants.
+    id: 'mock-product-5',
+    name: 'FIFA 24 Ultimate Edition (mock)',
+    vaultEnabled: true,
+    variants: [],
+  },
+  {
+    // Near-exhausted stock: heavily assigned relative to what's left available.
+    id: 'mock-product-6',
+    name: 'Adobe Creative Cloud (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-6a', region: 'Global', edition: 'Suscripción', availableCount: 2, assignedCount: 300 },
+    ],
+  },
+  {
+    // Several variants with distinct real-looking region/edition combos.
+    id: 'mock-product-7',
+    name: 'Grand Theft Auto V (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-7a', region: 'US', edition: 'Retail', availableCount: 18, assignedCount: 6 },
+      { id: 'mock-variant-7b', region: 'EU', edition: 'OEM', availableCount: 5, assignedCount: 2 },
+      { id: 'mock-variant-7c', region: 'LATAM', edition: 'Retail', availableCount: 30, assignedCount: 1 },
+    ],
+  },
+  {
+    // Freshly created variant: nothing loaded, nothing sold (distinct from mock-product-1b's
+    // "sold out after being loaded" — this one never had stock to begin with).
+    id: 'mock-product-8',
+    name: 'Red Dead Redemption 2 (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-8a', region: 'Global', edition: 'Retail', availableCount: 0, assignedCount: 0 },
+    ],
+  },
+  {
+    // Long/realistic product name — checks wrapping/truncation in the table.
+    id: 'mock-product-9',
+    name: 'Microsoft Office 2021 Professional Plus - Licencia Perpetua (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-9a', region: 'Global', edition: 'Retail', availableCount: 14, assignedCount: 6 },
+    ],
+  },
+  {
+    // Large numbers — checks formatting/overflow doesn't break the layout.
+    id: 'mock-product-10',
+    name: 'Xbox Game Pass Ultimate (mock)',
+    vaultEnabled: true,
+    variants: [
+      { id: 'mock-variant-10a', region: 'Global', edition: 'Digital', availableCount: 5000, assignedCount: 12000 },
     ],
   },
 ]

@@ -20,7 +20,7 @@ const page: AdminBuyersPage = {
           paidAt: '2026-01-01T00:00:00Z',
           totalAmount: 9990,
           currency: 'ARS',
-          items: [{ productName: 'Riot Points', variantName: '1.750 RP', quantity: 1, assignedKeys: 1 }],
+          items: [{ productName: 'Riot Points', variantName: '1.750 RP', quantity: 1, assignedKeys: 1, revealedKeys: 0 }],
         },
       ],
     },
@@ -86,5 +86,71 @@ describe('useAdminBuyers', () => {
     expect(buyers.resendError.value['order-1']).toBeInstanceOf(ApiError)
     expect(buyers.resendError.value['order-1']?.status).toBe(409)
     expect(buyers.resendError.value['order-1']?.detail).toBe('Cannot resend the delivery email unless the order is Delivered.')
+  })
+
+  it('assignKeys succeeds and patches the order status in local state (key-delivery-gate PR #49)', async () => {
+    const awaitingPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'AwaitingFulfillment' }] }] }
+    apiMock.mockResolvedValueOnce(awaitingPage).mockResolvedValueOnce({ orderStatus: 'KeysAssigned', allItemsComplete: true, items: [] })
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.assignKeys('order-1')
+
+    expect(apiMock).toHaveBeenCalledWith('/admin/orders/order-1/assign-keys', { method: 'POST' })
+    expect(result).toBe(true)
+    expect(buyers.assignSuccess.value['order-1']).toBe(true)
+    expect(buyers.assigning.value['order-1']).toBe(false)
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
+  })
+
+  it('assignKeys with allItemsComplete: false does not mark success (stock ran out again)', async () => {
+    const awaitingPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'AwaitingFulfillment' }] }] }
+    apiMock.mockResolvedValueOnce(awaitingPage).mockResolvedValueOnce({
+      orderStatus: 'AwaitingFulfillment',
+      allItemsComplete: false,
+      items: [{ itemId: 'item-1', quantity: 3, assignedKeys: 1 }],
+    })
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.assignKeys('order-1')
+
+    expect(result).toBe(true)
+    expect(buyers.assignSuccess.value['order-1']).toBeFalsy()
+    expect(buyers.assignIncomplete.value['order-1']).toBe('Sin stock suficiente: 1 de 3 clave(s) asignada(s).')
+    // status stays whatever the server reports — still AwaitingFulfillment, not silently advanced
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('AwaitingFulfillment')
+  })
+
+  it('deliverOrder succeeds and patches the order status in local state', async () => {
+    const assignedPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'KeysAssigned' }] }] }
+    apiMock.mockResolvedValueOnce(assignedPage).mockResolvedValueOnce({ status: 'Delivered' })
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.deliverOrder('order-1')
+
+    expect(apiMock).toHaveBeenCalledWith('/admin/orders/order-1/deliver', { method: 'POST' })
+    expect(result).toBe(true)
+    expect(buyers.deliverSuccess.value['order-1']).toBe(true)
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('Delivered')
+  })
+
+  it('deliverOrder 409 (not all keys assigned yet) surfaces a readable error, not treated as unexpected', async () => {
+    const assignedPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'KeysAssigned' }] }] }
+    apiMock.mockResolvedValueOnce(assignedPage).mockRejectedValueOnce(
+      new ApiError({ type: 'about:blank', title: 'Conflict', status: 409, detail: 'No todas las keys están asignadas todavía.' }),
+    )
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.deliverOrder('order-1')
+
+    expect(result).toBe(false)
+    expect(buyers.deliverSuccess.value['order-1']).toBe(false)
+    expect(buyers.deliverError.value['order-1']).toBeInstanceOf(ApiError)
+    expect(buyers.deliverError.value['order-1']?.status).toBe(409)
+    // status stays whatever it was — a 409 means nothing changed server-side
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
   })
 })

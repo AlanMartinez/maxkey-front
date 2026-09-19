@@ -1,21 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import type { OrderItemDto } from '~/types/api'
-import { visibleKeys } from '~/utils/orders'
+import { canRevealKeys } from '~/utils/orders'
 
-const item: OrderItemDto = { productName: 'Riot Points', variantName: '1.750 RP', unitPrice: 9990, quantity: 1, keys: ['ABCD-1234'] }
+const baseItem: OrderItemDto = {
+  itemId: 'item-1',
+  productName: 'Riot Points',
+  variantName: '1.750 RP',
+  unitPrice: 9990,
+  quantity: 1,
+  keys: [],
+  revealable: false,
+}
 
-describe('visibleKeys', () => {
-  it('hides keys regardless of per-item progress unless the order is Delivered (orders-history: Non-delivered order hides keys)', () => {
-    expect(visibleKeys({ status: 'AwaitingFulfillment' }, item)).toEqual([])
-    expect(visibleKeys({ status: 'Pending' }, item)).toEqual([])
-    expect(visibleKeys({ status: 'Cancelled' }, item)).toEqual([])
+describe('canRevealKeys', () => {
+  it('hides the reveal action when the server says the item is not revealable (key-delivery-gate: server-driven gate, not order.status)', () => {
+    expect(canRevealKeys({ ...baseItem, revealable: false, keys: [] })).toBe(false)
   })
 
-  it('reveals the item keys once the order is Delivered', () => {
-    expect(visibleKeys({ status: 'Delivered' }, item)).toEqual(['ABCD-1234'])
+  it('shows the reveal action when revealable and nothing has been revealed yet', () => {
+    expect(canRevealKeys({ ...baseItem, revealable: true, keys: [] })).toBe(true)
   })
 
-  it('returns an empty array when a delivered item has no keys yet', () => {
-    expect(visibleKeys({ status: 'Delivered' }, { ...item, keys: undefined })).toEqual([])
+  it('hides the reveal action once keys have already been revealed, even if still revealable', () => {
+    expect(canRevealKeys({ ...baseItem, revealable: true, keys: ['ABCD-1234'] })).toBe(false)
   })
 })

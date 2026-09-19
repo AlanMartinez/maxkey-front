@@ -1,10 +1,10 @@
-import type { OrderDetailDto, OrderItemDto } from '~/types/api'
+import type { OrderItemDto } from '~/types/api'
 
 /**
- * orders-history spec "Order Detail With Conditional Key Reveal" / "Non-delivered order hides keys":
- * key codes for an item are visible only once the whole order is `Delivered`, regardless of
- * per-item fulfillment progress. Never return codes for a non-delivered order even if present in the payload.
+ * key-delivery-gate (PR #49): whether the "Revelar key" action should show for this item. Driven by the
+ * API's own `revealable` flag, not a client-side order-status check — the server is the source of truth
+ * for when reveal is allowed. Once an item has revealed codes, the action never shows again.
  */
-export function visibleKeys(order: Pick<OrderDetailDto, 'status'>, item: Pick<OrderItemDto, 'keys'>): string[] {
-  return order.status === 'Delivered' ? (item.keys ?? []) : []
+export function canRevealKeys(item: Pick<OrderItemDto, 'revealable' | 'keys'>): boolean {
+  return item.revealable && item.keys.length === 0
 }

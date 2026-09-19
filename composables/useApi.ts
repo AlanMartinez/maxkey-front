@@ -15,6 +15,23 @@ export class ApiError extends Error {
     this.detail = problem.detail
     this.problem = problem
   }
+
+  /** Human-readable Spanish copy for known statuses — falls back to the server's own title/detail. */
+  friendlyMessage(): string {
+    switch (this.status) {
+      case 404:
+        return 'Pedido no encontrado.'
+      case 409:
+        return this.detail ?? this.title ?? 'La acción no es válida en el estado actual del pedido.'
+      case 401:
+      case 403:
+        return 'No tenés permisos para esta acción.'
+      case 0:
+        return 'No se pudo conectar con el servidor.'
+      default:
+        return this.detail ?? this.title ?? 'Ocurrió un error inesperado.'
+    }
+  }
 }
 
 function toProblemDetails(status: number, statusText: string, body: unknown): ProblemDetails {

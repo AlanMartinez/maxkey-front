@@ -45,8 +45,11 @@ export interface CreateOrderRequest { email: string; items: CreateOrderItem[] }
 // mirrors design.md §7 "POST /checkout/orders" 201 response
 export interface CreateOrderResponse { orderId: string; initPoint: string }
 
-// mirrors design.md §4.2 Order statuses as serialized by the API (enums as text, ADR-07)
-export type OrderStatus = 'Pending' | 'Paid' | 'AwaitingFulfillment' | 'Delivered' | 'Cancelled'
+// mirrors design.md §4.2 Order statuses as serialized by the API (enums as text, ADR-07).
+// KeysAssigned added by key-delivery-gate (maxkeys-back PR #49): payment approval now auto-assigns keys
+// when stock exists and stops there — an order no longer reaches Delivered on its own, an admin must
+// confirm delivery via POST /admin/orders/{id}/deliver once all keys are assigned.
+export type OrderStatus = 'Pending' | 'Paid' | 'AwaitingFulfillment' | 'KeysAssigned' | 'Delivered' | 'Cancelled'
 
 // mirrors design.md §7 "GET /checkout/orders/{id}/status" response
 export interface OrderStatusResponse {
@@ -68,16 +71,24 @@ export interface OrderSummaryDto {
   itemCount: number
 }
 
-// mirrors design.md §7 "GET /me/orders/{id}" response `items[]` — `keys` present only when `Delivered`
+// mirrors design.md §7 "GET /me/orders/{id}" response `items[]` (PR #49, key-delivery-gate). `keys` now
+// holds only already-revealed codes and stays empty until revealed via the reveal endpoint below;
+// `revealable` is the server's own signal for whether the reveal action should show for this item —
+// never re-derive that from `order.status` client-side. `itemId` is assumed present (not explicitly
+// listed in the PR #49 spec message) since POST .../items/{itemId}/keys/reveal requires it; confirm
+// with the backend if this ever throws a 404 in practice.
 export interface OrderItemDto {
+  itemId: string
   productName: string
   variantName: string
   unitPrice: number
   quantity: number
-  keys?: string[]
+  keys: string[]
+  revealable: boolean
 }
 
-// mirrors design.md §7 "GET /me/orders/{id}" response (OrderDetail)
+// mirrors design.md §7 "GET /me/orders/{id}" response (OrderDetail). Key visibility is per-item now
+// (see OrderItemDto), not gated by this order-level status.
 export interface OrderDetailDto {
   id: string
   status: OrderStatus
@@ -235,6 +246,7 @@ export interface AdminBuyerOrderItem {
   variantName: string
   quantity: number
   assignedKeys: number
+  revealedKeys: number
 }
 
 // mirrors admin-dashboard design.md D4 "GET /admin/buyers" response `orders[]`
@@ -265,6 +277,24 @@ export interface AdminBuyersPage {
 
 // mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
 export interface ResendDeliveryResponse { outboxEventId: string }
+
+// mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/assign-keys" response.
+// items[].itemId does not correlate to anything on AdminBuyerOrderItem (that list DTO carries no id) —
+// only orderStatus is used to update local state after this call; per-item counts stay stale until the
+// buyer list is reloaded.
+export interface AssignKeysResponse {
+  orderStatus: OrderStatus
+  allItemsComplete: boolean
+  items: { itemId: string; quantity: number; assignedKeys: number }[]
+}
+
+// mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/deliver" response.
+// 409 (status isn't KeysAssigned yet) is an expected outcome, not surfaced as an unexpected failure.
+export interface DeliverOrderResponse { status: OrderStatus }
+
+// mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /me/orders/{id}/items/{itemId}/keys/reveal"
+// response. Idempotent server-side — safe to call again on an already-revealed item.
+export interface RevealKeysResponse { codes: string[] }
 
 // mirrors vault spec "GET /admin/vault/products" response `variants[]` item (maxkeys-back PR #48, fixed contract)
 export interface AdminVaultVariant {
