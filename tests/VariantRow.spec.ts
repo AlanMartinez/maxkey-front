@@ -13,6 +13,7 @@ const variant: AdminVariant = {
   currency: 'ARS',
   sortOrder: 0,
   isActive: true,
+  isRecommended: false,
 }
 
 describe('VariantRow', () => {
@@ -49,5 +50,31 @@ describe('VariantRow', () => {
     await wrapper.findAll('button').find((b) => b.text() === 'Guardar')!.trigger('click')
 
     expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(expect.objectContaining({ region: 'US', edition: 'Standard' }))
+  })
+
+  it('always carries the current isRecommended value on a regular save', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant: { ...variant, isRecommended: true }, saving: false } })
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Guardar')!.trigger('click')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(expect.objectContaining({ isRecommended: true }))
+  })
+
+  it('saves the full record with isRecommended toggled when the checkbox changes', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
+
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(
+      expect.objectContaining({ isRecommended: true, price: 9500, currency: 'ARS', region: 'AR', edition: 'Standard', sortOrder: 0, isActive: true }),
+    )
+  })
+
+  it('unchecking sends isRecommended false', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant: { ...variant, isRecommended: true }, saving: false } })
+
+    await wrapper.find('input[type="checkbox"]').setValue(false)
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(expect.objectContaining({ isRecommended: false }))
   })
 })

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import PurchaseBar from '~/components/product/PurchaseBar.vue'
 
-const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS' }
+const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS', isRecommended: true }
 
 describe('PurchaseBar', () => {
   it('shows the selected variant with its prices and emits both actions', async () => {
@@ -24,7 +24,7 @@ describe('PurchaseBar', () => {
   })
 
   it('lets the buyer switch variants from the bar and marks the selected one', async () => {
-    const other = { id: 'v1', name: '1.750 RP', price: 9990, currency: 'ARS' }
+    const other = { id: 'v1', name: '1.750 RP', price: 9990, currency: 'ARS', isRecommended: false }
     const wrapper = await mountSuspended(PurchaseBar, { props: { variants: [other, variant], modelValue: 'v2', recommendedId: 'v2', variant } })
 
     const chips = wrapper.findAll('[role="group"] button')

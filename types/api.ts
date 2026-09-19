@@ -20,6 +20,8 @@ export interface ProductVariantDto {
   price: number
   oldPrice?: number
   currency: string
+  /** Exactly one variant per product is flagged by the backend; drives the default selection and the "Más elegido" tag. */
+  isRecommended: boolean
 }
 
 // mirrors design.md §7 "GET /catalog/products/{slug}" response (ProductDetail)
@@ -127,6 +129,8 @@ export interface AdminVariant {
   currency: AdminCurrency
   sortOrder: number
   isActive: boolean
+  /** At most one per product; the backend clears the siblings when a variant is marked. */
+  isRecommended: boolean
 }
 
 // mirrors admin-dashboard design.md D3 "GET /admin/catalog/products" response item (includes inactive)
@@ -192,6 +196,8 @@ export interface UpdateProductVariantRequest {
   edition?: string
   sortOrder: number
   isActive: boolean
+  /** Required: an omitted value deserializes as `false` and silently un-marks the variant on every edit. */
+  isRecommended: boolean
 }
 
 // mirrors admin-catalog-crud contract "POST /admin/catalog/products/{productId}/variants" request body
