@@ -20,6 +20,8 @@ export interface ProductVariantDto {
   price: number
   oldPrice?: number
   currency: string
+  /** Exactly one variant per product is flagged by the backend; drives the default selection and the "Más elegido" tag. */
+  isRecommended: boolean
 }
 
 // mirrors design.md §7 "GET /catalog/products/{slug}" response (ProductDetail)
@@ -127,6 +129,8 @@ export interface AdminVariant {
   currency: AdminCurrency
   sortOrder: number
   isActive: boolean
+  /** At most one per product; the backend clears the siblings when a variant is marked. */
+  isRecommended: boolean
 }
 
 // mirrors admin-dashboard design.md D3 "GET /admin/catalog/products" response item (includes inactive)
@@ -192,6 +196,8 @@ export interface UpdateProductVariantRequest {
   edition?: string
   sortOrder: number
   isActive: boolean
+  /** Required: an omitted value deserializes as `false` and silently un-marks the variant on every edit. */
+  isRecommended: boolean
 }
 
 // mirrors admin-catalog-crud contract "POST /admin/catalog/products/{productId}/variants" request body
@@ -277,6 +283,61 @@ export interface AdminBuyersPage {
 
 // mirrors admin-dashboard design.md D1 "POST /admin/orders/{id}/resend-delivery" 202 response
 export interface ResendDeliveryResponse { outboxEventId: string }
+
+// PROPOSED contract for "GET /admin/orders/{id}" (admin order detail modal). Not implemented in
+// maxkeys-back yet — useAdminOrderDetail.ts falls back to dev mock data until it lands. Field names
+// follow the Order / OrderItem / OutboxEvent domain entities so the backend mapping is 1:1.
+// Key Exposure rule still applies: keys expose ids, status and timestamps, never a key code.
+// The backend Key entity has no reveal concept (KeyStatus = Available | Assigned, no RevealedAt), so
+// a key attached to an order is always "Assigned" here — reveal tracking would be a backend change.
+export type AdminOrderKeyStatus = 'Assigned'
+
+export interface AdminOrderKey {
+  keyId: string
+  status: AdminOrderKeyStatus
+  assignedAt: string
+}
+
+export interface AdminOrderDetailItem {
+  itemId: string
+  productName: string
+  variantName: string
+  unitPrice: number
+  quantity: number
+  keys: AdminOrderKey[]
+}
+
+// mirrors Maxkeys.Domain.Outbox.OutboxEventStatus
+export type AdminOrderEventStatus = 'Pending' | 'Processing' | 'Processed' | 'Failed'
+
+// One outbox event tied to the order (OrderApproved / OrderDelivered / OrderDeliveryResendRequested…),
+// which is the closest thing the backend has to an order history today.
+export interface AdminOrderEvent {
+  id: string
+  type: string
+  status: AdminOrderEventStatus
+  createdAt: string
+  processedAt: string | null
+  attempts: number
+  lastError: string | null
+}
+
+export interface AdminOrderDetail {
+  id: string
+  buyerEmail: string
+  status: OrderStatus
+  totalAmount: number
+  currency: string
+  createdAt: string
+  paidAt: string | null
+  deliveredAt: string | null
+  updatedAt: string
+  mpPaymentId: string | null
+  lastPaymentAttemptStatus: string | null
+  lastPaymentAttemptAt: string | null
+  items: AdminOrderDetailItem[]
+  events: AdminOrderEvent[]
+}
 
 // mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/assign-keys" response.
 // items[].itemId does not correlate to anything on AdminBuyerOrderItem (that list DTO carries no id) —

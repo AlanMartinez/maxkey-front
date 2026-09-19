@@ -29,6 +29,9 @@ function deriveDiscount(variant: AdminVariant) {
 const discountPercentage = ref(deriveDiscount(props.variant))
 const currency = ref<AdminCurrency>(props.variant.currency)
 const isActive = ref(props.variant.isActive)
+// Not a local form field: the checkbox saves immediately (radio-like per product, the backend
+// clears the siblings), so it always reflects what the server last confirmed.
+const isRecommended = computed(() => props.variant.isRecommended)
 
 const finalPrice = computed(() => {
   if (!discountPercentage.value || !basePrice.value) return basePrice.value
@@ -44,7 +47,9 @@ watch(() => props.variant, (variant) => {
   isActive.value = variant.isActive
 })
 
-function submit() {
+// PUT is a full-record update, so every save path must carry `isRecommended` — omitting it
+// deserializes as false backend-side and would silently un-mark the variant on any edit.
+function submit(recommended = isRecommended.value) {
   emit('save', {
     price: finalPrice.value,
     discountPercentage: discountPercentage.value || undefined,
@@ -53,7 +58,12 @@ function submit() {
     edition: edition.value || undefined,
     sortOrder: props.variant.sortOrder,
     isActive: isActive.value,
+    isRecommended: recommended,
   })
+}
+
+function onRecommendedChange(event: Event) {
+  submit((event.target as HTMLInputElement).checked)
 }
 
 // Hard delete now (useAdminCatalog.deleteVariant) — inline confirm instead of a browser confirm(),
@@ -63,6 +73,10 @@ const confirming = ref(false)
 
 <template>
   <div class="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" :class="{ 'opacity-50': !variant.isActive }">
+    <label class="flex items-center gap-2 text-xs text-white/70">
+      <input type="checkbox" :checked="isRecommended" :disabled="saving" class="h-4 w-4 rounded border-white/20 bg-white/5" @change="onRecommendedChange" />
+      Recomendada
+    </label>
     <label class="flex items-center gap-2">
       <span class="sr-only">Región</span>
       <input v-model="region" type="text" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />

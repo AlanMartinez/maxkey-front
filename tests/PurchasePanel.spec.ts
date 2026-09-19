@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import PurchasePanel from '~/components/product/PurchasePanel.vue'
 
-const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS' }
+const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS', isRecommended: true }
 
 describe('PurchasePanel', () => {
   it('shows the price with its compare-at price, both actions and the reassurance lines', async () => {

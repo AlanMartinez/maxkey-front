@@ -24,7 +24,8 @@ function buildProduct(): AdminProduct {
     images: [],
     description: '',
     variants: [
-      { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true },
+      { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true, isRecommended: true },
+      { id: 'v2', region: 'AR', edition: 'Deluxe', price: 12000, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 1, isActive: true, isRecommended: false },
     ],
   }
 }
@@ -42,7 +43,7 @@ describe('useAdminCatalog deleteVariant', () => {
 
     expect(apiMock).toHaveBeenCalledWith('/admin/catalog/variants/v1', { method: 'DELETE' })
     expect(result).toBe(true)
-    expect(catalog.products.value[0]?.variants).toHaveLength(0)
+    expect(catalog.products.value[0]?.variants).toHaveLength(1)
   })
 
   it('surfaces an error and keeps the variant on failure', async () => {
@@ -54,7 +55,33 @@ describe('useAdminCatalog deleteVariant', () => {
     const result = await catalog.deleteVariant('p1', 'v1')
 
     expect(result).toBe(false)
-    expect(catalog.products.value[0]?.variants).toHaveLength(1)
+    expect(catalog.products.value[0]?.variants).toHaveLength(2)
     expect(catalog.saveError.value).toBeInstanceOf(ApiError)
+  })
+})
+
+describe('useAdminCatalog saveVariant', () => {
+  it('clears the sibling recommended flags locally when a variant is marked', async () => {
+    const product = buildProduct()
+    const body = { price: 12000, currency: 'ARS' as const, region: 'AR', edition: 'Deluxe', sortOrder: 1, isActive: true, isRecommended: true }
+    apiMock.mockResolvedValueOnce([product]).mockResolvedValueOnce({ ...product.variants[1], isRecommended: true })
+    const catalog = await useAdminCatalog()
+
+    const result = await catalog.saveVariant('p1', 'v2', body)
+
+    expect(apiMock).toHaveBeenCalledWith('/admin/catalog/variants/v2', { method: 'PUT', body })
+    expect(result).toBe(true)
+    expect(catalog.products.value[0]?.variants.map((v) => v.isRecommended)).toEqual([false, true])
+  })
+
+  it('leaves the siblings untouched when the saved variant is not recommended', async () => {
+    const product = buildProduct()
+    const body = { price: 12000, currency: 'ARS' as const, region: 'AR', edition: 'Deluxe', sortOrder: 1, isActive: true, isRecommended: false }
+    apiMock.mockResolvedValueOnce([product]).mockResolvedValueOnce({ ...product.variants[1] })
+    const catalog = await useAdminCatalog()
+
+    await catalog.saveVariant('p1', 'v2', body)
+
+    expect(catalog.products.value[0]?.variants.map((v) => v.isRecommended)).toEqual([true, false])
   })
 })

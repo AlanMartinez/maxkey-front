@@ -19,8 +19,8 @@ const product: AdminProduct = {
   images: [],
   description: 'desc',
   variants: [
-    { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true },
-    { id: 'v2', region: 'AR', edition: 'Promo', price: 8000, oldPrice: 10000, discountPercentage: 20, currency: 'ARS', sortOrder: 1, isActive: true },
+    { id: 'v1', region: 'AR', edition: 'Standard', price: 9500, oldPrice: undefined, discountPercentage: undefined, currency: 'ARS', sortOrder: 0, isActive: true, isRecommended: true },
+    { id: 'v2', region: 'AR', edition: 'Promo', price: 8000, oldPrice: 10000, discountPercentage: 20, currency: 'ARS', sortOrder: 1, isActive: true, isRecommended: false },
   ],
 }
 

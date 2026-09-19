@@ -3,10 +3,10 @@ import { mount } from '@vue/test-utils'
 import VariantSelector from '~/components/product/VariantSelector.vue'
 
 const variants = [
-  { id: 'v1', name: '1.750 RP', region: 'LAS', price: 9990, currency: 'ARS' },
-  { id: 'v2', name: '3.500 RP', region: 'LAS', price: 18500, oldPrice: 21000, currency: 'ARS' },
-  { id: 'v3', name: '1.750 RP', region: 'NA', price: 9990, currency: 'ARS', isActive: false },
-  { id: 'v4', name: '3.500 RP', region: 'NA', price: 18900, currency: 'ARS' },
+  { id: 'v1', name: '1.750 RP', region: 'LAS', price: 9990, currency: 'ARS', isRecommended: false },
+  { id: 'v2', name: '3.500 RP', region: 'LAS', price: 18500, oldPrice: 21000, currency: 'ARS', isRecommended: true },
+  { id: 'v3', name: '1.750 RP', region: 'NA', price: 9990, currency: 'ARS', isActive: false, isRecommended: false },
+  { id: 'v4', name: '3.500 RP', region: 'NA', price: 18900, currency: 'ARS', isRecommended: false },
 ]
 
 function mountSelector(modelValue: string | null = 'v1', extra: Record<string, unknown> = {}) {

@@ -48,7 +48,14 @@ export async function useAdminCatalog() {
       const updated = await api<AdminVariant>(`/admin/catalog/variants/${variantId}`, { method: 'PUT', body })
       const product = products.value.find((p) => p.id === productId)
       const index = product?.variants.findIndex((v) => v.id === variantId) ?? -1
-      if (product && index !== -1) product.variants[index] = updated
+      if (product && index !== -1) {
+        product.variants[index] = updated
+        // The backend enforces one recommended variant per product and already cleared the
+        // siblings; mirror that locally instead of refetching the whole catalog.
+        if (updated.isRecommended) {
+          for (const variant of product.variants) if (variant.id !== variantId) variant.isRecommended = false
+        }
+      }
       return true
     } catch (e) {
       saveError.value = toApiError(e)
