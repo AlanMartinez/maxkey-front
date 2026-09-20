@@ -2,7 +2,8 @@
 import type { AdminBuyerOrder } from '~/types/api'
 
 // Confirmation modal for "Entregar". Delivery is the one irreversible step in the buyers flow (it
-// emails the keys and flips the order to Delivered), so it's the only action that asks first.
+// flips the order to Delivered and unlocks the keys in the buyer's account — no email is sent yet),
+// so it's the only action that asks first.
 // Assign/resend stay one-click. Same Teleport + glass dialog pattern as VaultVariantRow.vue. A failed
 // delivery is reported by useAdminBuyers as an error toast; the dialog just stays open for a retry.
 const props = defineProps<{
@@ -38,7 +39,7 @@ const keysToDeliver = computed(() => props.order.items.reduce((sum, i) => sum + 
 
         <div class="flex flex-col gap-1 pr-8">
           <h2 id="deliver-order-title" class="text-lg font-semibold">Confirmar entrega</h2>
-          <p class="text-sm text-white/60">Se enviarán las keys por email al comprador y el pedido pasará a <strong class="text-white">Entregado</strong>.</p>
+          <p class="text-sm text-white/60">El comprador podrá ver sus keys en <strong class="text-white">Mi cuenta</strong> y el pedido pasará a <strong class="text-white">Entregado</strong>. No se envía email por ahora.</p>
         </div>
 
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">

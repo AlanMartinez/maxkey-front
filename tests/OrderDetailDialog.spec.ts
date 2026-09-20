@@ -56,6 +56,14 @@ describe('OrderDetailDialog manual key attach', () => {
     wrapper.unmount()
   })
 
+  it('never offers the form outside AwaitingFulfillment, even for a short item', async () => {
+    for (const status of ['KeysAssigned', 'Delivered', 'Paid'] as const) {
+      const wrapper = await mount({ ...detailWith([item('short', 2, 1)]), status })
+      expect(attachForms()).toHaveLength(0)
+      wrapper.unmount()
+    }
+  })
+
   it('emits attach with the itemId and the typed code on submit', async () => {
     const wrapper = await mount(detailWith([item('short', 2, 1)]))
 
@@ -119,5 +127,19 @@ describe('OrderDetailDialog deliver action', () => {
       expect(document.querySelector('[data-testid="detail-deliver"]')).toBeNull()
       wrapper.unmount()
     }
+  })
+})
+
+describe('OrderDetailDialog identifiers', () => {
+  it('renders the order id, payment id and key ids as copyable values with the full id on hover', async () => {
+    const wrapper = await mount({
+      ...detailWith([item('full', 1, 1)]),
+      id: '2b2da360-84d5-494f-ac4d-64a74d085663',
+      mpPaymentId: '123456789012',
+    })
+
+    const fullValues = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"] [data-copyable] [title]')).map((el) => el.title)
+    expect(fullValues).toEqual(['2b2da360-84d5-494f-ac4d-64a74d085663', '123456789012', 'full-key-0'])
+    wrapper.unmount()
   })
 })
