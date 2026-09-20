@@ -5,7 +5,8 @@ import { ApiError } from '~/composables/useApi'
 // Order detail opened by clicking a row in the admin buyers table: order data, payment, per-item
 // assigned keys (id/status/timestamps — never a code) and the outbox event history. Read-only except
 // for one action: items the auto-assign left short get an inline "Cargar key" form so the admin can
-// paste a code by hand. Same Teleport + glass dialog pattern as DeliverOrderDialog.vue.
+// paste a code by hand. Identifiers go through CopyableValue: truncated to fit the grid, full value on
+// hover, and a copy button whenever the text is actually clipped. Same Teleport + glass dialog pattern as DeliverOrderDialog.vue.
 const props = defineProps<{
   orderId: string
   detail: AdminOrderDetail | null
@@ -134,7 +135,7 @@ const timeline = computed<TimelineEntry[]>(() => {
             Pedido <span class="font-mono text-base text-white/70">{{ orderId.slice(0, 8) }}</span>
             <OrderStatusBadge v-if="detail" :status="detail.status" />
             <!-- Same gate as the table's "Entregar": only once every key is assigned. The parent opens
-                 the usual confirmation dialog on top, since delivering emails the buyer. -->
+                 the usual confirmation dialog on top, since delivering is irreversible. -->
             <AppButton
               v-if="detail?.status === 'KeysAssigned'"
               type="button"
@@ -167,8 +168,8 @@ const timeline = computed<TimelineEntry[]>(() => {
             <div><dt class="text-xs text-white/50">Pagado</dt><dd>{{ formatDateTime(detail.paidAt) }}</dd></div>
             <div><dt class="text-xs text-white/50">Entregado</dt><dd>{{ formatDateTime(detail.deliveredAt) }}</dd></div>
             <div><dt class="text-xs text-white/50">Última actualización</dt><dd>{{ formatDateTime(detail.updatedAt) }}</dd></div>
-            <div><dt class="text-xs text-white/50">ID completo</dt><dd class="truncate font-mono text-xs text-white/70" :title="detail.id">{{ detail.id }}</dd></div>
-            <div><dt class="text-xs text-white/50">Pago MP</dt><dd class="truncate font-mono text-xs text-white/70" :title="detail.mpPaymentId ?? undefined">{{ detail.mpPaymentId ?? '—' }}</dd></div>
+            <div class="min-w-0"><dt class="text-xs text-white/50">ID completo</dt><dd class="flex text-xs text-white/70"><CopyableValue :value="detail.id" /></dd></div>
+            <div class="min-w-0"><dt class="text-xs text-white/50">Pago MP</dt><dd class="flex text-xs text-white/70"><CopyableValue v-if="detail.mpPaymentId" :value="detail.mpPaymentId" /><template v-else>—</template></dd></div>
             <div><dt class="text-xs text-white/50">Último intento</dt><dd>{{ detail.lastPaymentAttemptStatus ?? '—' }}</dd></div>
             <div><dt class="text-xs text-white/50">Intento el</dt><dd>{{ formatDateTime(detail.lastPaymentAttemptAt) }}</dd></div>
           </dl>
@@ -188,15 +189,17 @@ const timeline = computed<TimelineEntry[]>(() => {
               </div>
               <ul v-if="item.keys.length" class="mt-3 flex flex-col divide-y divide-white/5 text-xs">
                 <li v-for="key in item.keys" :key="key.keyId" class="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
-                  <span class="font-mono text-white/60">{{ key.keyId.slice(0, 8) }}</span>
+                  <CopyableValue :value="key.keyId" class="max-w-[12rem] text-white/60" />
                   <AppBadge :tone="keyTone[key.status]">{{ keyLabel[key.status] }}</AppBadge>
                   <span class="text-white/50">asignada {{ formatDateTime(key.assignedAt) }}</span>
                   <span v-if="key.revealedAt" class="text-white/50" :title="key.revealedBy ? `Usuario ${key.revealedBy}` : undefined">· revelada {{ formatDateTime(key.revealedAt) }}</span>
                 </li>
               </ul>
               <p v-else class="mt-2 text-xs text-white/40">Sin keys asignadas todavía.</p>
+              <!-- Mirrors the API's own gate: attaching outside AwaitingFulfillment (or onto a full
+                   item) is a 409, so never offer the form in a state where it cannot succeed. -->
               <form
-                v-if="item.keys.length < item.quantity"
+                v-if="detail.status === 'AwaitingFulfillment' && item.keys.length < item.quantity"
                 class="mt-3 flex flex-wrap items-center gap-2"
                 :data-attach-form="item.itemId"
                 @submit.prevent="submitAttach(item.itemId)"
