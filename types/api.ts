@@ -344,12 +344,19 @@ export interface AdminOrderDetail {
 
 // mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/assign-keys" response.
 // items[].itemId does not correlate to anything on AdminBuyerOrderItem (that list DTO carries no id) —
-// only orderStatus is used to update local state after this call; per-item counts stay stale until the
-// buyer list is reloaded.
+// local per-item counts are patched by index instead (see useAdminBuyers applyAssignResult).
 export interface AssignKeysResponse {
   orderStatus: OrderStatus
   allItemsComplete: boolean
   items: { itemId: string; quantity: number; assignedKeys: number }[]
+}
+
+// mirrors maxkeys-back "POST /admin/orders/{orderId}/items/{itemId}/keys" response: one plaintext key
+// attached by hand from the order detail modal. Same shape as AssignKeysResponse minus
+// allItemsComplete, and the per-item count is `assigned` (not `assignedKeys`) on this endpoint.
+export interface AttachKeyResponse {
+  orderStatus: OrderStatus
+  items: { itemId: string; quantity: number; assigned: number }[]
 }
 
 // mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/deliver" response.

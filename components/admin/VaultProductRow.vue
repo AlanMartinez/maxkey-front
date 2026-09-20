@@ -5,9 +5,7 @@ import { ApiError } from '~/composables/useApi'
 const props = defineProps<{
   product: AdminVaultProduct
   toggling: boolean
-  toggleError: ApiError | null
   uploading: Record<string, boolean>
-  uploadError: Record<string, ApiError | null>
   uploadSuccess: Record<string, boolean>
   fetchingKeys: Record<string, boolean>
   keysError: Record<string, ApiError | null>
@@ -47,7 +45,6 @@ function onToggle(event: Event) {
         <input type="checkbox" :checked="product.vaultEnabled" :disabled="toggling" class="h-4 w-4 rounded border-white/20 bg-white/5" @change="onToggle" />
       </label>
     </div>
-    <span v-if="toggleError" role="alert" class="text-xs text-red-300">{{ toggleError.detail ?? toggleError.title }}</span>
 
     <div v-if="expanded" class="flex flex-col gap-3 border-t border-white/10 pt-4">
       <VaultVariantRow
@@ -55,10 +52,9 @@ function onToggle(event: Event) {
         :key="variant.id"
         :variant="variant"
         :uploading="!!uploading[variant.id]"
-        :upload-error="uploadError[variant.id] ?? null"
         :upload-success="!!uploadSuccess[variant.id]"
         :fetching-keys="!!fetchingKeys[variant.id]"
-        :keys-error="keysError[variant.id] ?? null"
+        :keys-failed="!!keysError[variant.id]"
         :keys="variantKeys[variant.id]"
         @upload="(rawCodes) => emit('upload', variant.id, rawCodes)"
         @view-keys="emit('viewKeys', variant.id)"

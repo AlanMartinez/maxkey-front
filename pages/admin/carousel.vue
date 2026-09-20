@@ -4,7 +4,7 @@ import type { CarouselSlideRequest } from '~/types/api'
 definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Carrusel · Admin · CHEKEYS' })
 
-const { slides, products, status, error, refresh, saving, saveError, createSlide, updateSlide, deleteSlide } = await useAdminCarousel()
+const { slides, products, status, error, refresh, saving, createSlide, updateSlide, deleteSlide } = await useAdminCarousel()
 
 const editingId = ref<string | null>(null)
 
@@ -16,7 +16,6 @@ async function onUpdate(id: string, body: CarouselSlideRequest) {
 <template>
   <section class="flex flex-col gap-6">
     <h1 class="text-2xl font-bold">Carrusel</h1>
-    <p v-if="saveError" role="alert" class="text-sm text-red-300">{{ saveError.detail ?? saveError.title }}</p>
 
     <SlideForm :products="products" :saving="saving" @save="(body: CarouselSlideRequest) => createSlide(body)" />
 

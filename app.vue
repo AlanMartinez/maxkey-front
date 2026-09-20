@@ -7,5 +7,6 @@
     <AppFooter />
     <CartDrawer />
     <LoginDialog />
+    <AppToast />
   </div>
 </template>

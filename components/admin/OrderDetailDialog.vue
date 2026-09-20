@@ -2,16 +2,39 @@
 import type { AdminOrderDetail, AdminOrderEventStatus, AdminOrderKeyStatus } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
 
-// Read-only order detail opened by clicking a row in the admin buyers table: order data, payment,
-// per-item assigned keys (id/status/timestamps — never a code) and the outbox event history.
-// Same Teleport + glass dialog pattern as DeliverOrderDialog.vue.
+// Order detail opened by clicking a row in the admin buyers table: order data, payment, per-item
+// assigned keys (id/status/timestamps — never a code) and the outbox event history. Read-only except
+// for one action: items the auto-assign left short get an inline "Cargar key" form so the admin can
+// paste a code by hand. Same Teleport + glass dialog pattern as DeliverOrderDialog.vue.
 const props = defineProps<{
   orderId: string
   detail: AdminOrderDetail | null
   status: 'idle' | 'pending' | 'success' | 'error'
   error: ApiError | null
+  /** Per-itemId in-flight flag for the manual key attach, owned by useAdminOrderDetail. */
+  attaching: Record<string, boolean>
 }>()
-const emit = defineEmits<{ close: []; retry: [] }>()
+const emit = defineEmits<{ close: []; retry: []; attach: [itemId: string, code: string]; deliver: [] }>()
+
+// Draft code per itemId. Emits aren't awaited, so success is detected from the outside in: the parent
+// refetches `detail` after a successful attach, and any item whose key count grew gets its draft
+// cleared. A failed attach (toast from the composable) keeps the pasted code so it can be retried.
+const codes = ref<Record<string, string>>({})
+watch(
+  () => props.detail,
+  (next, prev) => {
+    if (!next) return
+    for (const item of next.items) {
+      const before = prev?.items.find((it) => it.itemId === item.itemId)?.keys.length ?? 0
+      if (item.keys.length > before) codes.value[item.itemId] = ''
+    }
+  },
+)
+
+function submitAttach(itemId: string) {
+  if (props.attaching[itemId]) return
+  emit('attach', itemId, codes.value[itemId] ?? '')
+}
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') emit('close')
@@ -110,6 +133,18 @@ const timeline = computed<TimelineEntry[]>(() => {
           <h2 id="order-detail-title" class="flex flex-wrap items-center gap-2 text-lg font-semibold">
             Pedido <span class="font-mono text-base text-white/70">{{ orderId.slice(0, 8) }}</span>
             <OrderStatusBadge v-if="detail" :status="detail.status" />
+            <!-- Same gate as the table's "Entregar": only once every key is assigned. The parent opens
+                 the usual confirmation dialog on top, since delivering emails the buyer. -->
+            <AppButton
+              v-if="detail?.status === 'KeysAssigned'"
+              type="button"
+              variant="success"
+              size="sm"
+              data-testid="detail-deliver"
+              @click="emit('deliver')"
+            >
+              Entregar
+            </AppButton>
           </h2>
           <p v-if="detail" class="text-sm text-white/60">{{ detail.buyerEmail }}</p>
         </div>
@@ -160,6 +195,26 @@ const timeline = computed<TimelineEntry[]>(() => {
                 </li>
               </ul>
               <p v-else class="mt-2 text-xs text-white/40">Sin keys asignadas todavía.</p>
+              <form
+                v-if="item.keys.length < item.quantity"
+                class="mt-3 flex flex-wrap items-center gap-2"
+                :data-attach-form="item.itemId"
+                @submit.prevent="submitAttach(item.itemId)"
+              >
+                <label class="min-w-[200px] flex-1">
+                  <span class="sr-only">Código de la key para {{ item.productName }}</span>
+                  <input
+                    v-model="codes[item.itemId]"
+                    type="text"
+                    placeholder="Código de la key"
+                    autocomplete="off"
+                    spellcheck="false"
+                    :disabled="attaching[item.itemId]"
+                    class="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-3 font-mono text-sm text-white outline-none focus:border-accent disabled:opacity-50"
+                  />
+                </label>
+                <AppButton type="submit" size="sm" :loading="attaching[item.itemId] ?? false">Cargar key</AppButton>
+              </form>
             </div>
           </section>
 

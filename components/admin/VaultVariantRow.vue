@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import type { AdminVaultKey, AdminVaultVariant } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
 
 const props = defineProps<{
   variant: AdminVaultVariant
   uploading: boolean
-  uploadError: ApiError | null
   uploadSuccess: boolean
   fetchingKeys: boolean
-  keysError: ApiError | null
+  // The failure detail itself is an error toast (useAdminVault); this only keeps the modal from
+  // claiming "no keys loaded" when the fetch never came back.
+  keysFailed: boolean
   // undefined = never fetched yet, [] = fetched and empty — distinguishes the two for the toggle below.
   keys: AdminVaultKey[] | undefined
 }>()
@@ -36,8 +36,9 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-AR')
 }
 
+// Upload/validation feedback goes through floating toasts (useToast.ts) so the row never grows.
+const toast = useToast()
 const codesInput = ref('')
-const emptyInputError = ref(false)
 
 const parsedCount = computed(() => codesInput.value.split('\n').map((c) => c.trim()).filter(Boolean).length)
 
@@ -56,10 +57,9 @@ watch(() => props.uploadSuccess, (success) => {
 
 function submit() {
   if (!parsedCount.value) {
-    emptyInputError.value = true
+    toast.warning('Pegá al menos un código.')
     return
   }
-  emptyInputError.value = false
   emit('upload', codesInput.value)
 }
 </script>
@@ -91,9 +91,7 @@ function submit() {
         <AppButton type="button" size="sm" :loading="uploading" :disabled="!parsedCount" @click="submit()">
           Subir {{ parsedCount ? `(${parsedCount})` : '' }}
         </AppButton>
-        <span v-if="emptyInputError" role="alert" class="text-xs text-red-300">Pegá al menos un código.</span>
         <span v-if="uploadSuccess" class="text-xs text-emerald-300">Códigos cargados ✓</span>
-        <span v-if="uploadError" role="alert" class="text-xs text-red-300">{{ uploadError.detail ?? uploadError.title }}</span>
       </div>
     </template>
 
@@ -110,7 +108,7 @@ function submit() {
 
           <div class="flex flex-col gap-1.5 overflow-x-auto overflow-y-auto">
             <p v-if="fetchingKeys" class="text-xs text-white/50">Cargando keys…</p>
-            <p v-else-if="keysError" role="alert" class="text-xs text-red-300">{{ keysError.detail ?? keysError.title }}</p>
+            <p v-else-if="keysFailed" class="text-xs text-white/50">No se pudieron cargar las keys.</p>
             <p v-else-if="!keys?.length" class="text-xs text-white/50">Todavía no se cargaron keys para esta variante.</p>
             <!-- A real <table> instead of flex rows: the browser's table auto-layout sizes each column
                  to its own widest cell (no truncation) while keeping every column aligned across rows —

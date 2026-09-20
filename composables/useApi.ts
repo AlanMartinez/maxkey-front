@@ -1,5 +1,11 @@
 import type { ProblemDetails } from '~/types/api'
 
+/**
+ * Hard cap on any backend request. Without it a hung request (backend stalled, Fly machine waking up
+ * slowly, dropped TCP connection) never settles and every button spinner tied to it runs forever.
+ */
+export const API_TIMEOUT_MS = 20_000
+
 /** Error thrown for every non-2xx backend response, carrying the Problem Details body. */
 export class ApiError extends Error {
   readonly status: number
@@ -26,12 +32,37 @@ export class ApiError extends Error {
       case 401:
       case 403:
         return 'No tenés permisos para esta acción.'
+      case 408:
+        return 'El servidor tardó demasiado en responder. Reintentá.'
       case 0:
         return 'No se pudo conectar con el servidor.'
       default:
         return this.detail ?? this.title ?? 'Ocurrió un error inesperado.'
     }
   }
+}
+
+/**
+ * Maps a request-level failure (fetch itself threw — no HTTP response) to Problem Details. ofetch
+ * fires its `timeout` by aborting the request with an error named `TimeoutError` (a caller-supplied
+ * `AbortSignal.timeout()` rejects with the same name; a plain abort with `AbortError`); anything
+ * else is a network/CORS failure, which keeps the existing `status: 0` convention.
+ */
+function requestErrorToProblemDetails(error: unknown): ProblemDetails {
+  const name = error instanceof Error ? error.name : ''
+  if (name === 'TimeoutError' || name === 'AbortError') {
+    return { type: 'about:blank', title: 'Request timed out', status: 408 }
+  }
+  return { type: 'about:blank', title: 'Network error', status: 0 }
+}
+
+/**
+ * True only when no HTTP response came back at all (connection refused, DNS, offline). The dev-only
+ * mock fallbacks in the admin composables key off this so a real 4xx/5xx from a running backend still
+ * surfaces as an error instead of being painted over with mock success.
+ */
+export function isBackendUnreachable(e: unknown): boolean {
+  return e instanceof ApiError && e.status === 0
 }
 
 function toProblemDetails(status: number, statusText: string, body: unknown): ProblemDetails {
@@ -58,12 +89,19 @@ export function useApi(accessToken?: string) {
 
   return $fetch.create({
     baseURL: config.public.apiBaseUrl,
+    timeout: API_TIMEOUT_MS,
     async onRequest({ options }) {
       const sessionToken = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token
       // DEV-ONLY: falls back to a minted admin JWT (see nuxt.config.ts) when there's no real Supabase
       // session locally — `import.meta.dev` is compile-time-false (dead-code-eliminated) in production.
       const token = sessionToken ?? (import.meta.dev ? config.public.devAdminToken || undefined : undefined)
       if (token) options.headers.set('Authorization', `Bearer ${token}`)
+    },
+    // Timeouts and network failures never reach `onResponseError` (there is no response). Throwing
+    // here rejects the call straight away with an ApiError, which also skips ofetch's built-in
+    // GET retry — one that would otherwise re-run an already-aborted request against a stalled backend.
+    onRequestError({ error }) {
+      throw new ApiError(requestErrorToProblemDetails(error))
     },
     onResponseError({ response }) {
       throw new ApiError(toProblemDetails(response.status, response.statusText, response._data))

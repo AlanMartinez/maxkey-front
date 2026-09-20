@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reactive, ref } from 'vue'
+import { clearNuxtState } from '#app'
 import { flushPromises } from '@vue/test-utils'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import type { AdminBuyer } from '~/types/api'
@@ -49,7 +50,6 @@ const buyers = ref<AdminBuyer[]>([
 const loadMock = vi.fn(async () => {})
 const assignKeysMock = vi.fn(async () => true)
 const deliverOrderMock = vi.fn(async () => true)
-const assignIncomplete = reactive<Record<string, string | null>>({})
 
 mockNuxtImport('useAdminBuyers', () => () => ({
   buyers,
@@ -68,8 +68,9 @@ mockNuxtImport('useAdminBuyers', () => () => ({
   assigning: reactive({}),
   assignError: reactive({}),
   assignSuccess: reactive({}),
-  assignIncomplete,
+  assignIncomplete: reactive({}),
   assignKeys: assignKeysMock,
+  applyAssignResult: vi.fn(),
   delivering: reactive({}),
   deliverError: reactive({}),
   deliverSuccess: reactive({}),
@@ -84,10 +85,13 @@ mockNuxtImport('useAdminOrderDetail', () => () => ({
   error: ref(null),
   load: orderDetailLoad,
   reset: orderDetailReset,
+  attaching: reactive({}),
+  attachKey: vi.fn(async () => null),
 }))
 
 describe('pages/admin/buyers', () => {
   beforeEach(() => {
+    clearNuxtState()
     assignKeysMock.mockClear()
     deliverOrderMock.mockClear()
     orderDetailLoad.mockClear()
@@ -196,12 +200,12 @@ describe('pages/admin/buyers', () => {
     wrapper.unmount()
   })
 
-  it('shows a distinct warning when assign-keys ran but stock was insufficient', async () => {
-    assignIncomplete['order-pending'] = 'Sin stock suficiente: 0 de 1 clave(s) asignada(s).'
+  it('never renders action feedback inline — errors and stock warnings are toasts, not table content', async () => {
     const wrapper = await mountSuspended(BuyersPage)
 
-    const badge = wrapper.findAll('span').find((el) => el.text() === 'Sin stock')
-    expect(badge?.attributes('title')).toBe('Sin stock suficiente: 0 de 1 clave(s) asignada(s).')
-    delete assignIncomplete['order-pending']
+    // Any inline alert/badge here would widen the whitespace-nowrap actions cell and force the
+    // overflow-x-auto table wrapper into horizontal scroll (see BuyerOrderRow.vue).
+    expect(wrapper.find('tbody [role="alert"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Sin stock')
   })
 })

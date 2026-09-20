@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearNuxtState } from '#app'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ApiError } from '~/composables/useApi'
 import { useAdminBuyers } from '~/composables/useAdminBuyers'
+import { useToast } from '~/composables/useToast'
 import type { AdminBuyersPage } from '~/types/api'
 
 const { apiMock } = vi.hoisted(() => ({ apiMock: vi.fn() }))
@@ -32,6 +34,8 @@ const page: AdminBuyersPage = {
 
 beforeEach(() => {
   apiMock.mockReset()
+  // Drops the shared `useState` toast list so each test starts with an empty stack.
+  clearNuxtState()
 })
 
 describe('useAdminBuyers', () => {
@@ -86,6 +90,7 @@ describe('useAdminBuyers', () => {
     expect(buyers.resendError.value['order-1']).toBeInstanceOf(ApiError)
     expect(buyers.resendError.value['order-1']?.status).toBe(409)
     expect(buyers.resendError.value['order-1']?.detail).toBe('Cannot resend the delivery email unless the order is Delivered.')
+    expect(useToast().toasts.value).toEqual([expect.objectContaining({ tone: 'error', message: 'Cannot resend the delivery email unless the order is Delivered.' })])
   })
 
   it('assignKeys succeeds and patches the order status in local state (key-delivery-gate PR #49)', async () => {
@@ -101,6 +106,23 @@ describe('useAdminBuyers', () => {
     expect(buyers.assignSuccess.value['order-1']).toBe(true)
     expect(buyers.assigning.value['order-1']).toBe(false)
     expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
+    expect(useToast().toasts.value).toHaveLength(0)
+  })
+
+  it('applyAssignResult patches status and per-item counts by index, status only when the item counts disagree', async () => {
+    const awaitingPage: AdminBuyersPage = { ...page, items: [{ ...page.items[0]!, orders: [{ ...page.items[0]!.orders[0]!, status: 'AwaitingFulfillment', items: [{ productName: 'Riot Points', variantName: '1.750 RP', quantity: 2, assignedKeys: 0, revealedKeys: 0 }] }] }] }
+    apiMock.mockResolvedValueOnce(awaitingPage)
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    buyers.applyAssignResult('order-1', { orderStatus: 'AwaitingFulfillment', items: [{ quantity: 2, assigned: 1 }] })
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('AwaitingFulfillment')
+    expect(buyers.buyers.value[0]!.orders[0]!.items[0]!.assignedKeys).toBe(1)
+
+    // Length mismatch: the index correlation can't be trusted, so counts are left alone.
+    buyers.applyAssignResult('order-1', { orderStatus: 'KeysAssigned', items: [] })
+    expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
+    expect(buyers.buyers.value[0]!.orders[0]!.items[0]!.assignedKeys).toBe(1)
   })
 
   it('assignKeys with allItemsComplete: false does not mark success (stock ran out again)', async () => {
@@ -118,6 +140,8 @@ describe('useAdminBuyers', () => {
     expect(result).toBe(true)
     expect(buyers.assignSuccess.value['order-1']).toBeFalsy()
     expect(buyers.assignIncomplete.value['order-1']).toBe('Sin stock suficiente: 1 de 3 clave(s) asignada(s).')
+    // Surfaced as a floating warning toast rather than inline in the table row.
+    expect(useToast().toasts.value).toEqual([expect.objectContaining({ tone: 'warning', message: 'Sin stock suficiente: 1 de 3 clave(s) asignada(s).' })])
     // status stays whatever the server reports — still AwaitingFulfillment, not silently advanced
     expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('AwaitingFulfillment')
   })
@@ -152,5 +176,18 @@ describe('useAdminBuyers', () => {
     expect(buyers.deliverError.value['order-1']?.status).toBe(409)
     // status stays whatever it was — a 409 means nothing changed server-side
     expect(buyers.buyers.value[0]!.orders[0]!.status).toBe('KeysAssigned')
+    expect(useToast().toasts.value).toEqual([expect.objectContaining({ tone: 'error', message: 'No todas las keys están asignadas todavía.' })])
+  })
+
+  it('assignKeys failure surfaces an error toast with the friendly message', async () => {
+    apiMock.mockResolvedValueOnce(page).mockRejectedValueOnce(new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403 }))
+    const buyers = useAdminBuyers()
+    await buyers.load()
+
+    const result = await buyers.assignKeys('order-1')
+
+    expect(result).toBe(false)
+    expect(buyers.assignError.value['order-1']?.status).toBe(403)
+    expect(useToast().toasts.value).toEqual([expect.objectContaining({ tone: 'error', message: 'No tenés permisos para esta acción.' })])
   })
 })
