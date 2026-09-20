@@ -31,6 +31,8 @@ async function toggleMobileSearch() {
 }
 
 const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-white/5 hover:text-white'
+const menuItem = 'flex items-center gap-2 rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white'
+const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
 </script>
 
 <template>
@@ -68,7 +70,12 @@ const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-wh
               </svg>
             </button>
             <div class="hidden sm:block">
-              <AppButton variant="ghost" size="sm" @click="openLogin()">Iniciar sesión</AppButton>
+              <AppButton variant="ghost" size="sm" @click="openLogin()">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                </svg>
+                Iniciar sesión
+              </AppButton>
             </div>
           </template>
           <div v-else class="relative">
@@ -88,9 +95,30 @@ const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-wh
               <span class="hidden max-w-[10ch] truncate sm:inline">{{ displayName }}</span>
             </button>
             <div v-if="isAccountMenuOpen" class="glass absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-white/10 p-1.5 text-sm">
-              <NuxtLink to="/account/orders" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Mis compras</NuxtLink>
-              <NuxtLink v-if="isAdmin" to="/admin" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Panel admin</NuxtLink>
-              <button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-white/80 transition hover:bg-white/5 hover:text-white" @click="handleSignOut()">Cerrar sesión</button>
+              <!-- Admin entry sits first and apart from the buyer items, since it is a different role's surface. -->
+              <template v-if="isAdmin">
+                <NuxtLink to="/admin" :class="menuItem" @click="closeAccountMenu()">
+                  <svg :class="menuIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z" />
+                    <path d="M9 12l2 2 4-4" />
+                  </svg>
+                  Panel admin
+                </NuxtLink>
+                <div class="my-1.5 border-t border-white/10" role="separator" />
+              </template>
+              <NuxtLink to="/account/orders" :class="menuItem" @click="closeAccountMenu()">
+                <svg :class="menuIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 7h12l1 13H5L6 7z" />
+                  <path d="M9 10V6a3 3 0 016 0v4" />
+                </svg>
+                Mis compras
+              </NuxtLink>
+              <button type="button" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-red-300 transition hover:bg-red-500/10 hover:text-red-200" @click="handleSignOut()">
+                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4M16 17l5-5-5-5M21 12H9" />
+                </svg>
+                Cerrar sesión
+              </button>
             </div>
           </div>
         </slot>
