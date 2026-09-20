@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFetch } from 'ofetch'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { ApiError, useApi } from '~/composables/useApi'
+import { API_TIMEOUT_MS, ApiError, useApi } from '~/composables/useApi'
 
 type FakeSession = { access_token: string } | null
 
@@ -17,10 +17,22 @@ beforeEach(() => {
   mockSession(null)
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 function stubFetch(status: number, body: unknown, contentType = 'application/json') {
   const fetchMock = vi.fn<typeof fetch>(async () =>
     new Response(JSON.stringify(body), { status, headers: { 'content-type': contentType } }),
   )
+  vi.stubGlobal('$fetch', createFetch({ fetch: fetchMock, Headers }))
+  return fetchMock
+}
+
+function stubFailingFetch(reason: unknown) {
+  const fetchMock = vi.fn<typeof fetch>(async () => {
+    throw reason
+  })
   vi.stubGlobal('$fetch', createFetch({ fetch: fetchMock, Headers }))
   return fetchMock
 }
@@ -81,6 +93,48 @@ describe('useApi', () => {
     expect(sentHeaders(fetchMock).get('authorization')).toBe('Bearer jwt-from-caller')
     expect(getSessionMock).not.toHaveBeenCalled()
   })
+
+  it('aborts a hung request after API_TIMEOUT_MS and rejects with a 408 ApiError', async () => {
+    vi.useFakeTimers()
+    // Never resolves on its own — only settles when ofetch's timeout aborts the signal it passed in.
+    const fetchMock = vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+        }),
+    )
+    vi.stubGlobal('$fetch', createFetch({ fetch: fetchMock, Headers }))
+
+    const pending = useApi()('/admin/buyers').catch((e: unknown) => e)
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS)
+    const error = (await pending) as ApiError
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(408)
+    expect(error.friendlyMessage()).toBe('El servidor tardó demasiado en responder. Reintentá.')
+    // No silent retry against a backend that already timed out once.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps a TimeoutError thrown by fetch itself to a 408 ApiError', async () => {
+    stubFailingFetch(new DOMException('The operation was aborted.', 'TimeoutError'))
+
+    const error = (await useApi()('/admin/buyers').catch((e: unknown) => e)) as ApiError
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(408)
+  })
+
+  it('maps a network failure (fetch throws TypeError) to a status 0 ApiError', async () => {
+    const fetchMock = stubFailingFetch(new TypeError('Failed to fetch'))
+
+    const error = (await useApi()('/admin/buyers').catch((e: unknown) => e)) as ApiError
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(0)
+    expect(error.friendlyMessage()).toBe('No se pudo conectar con el servidor.')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('ApiError.friendlyMessage', () => {
@@ -100,6 +154,11 @@ describe('ApiError.friendlyMessage', () => {
   it('maps 401/403 to a permissions message', () => {
     expect(new ApiError({ type: 'about:blank', title: 'Unauthorized', status: 401 }).friendlyMessage()).toBe('No tenés permisos para esta acción.')
     expect(new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403 }).friendlyMessage()).toBe('No tenés permisos para esta acción.')
+  })
+
+  it('maps 408 (request timeout) to a retry hint', () => {
+    const error = new ApiError({ type: 'about:blank', title: 'Request timed out', status: 408 })
+    expect(error.friendlyMessage()).toBe('El servidor tardó demasiado en responder. Reintentá.')
   })
 
   it('maps the network-failure fallback (status 0) to a connectivity message', () => {
