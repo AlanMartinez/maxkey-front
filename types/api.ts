@@ -32,8 +32,8 @@ export interface ProductDetail extends ProductSummary {
   detailImageUrl?: string
   /** Resolved gallery URLs, gallery order, main image first (always an array). */
   images: string[]
-  /** Link to the activation guide, shown on the product page. */
-  activationGuideUrl: string | null
+  /** Markdown activation guide rendered on the product page; null when the product has none. */
+  activationGuide: string | null
   /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
   activationType: string | null
 }
@@ -146,8 +146,8 @@ export interface AdminProduct {
   detailImageKey?: string
   /** Built the same way as `imageUrl`; falls back to it when unset. */
   detailImageUrl?: string
-  /** Link to the activation guide, shown on the product page. */
-  activationGuideUrl: string | null
+  /** Markdown activation guide rendered on the product page; null when the product has none. */
+  activationGuide: string | null
   /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
   activationType: string | null
   /** Raw gallery image R2 keys beyond imageKey/detailImageKey, for re-editing (always an array). */
@@ -166,7 +166,7 @@ export interface UpdateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
-  activationGuideUrl: string | null
+  activationGuide: string | null
   activationType: string | null
   imageKeys: string[]
   isActive: boolean
@@ -180,7 +180,7 @@ export interface CreateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
-  activationGuideUrl: string | null
+  activationGuide: string | null
   activationType: string | null
   imageKeys: string[]
   isActive: boolean
