@@ -14,11 +14,12 @@ import { ApiError } from '~/composables/useApi'
  */
 export async function useAdminCatalog() {
   const api = useApi()
+  // Must run before the first `await`: composables lose the Nuxt instance after an await in an async setup.
+  const toast = useToast()
   const { data: products, status, error, refresh } = await useAsyncData('admin-catalog', () => api<AdminProduct[]>('/admin/catalog/products'), {
     default: (): AdminProduct[] => [],
   })
 
-  const toast = useToast()
   const saving = ref(false)
   const saveError = ref<ApiError | null>(null)
 
