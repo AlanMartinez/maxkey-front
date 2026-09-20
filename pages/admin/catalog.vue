@@ -14,7 +14,6 @@ const {
   error,
   refresh,
   saving,
-  saveError,
   saveProduct,
   saveVariant,
   createProduct,
@@ -67,7 +66,6 @@ async function submitNewProduct() {
       <h1 class="text-2xl font-bold">Catálogo</h1>
       <AppButton size="sm" @click="showNewProduct = !showNewProduct">{{ showNewProduct ? 'Cancelar' : '+ Nuevo producto' }}</AppButton>
     </div>
-    <p v-if="saveError" role="alert" class="text-sm text-red-300">{{ saveError.detail ?? saveError.title }}</p>
 
     <form v-if="showNewProduct" class="glass flex flex-col gap-4 rounded-2xl p-6" @submit.prevent="submitNewProduct">
       <label class="flex flex-col gap-2 text-sm">

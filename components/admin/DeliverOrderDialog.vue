@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import type { AdminBuyerOrder } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
 
 // Confirmation modal for "Entregar". Delivery is the one irreversible step in the buyers flow (it
 // emails the keys and flips the order to Delivered), so it's the only action that asks first.
-// Assign/resend stay one-click. Same Teleport + glass dialog pattern as VaultVariantRow.vue.
+// Assign/resend stay one-click. Same Teleport + glass dialog pattern as VaultVariantRow.vue. A failed
+// delivery is reported by useAdminBuyers as an error toast; the dialog just stays open for a retry.
 const props = defineProps<{
   email: string
   order: AdminBuyerOrder
   loading: boolean
-  error: ApiError | null
 }>()
 const emit = defineEmits<{ confirm: [orderId: string]; close: [] }>()
 
@@ -58,8 +57,6 @@ const keysToDeliver = computed(() => props.order.items.reduce((sum, i) => sum + 
             </ul>
           </dd>
         </dl>
-
-        <p v-if="error" role="alert" class="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{{ error.friendlyMessage() }}</p>
 
         <div class="flex justify-end gap-2">
           <AppButton type="button" variant="ghost" :disabled="loading" @click="emit('close')">Cancelar</AppButton>

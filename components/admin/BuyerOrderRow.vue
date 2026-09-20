@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AdminBuyerOrder } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
 
 // One <tr> per order (admin-buyers spec: Buyer Listing Grouped By Email + Resend Delivery Email; design
 // D4 — flattened to one row per order instead of grouping, so the table scales to many buyers/orders).
@@ -9,10 +8,7 @@ const props = defineProps<{
   email: string
   order: AdminBuyerOrder
   resending: Record<string, boolean>
-  resendError: Record<string, ApiError | null>
   assigning: Record<string, boolean>
-  assignError: Record<string, ApiError | null>
-  assignIncomplete: Record<string, string | null>
 }>()
 // `deliver` only asks the page to open the confirmation modal (DeliverOrderDialog); the row itself
 // never fires the delivery call. Assign is one-click, no confirmation step. `open` fires on a click
@@ -42,11 +38,8 @@ const itemRows = computed(() =>
 )
 
 // Status/outcome feedback lives in the Estado column (the composable patches order.status locally on
-// success), so the actions cell only ever shows the button plus errors — nothing stacks under it.
-const actionError = computed(() => {
-  const id = props.order.id
-  return props.assignError[id] ?? props.resendError[id] ?? null
-})
+// success); failures and partial-stock warnings are floating toasts pushed by useAdminBuyers, so the
+// actions cell only ever holds the button — nothing can widen the row or push the table into scroll.
 
 // Resend isn't wired up yet (backend outbox handler pending), so the button renders disabled rather
 // than hidden: the admin still sees that the action exists for Delivered orders.
@@ -86,9 +79,6 @@ const resendAvailable = false
           <AppButton type="button" variant="ghost" size="sm" :disabled="!resendAvailable" :loading="resending[order.id]" @click="emit('resend', order.id)">Reenviar email</AppButton>
         </span>
         <span v-else class="text-xs text-white/40">—</span>
-
-        <AppBadge v-if="action === 'assign' && assignIncomplete[order.id]" tone="warning" :title="assignIncomplete[order.id]">Sin stock</AppBadge>
-        <span v-if="actionError" role="alert" class="max-w-[200px] truncate text-xs text-red-300" :title="actionError.friendlyMessage()">{{ actionError.friendlyMessage() }}</span>
       </div>
     </td>
   </tr>

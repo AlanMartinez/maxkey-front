@@ -11,10 +11,8 @@ const {
   error,
   refresh,
   toggling,
-  toggleError,
   toggleVault,
   uploading,
-  uploadError,
   uploadSuccess,
   uploadKeys,
   fetchingKeys,
@@ -51,9 +49,7 @@ onMounted(() => {
         :key="product.id"
         :product="product"
         :toggling="!!toggling[product.id]"
-        :toggle-error="toggleError[product.id] ?? null"
         :uploading="uploading"
-        :upload-error="uploadError"
         :upload-success="uploadSuccess"
         :fetching-keys="fetchingKeys"
         :keys-error="keysError"

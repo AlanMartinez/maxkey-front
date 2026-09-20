@@ -18,11 +18,19 @@ export async function useAdminCatalog() {
     default: (): AdminProduct[] => [],
   })
 
+  const toast = useToast()
   const saving = ref(false)
   const saveError = ref<ApiError | null>(null)
 
   function toApiError(e: unknown) {
     return e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+  }
+
+  // Every save failure lands as a floating toast (useToast.ts); `saveError` stays exposed as state.
+  function failSave(e: unknown) {
+    const err = toApiError(e)
+    saveError.value = err
+    toast.error(err.friendlyMessage())
   }
 
   async function saveProduct(id: string, body: UpdateProductRequest) {
@@ -34,7 +42,7 @@ export async function useAdminCatalog() {
       if (index !== -1) products.value[index] = updated
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false
@@ -58,7 +66,7 @@ export async function useAdminCatalog() {
       }
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false
@@ -73,7 +81,7 @@ export async function useAdminCatalog() {
       products.value.push(created)
       return created
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return null
     } finally {
       saving.value = false
@@ -107,7 +115,7 @@ export async function useAdminCatalog() {
       product?.variants.push(created)
       return created
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return null
     } finally {
       saving.value = false
@@ -125,7 +133,7 @@ export async function useAdminCatalog() {
       if (product) product.variants = product.variants.filter((v) => v.id !== variantId)
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false

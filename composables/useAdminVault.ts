@@ -1,5 +1,5 @@
 import type { AdminVaultKey, AdminVaultProduct, ToggleVaultProductRequest, ToggleVaultProductResponse, UploadVaultKeysRequest, UploadVaultKeysResponse } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
+import { ApiError, isBackendUnreachable } from '~/composables/useApi'
 
 /**
  * Admin vault (vault spec): pre-loaded key stock per variant plus a product-wide auto-fulfillment
@@ -112,6 +112,9 @@ const mockVaultProducts: AdminVaultProduct[] = [
 
 export async function useAdminVault() {
   const api = useApi()
+  // Toggle/upload/keys failures surface as floating toasts (useToast.ts); the per-id error refs
+  // below remain as state.
+  const toast = useToast()
 
   async function fetchProducts(): Promise<AdminVaultProduct[]> {
     try {
@@ -147,14 +150,16 @@ export async function useAdminVault() {
           body: { enabled } satisfies ToggleVaultProductRequest,
         })).vaultEnabled
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         console.warn('[useAdminVault] toggle backend unavailable, applying to dev mock data only:', e)
       }
       const product = products.value.find((p) => p.id === productId)
       if (product) product.vaultEnabled = vaultEnabled
       return true
     } catch (e) {
-      toggleError.value[productId] = toApiError(e)
+      const err = toApiError(e)
+      toggleError.value[productId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       toggling.value[productId] = false
@@ -189,14 +194,16 @@ export async function useAdminVault() {
           body: { codes } satisfies UploadVaultKeysRequest,
         })).availableCount
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         console.warn('[useAdminVault] upload backend unavailable, applying to dev mock data only:', e)
       }
       if (variant) variant.availableCount = availableCount
       uploadSuccess.value[variantId] = true
       return true
     } catch (e) {
-      uploadError.value[variantId] = toApiError(e)
+      const err = toApiError(e)
+      uploadError.value[variantId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       uploading.value[variantId] = false
@@ -230,14 +237,16 @@ export async function useAdminVault() {
       try {
         keys = await api<AdminVaultKey[]>(`/admin/vault/variants/${variantId}/keys`)
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         console.warn('[useAdminVault] variant keys backend unavailable, using dev mock data:', e)
         keys = mockKeysForVariant(variantId)
       }
       variantKeys.value[variantId] = keys
       return true
     } catch (e) {
-      keysError.value[variantId] = toApiError(e)
+      const err = toApiError(e)
+      keysError.value[variantId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       fetchingKeys.value[variantId] = false

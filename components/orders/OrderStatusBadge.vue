@@ -14,7 +14,9 @@ const copy: Record<OrderStatus, { label: string; tone: 'neutral' | 'accent' | 's
   Delivered: { label: 'Entregado', tone: 'success' },
   Cancelled: { label: 'Cancelado', tone: 'danger' },
 }
-const current = computed(() => copy[props.status])
+// Unknown value (e.g. a backend response serializing the enum as a number) must degrade to a neutral
+// badge: a throw here aborts the whole row's patch and leaves stale DOM (a stuck spinner) behind.
+const current = computed(() => copy[props.status] ?? { label: String(props.status), tone: 'neutral' as const })
 </script>
 
 <template>

@@ -11,11 +11,19 @@ export async function useAdminCarousel() {
   const { data: slides, status, error, refresh } = await useAsyncData('admin-carousel', () => api<AdminCarouselSlideDto[]>('/admin/carousel'), { default: () => [] })
   const { data: products } = await useAsyncData('admin-carousel-products', () => api<AdminProduct[]>('/admin/catalog/products'), { default: () => [] })
 
+  const toast = useToast()
   const saving = ref(false)
   const saveError = ref<ApiError | null>(null)
 
   function toApiError(e: unknown) {
     return e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+  }
+
+  // Every save failure lands as a floating toast (useToast.ts); `saveError` stays exposed as state.
+  function failSave(e: unknown) {
+    const err = toApiError(e)
+    saveError.value = err
+    toast.error(err.friendlyMessage())
   }
 
   async function createSlide(body: CarouselSlideRequest) {
@@ -26,7 +34,7 @@ export async function useAdminCarousel() {
       slides.value = [...slides.value, created]
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false
@@ -42,7 +50,7 @@ export async function useAdminCarousel() {
       if (index !== -1) slides.value[index] = updated
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false
@@ -57,7 +65,7 @@ export async function useAdminCarousel() {
       slides.value = slides.value.filter((s) => s.id !== id)
       return true
     } catch (e) {
-      saveError.value = toApiError(e)
+      failSave(e)
       return false
     } finally {
       saving.value = false
