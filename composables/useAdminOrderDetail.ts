@@ -1,5 +1,5 @@
-import type { AdminBuyerOrder, AdminOrderDetail, AdminOrderEvent, AdminOrderKey } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
+import type { AdminBuyerOrder, AdminOrderDetail, AdminOrderEvent, AdminOrderKey, AttachKeyResponse } from '~/types/api'
+import { ApiError, isBackendUnreachable } from '~/composables/useApi'
 
 /**
  * Admin order detail for the OrderDetailDialog opened from the buyers table: full order data,
@@ -70,28 +70,67 @@ function mockDetail(order: AdminBuyerOrder, email: string): AdminOrderDetail {
 
 export function useAdminOrderDetail() {
   const api = useApi()
+  const toast = useToast()
 
   const detail = ref<AdminOrderDetail | null>(null)
   const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
   const error = ref<ApiError | null>(null)
 
   // `fallback` is the list row the modal was opened from — only used to build the dev mock.
-  async function load(orderId: string, fallback?: { order: AdminBuyerOrder; email: string }) {
-    status.value = 'pending'
+  // `silent` refreshes in place after an action (attachKey): the current detail stays on screen instead
+  // of flipping the modal back to skeletons and losing the admin's scroll position.
+  async function load(orderId: string, fallback?: { order: AdminBuyerOrder; email: string }, { silent = false } = {}) {
+    if (!silent) {
+      status.value = 'pending'
+      detail.value = null
+    }
     error.value = null
-    detail.value = null
     try {
       try {
         detail.value = await api<AdminOrderDetail>(`/admin/orders/${orderId}`)
       } catch (e) {
-        if (!import.meta.dev || !fallback) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e) || !fallback) throw e
         console.warn('[useAdminOrderDetail] GET /admin/orders/{id} unavailable, using dev mock detail:', e)
         detail.value = mockDetail(fallback.order, fallback.email)
       }
       status.value = 'success'
     } catch (e) {
-      error.value = e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+      const err = e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+      error.value = err
       status.value = 'error'
+      toast.error(err.friendlyMessage())
+    }
+  }
+
+  const attaching = ref<Record<string, boolean>>({})
+
+  /**
+   * Manual key load for an item the auto-assign left short: "POST /admin/orders/{id}/items/{itemId}/keys"
+   * creates the vault key already assigned to this order (one code per call). On success the detail is
+   * refetched so the new key row appears; the caller gets the response to patch the buyers list row.
+   * No dev mock here — without a backend the error toast is the honest outcome.
+   */
+  async function attachKey(orderId: string, itemId: string, code: string): Promise<AttachKeyResponse | null> {
+    const trimmed = code.trim()
+    if (!trimmed) {
+      toast.warning('Pegá un código de key.')
+      return null
+    }
+    attaching.value[itemId] = true
+    try {
+      const result = await api<AttachKeyResponse>(`/admin/orders/${orderId}/items/${itemId}/keys`, {
+        method: 'POST',
+        body: { code: trimmed },
+      })
+      toast.success('Key cargada.')
+      await load(orderId, undefined, { silent: true })
+      return result
+    } catch (e) {
+      const err = e instanceof ApiError ? e : new ApiError({ type: 'about:blank', title: 'Request failed', status: 0 })
+      toast.error(err.friendlyMessage())
+      return null
+    } finally {
+      attaching.value[itemId] = false
     }
   }
 
@@ -101,5 +140,5 @@ export function useAdminOrderDetail() {
     error.value = null
   }
 
-  return { detail, status, error, load, reset }
+  return { detail, status, error, load, reset, attaching, attachKey }
 }

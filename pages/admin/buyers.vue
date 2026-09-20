@@ -9,9 +9,9 @@ useHead({ title: 'Compradores · Admin · CHEKEYS' })
 // to many buyers/orders.
 const {
   buyers, total, page, pageSize, status, error, load, search, goToPage,
-  resending, resendError, resendDelivery,
-  assigning, assignError, assignIncomplete, assignKeys,
-  delivering, deliverError, deliverOrder,
+  resending, resendDelivery,
+  assigning, assignKeys, applyAssignResult,
+  delivering, deliverOrder,
 } = useAdminBuyers()
 
 await load()
@@ -52,13 +52,19 @@ function openDeliver(orderId: string) {
 
 async function confirmDeliver(orderId: string) {
   const ok = await deliverOrder(orderId)
-  // On failure the dialog stays open showing deliverError so the admin can retry or cancel.
-  if (ok) deliverTarget.value = null
+  // On failure (reported as an error toast by the composable) the dialog stays open so the admin can retry or cancel.
+  if (!ok) return
+  deliverTarget.value = null
+  // Delivered from inside the detail modal: refresh it in place so the badge/timeline reflect the new state.
+  if (detailTarget.value?.order.id === orderId) loadOrderDetail(orderId, undefined, { silent: true })
 }
 
 // --- Order detail modal ------------------------------------------------------------------------
 // Any click on a row (outside its action buttons) opens the read-only detail for that order.
-const { detail: orderDetail, status: orderDetailStatus, error: orderDetailError, load: loadOrderDetail, reset: resetOrderDetail } = useAdminOrderDetail()
+const {
+  detail: orderDetail, status: orderDetailStatus, error: orderDetailError, load: loadOrderDetail, reset: resetOrderDetail,
+  attaching: attachingKey, attachKey,
+} = useAdminOrderDetail()
 const detailTarget = ref<FlatRow | null>(null)
 
 function openDetail(orderId: string) {
@@ -69,8 +75,20 @@ function openDetail(orderId: string) {
 }
 
 function closeDetail() {
+  // Escape/backdrop while the deliver confirmation sits on top must only close that dialog.
+  if (deliverTarget.value) return
   detailTarget.value = null
   resetOrderDetail()
+}
+
+// Manual key attach from the detail modal. The composable refetches the detail itself; here the list
+// row behind the modal is patched (status + per-item counts, matched by index — see applyAssignResult)
+// so the table reflects the change without a reload.
+async function onAttachKey(itemId: string, code: string) {
+  const target = detailTarget.value
+  if (!target) return
+  const result = await attachKey(target.order.id, itemId, code)
+  if (result) applyAssignResult(target.order.id, result)
 }
 
 const itemOptions = computed(() => {
@@ -211,10 +229,7 @@ const filteredRows = computed(() =>
                 :email="row.email"
                 :order="row.order"
                 :resending="resending"
-                :resend-error="resendError"
                 :assigning="assigning"
-                :assign-error="assignError"
-                :assign-incomplete="assignIncomplete"
                 @resend="resendDelivery"
                 @assign="assignKeys"
                 @deliver="openDeliver"
@@ -245,7 +260,6 @@ const filteredRows = computed(() =>
       :email="deliverTarget.email"
       :order="deliverTarget.order"
       :loading="delivering[deliverTarget.order.id] ?? false"
-      :error="deliverError[deliverTarget.order.id] ?? null"
       @confirm="confirmDeliver"
       @close="deliverTarget = null"
     />
@@ -256,7 +270,10 @@ const filteredRows = computed(() =>
       :detail="orderDetail"
       :status="orderDetailStatus"
       :error="orderDetailError"
+      :attaching="attachingKey"
+      @attach="onAttachKey"
       @retry="loadOrderDetail(detailTarget.order.id, detailTarget)"
+      @deliver="openDeliver(detailTarget.order.id)"
       @close="closeDetail"
     />
   </section>

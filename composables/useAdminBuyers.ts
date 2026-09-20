@@ -1,5 +1,5 @@
-import type { AdminBuyer, AdminBuyersPage, AssignKeysResponse, DeliverOrderResponse, ResendDeliveryResponse } from '~/types/api'
-import { ApiError } from '~/composables/useApi'
+import type { AdminBuyer, AdminBuyersPage, AssignKeysResponse, DeliverOrderResponse, OrderStatus, ResendDeliveryResponse } from '~/types/api'
+import { ApiError, isBackendUnreachable } from '~/composables/useApi'
 
 /**
  * Admin buyers listing (search + pagination) and per-order delivery-email resend
@@ -154,6 +154,9 @@ function mockBuyersPage(): AdminBuyersPage {
 
 export function useAdminBuyers() {
   const api = useApi()
+  // Action outcomes (assign/deliver/resend failures, partial stock) surface as floating toasts rather
+  // than inline text in the table — see useToast.ts. The per-order refs below stay as state for callers.
+  const toast = useToast()
 
   const email = ref('')
   const page = ref(1)
@@ -178,7 +181,7 @@ export function useAdminBuyers() {
           query: { email: email.value || undefined, page: page.value, pageSize: pageSize.value },
         })
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         console.warn('[useAdminBuyers] /admin/buyers unavailable, using dev mock data:', e)
         result = mockBuyersPage()
       }
@@ -214,13 +217,15 @@ export function useAdminBuyers() {
       try {
         await api<ResendDeliveryResponse>(`/admin/orders/${orderId}/resend-delivery`, { method: 'POST' })
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         console.warn('[useAdminBuyers] resend-delivery backend unavailable, treating as dev mock success:', e)
       }
       resendSuccess.value[orderId] = true
       return true
     } catch (e) {
-      resendError.value[orderId] = toApiError(e)
+      const err = toApiError(e)
+      resendError.value[orderId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       resending.value[orderId] = false
@@ -235,6 +240,22 @@ export function useAdminBuyers() {
       if (order) return order
     }
     return undefined
+  }
+
+  /**
+   * Patches the list row after assign-keys / manual key attach so status + per-item counts recompute
+   * without a full reload. List items carry no itemId (AdminBuyerOrderItem), so counts are matched by
+   * index: the backend builds both the list row and these responses by iterating `order.Items` in the
+   * same order. If the lengths ever disagree, only the status is applied.
+   */
+  function applyAssignResult(orderId: string, result: { orderStatus: OrderStatus; items: { quantity: number; assigned: number }[] }) {
+    const order = findOrder(orderId)
+    if (!order) return
+    order.status = result.orderStatus
+    if (result.items.length !== order.items.length) return
+    result.items.forEach((item, i) => {
+      order.items[i]!.assignedKeys = item.assigned
+    })
   }
 
   const assigning = ref<Record<string, boolean>>({})
@@ -256,33 +277,32 @@ export function useAdminBuyers() {
       try {
         result = await api<AssignKeysResponse>(`/admin/orders/${orderId}/assign-keys`, { method: 'POST' })
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         if (!order) throw e
         console.warn('[useAdminBuyers] assign-keys backend unavailable, applying to dev mock data only:', e)
         // Mock fallback simplification: unlike the real backend, always succeeds fully (as if stock
         // just became available) rather than modeling partial stock — good enough for demoing the UI.
-        // Unlike the real path (per-item counts stay stale until reload), this also updates item
-        // counts locally since there's no reload to eventually catch them up.
         result = {
           orderStatus: 'KeysAssigned',
           allItemsComplete: true,
-          items: order.items.map((item, i) => {
-            item.assignedKeys = item.quantity
-            return { itemId: `${orderId}-item-${i}`, quantity: item.quantity, assignedKeys: item.assignedKeys }
-          }),
+          items: order.items.map((item, i) => ({ itemId: `${orderId}-item-${i}`, quantity: item.quantity, assignedKeys: item.quantity })),
         }
       }
-      if (order) order.status = result.orderStatus
+      applyAssignResult(orderId, { orderStatus: result.orderStatus, items: result.items.map((i) => ({ quantity: i.quantity, assigned: i.assignedKeys })) })
       if (result.allItemsComplete) {
         assignSuccess.value[orderId] = true
       } else {
         const assigned = result.items.reduce((sum, i) => sum + i.assignedKeys, 0)
         const requested = result.items.reduce((sum, i) => sum + i.quantity, 0)
-        assignIncomplete.value[orderId] = `Sin stock suficiente: ${assigned} de ${requested} clave(s) asignada(s).`
+        const message = `Sin stock suficiente: ${assigned} de ${requested} clave(s) asignada(s).`
+        assignIncomplete.value[orderId] = message
+        toast.warning(message)
       }
       return true
     } catch (e) {
-      assignError.value[orderId] = toApiError(e)
+      const err = toApiError(e)
+      assignError.value[orderId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       assigning.value[orderId] = false
@@ -294,7 +314,7 @@ export function useAdminBuyers() {
   const deliverSuccess = ref<Record<string, boolean>>({})
 
   // "Entregar": only valid when KeysAssigned — API 409s otherwise (e.g. status changed between page
-  // load and click), handled the same way as any other ApiError and shown inline via deliverError.
+  // load and click), handled the same way as any other ApiError and surfaced as an error toast.
   async function deliverOrder(orderId: string) {
     delivering.value[orderId] = true
     deliverError.value[orderId] = null
@@ -305,7 +325,7 @@ export function useAdminBuyers() {
       try {
         result = await api<DeliverOrderResponse>(`/admin/orders/${orderId}/deliver`, { method: 'POST' })
       } catch (e) {
-        if (!import.meta.dev) throw e
+        if (!import.meta.dev || !isBackendUnreachable(e)) throw e
         // Mirrors the real 409 gate: only "succeed" against mock data when locally KeysAssigned.
         if (!order || order.status !== 'KeysAssigned') throw e
         console.warn('[useAdminBuyers] deliver backend unavailable, applying to dev mock data only:', e)
@@ -315,7 +335,9 @@ export function useAdminBuyers() {
       deliverSuccess.value[orderId] = true
       return true
     } catch (e) {
-      deliverError.value[orderId] = toApiError(e)
+      const err = toApiError(e)
+      deliverError.value[orderId] = err
+      toast.error(err.friendlyMessage())
       return false
     } finally {
       delivering.value[orderId] = false
@@ -325,7 +347,7 @@ export function useAdminBuyers() {
   return {
     email, page, pageSize, buyers, total, status, error, load, search, goToPage,
     resending, resendError, resendSuccess, resendDelivery,
-    assigning, assignError, assignSuccess, assignIncomplete, assignKeys,
+    assigning, assignError, assignSuccess, assignIncomplete, assignKeys, applyAssignResult,
     delivering, deliverError, deliverSuccess, deliverOrder,
   }
 }
