@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
-import { renderMarkdown } from '~/utils/markdown'
 import { PLATFORMS, findPlatform } from '~/utils/platforms'
 
 const props = defineProps<{ product: AdminProduct; saving: boolean; initiallyExpanded?: boolean }>()
@@ -30,59 +29,15 @@ const platformOptions = computed(() =>
 )
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
-const activationGuideUrl = ref(props.product.activationGuideUrl ?? '')
+// The guide is optional and the product page only shows its section when one exists, so the
+// checkbox makes "no guide" an explicit choice instead of relying on an empty textarea.
+const hasActivationGuide = ref(props.product.activationGuide !== null)
+const activationGuide = ref(props.product.activationGuide ?? '')
 const activationType = ref(props.product.activationType ?? '')
 const imageKeys = ref<string[]>([...(props.product.imageKeys ?? [])])
 const isActive = ref(props.product.isActive)
-const descriptionInput = ref<HTMLTextAreaElement | null>(null)
-const showDescriptionPreview = ref(false)
 const saved = ref(false)
 
-function onPreviewKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') showDescriptionPreview.value = false
-}
-onMounted(() => window.addEventListener('keydown', onPreviewKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onPreviewKeydown))
-
-// Wraps the current textarea selection in a Markdown marker (bold/italic); with nothing selected,
-// inserts a placeholder word so the admin has something to type over. CommonMark won't treat a
-// closing `**`/`*` as emphasis if it's preceded by whitespace, so leading/trailing spaces in the
-// selection are kept OUTSIDE the markers instead of wrapping them (e.g. "word " → "**word** ").
-function wrapDescriptionSelection(marker: string) {
-  const el = descriptionInput.value
-  if (!el) return
-  const { selectionStart: start, selectionEnd: end } = el
-  const value = description.value
-  const rawSelected = value.slice(start, end)
-  const trimmed = rawSelected.trim() || 'texto'
-  const leadingWs = rawSelected.match(/^\s*/)?.[0] ?? ''
-  const trailingWs = rawSelected.match(/\s*$/)?.[0] ?? ''
-  description.value = value.slice(0, start) + leadingWs + marker + trimmed + marker + trailingWs + value.slice(end)
-  const selStart = start + leadingWs.length
-  nextTick(() => {
-    el.focus()
-    el.setSelectionRange(selStart + marker.length, selStart + marker.length + trimmed.length)
-  })
-}
-
-// Prefixes every line touched by the selection with a Markdown bullet, so selecting several lines
-// turns them all into one list instead of just the first.
-function prefixDescriptionLines(prefix: string) {
-  const el = descriptionInput.value
-  if (!el) return
-  const { selectionStart: start, selectionEnd: end } = el
-  const value = description.value
-  const lineStart = value.lastIndexOf('\n', start - 1) + 1
-  const lineEndIdx = value.indexOf('\n', end)
-  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx
-  const block = value.slice(lineStart, lineEnd)
-  const prefixed = block.split('\n').map((line) => (line ? `${prefix}${line}` : line)).join('\n')
-  description.value = value.slice(0, lineStart) + prefixed + value.slice(lineEnd)
-  nextTick(() => {
-    el.focus()
-    el.setSelectionRange(lineStart, lineStart + prefixed.length)
-  })
-}
 let savedTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => clearTimeout(savedTimer))
 
@@ -92,7 +47,8 @@ watch(() => props.product, (product) => {
   platform.value = product.platform
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
-  activationGuideUrl.value = product.activationGuideUrl ?? ''
+  hasActivationGuide.value = product.activationGuide !== null
+  activationGuide.value = product.activationGuide ?? ''
   activationType.value = product.activationType ?? ''
   imageKeys.value = [...(product.imageKeys ?? [])]
   isActive.value = product.isActive
@@ -105,7 +61,8 @@ async function submit() {
     platform: platform.value,
     description: description.value,
     imageKey: imageKey.value || undefined,
-    activationGuideUrl: activationGuideUrl.value || null,
+    // An enabled-but-blank guide would render an empty section, so it is sent as "no guide".
+    activationGuide: hasActivationGuide.value && activationGuide.value.trim() ? activationGuide.value : null,
     activationType: activationType.value || null,
     imageKeys: imageKeys.value.map((k) => k.trim()).filter(Boolean),
     isActive: isActive.value,
@@ -179,36 +136,7 @@ function submitNewVariant() {
         </select>
       </label>
 
-      <div class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Descripción (admite Markdown: **negrita**, *cursiva*, listas)</span>
-        <div class="flex gap-1.5">
-          <button type="button" title="Negrita" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm font-bold text-white/70 hover:border-white/30 hover:text-white" @click="wrapDescriptionSelection('**')">B</button>
-          <button type="button" title="Cursiva" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm italic text-white/70 hover:border-white/30 hover:text-white" @click="wrapDescriptionSelection('*')">I</button>
-          <button type="button" title="Lista con viñetas" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:border-white/30 hover:text-white" @click="prefixDescriptionLines('- ')">•</button>
-          <button
-            type="button"
-            :disabled="!description.trim()"
-            class="ml-auto text-sm font-medium text-accent hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-            @click="showDescriptionPreview = true"
-          >
-            Vista previa
-          </button>
-        </div>
-        <textarea ref="descriptionInput" v-model="description" rows="5" class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white outline-none focus:border-accent" />
-      </div>
-
-      <Teleport to="body">
-        <div v-if="showDescriptionPreview" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/60" aria-hidden="true" @click="showDescriptionPreview = false" />
-          <div role="dialog" aria-modal="true" aria-labelledby="description-preview-title" class="glass relative flex max-h-[80vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl p-6">
-            <button type="button" aria-label="Cerrar" class="absolute right-3 top-3 rounded-xl p-2 text-white/70 transition hover:bg-white/5 hover:text-white" @click="showDescriptionPreview = false">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-            </button>
-            <h2 id="description-preview-title" class="text-lg font-semibold">Vista previa</h2>
-            <div class="markdown-body text-white/70" v-html="renderMarkdown(description)" />
-          </div>
-        </div>
-      </Teleport>
+      <MarkdownEditor v-model="description" label="Descripción (admite Markdown: **negrita**, *cursiva*, listas)" />
 
       <label class="flex flex-col gap-2 text-sm">
         <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
@@ -219,17 +147,17 @@ function submitNewVariant() {
         <p class="text-xs text-white/40">Es la primera imagen del carrusel en la vista de producto; la miniatura se actualiza al guardar.</p>
       </label>
 
-      <div class="flex flex-wrap gap-4">
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Guía de activación (URL)</span>
-          <input v-model="activationGuideUrl" type="url" placeholder="https://..." class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        </label>
+      <label class="flex flex-col gap-2 text-sm">
+        <span class="text-white/70">Tipo</span>
+        <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+      </label>
 
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Tipo</span>
-          <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        </label>
-      </div>
+      <label class="flex items-center gap-2 text-sm text-white/70">
+        <input v-model="hasActivationGuide" type="checkbox" name="hasActivationGuide" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+        Tiene guía de activación
+      </label>
+
+      <MarkdownEditor v-if="hasActivationGuide" v-model="activationGuide" label="Guía de activación (admite Markdown)" :rows="8" />
 
       <div class="flex flex-col gap-2">
         <span class="text-sm text-white/70">Imágenes adicionales de galería (R2, se muestran después de la imagen principal)</span>

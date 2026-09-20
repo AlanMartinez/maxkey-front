@@ -13,7 +13,7 @@ const product: AdminProduct = {
   imageUrl: 'https://cdn/robux.png',
   detailImageKey: undefined,
   detailImageUrl: undefined,
-  activationGuideUrl: null,
+  activationGuide: null,
   activationType: null,
   imageKeys: [],
   images: [],
@@ -92,5 +92,40 @@ describe('ProductEditor', () => {
     await previewButton?.trigger('click')
 
     expect(document.querySelector('[role="dialog"]')?.innerHTML).toContain('<strong')
+  })
+
+  it('starts with the activation guide unchecked and sends null when the product has none', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const checkbox = wrapper.find('input[name="hasActivationGuide"]')
+    expect((checkbox.element as HTMLInputElement).checked).toBe(false)
+    expect(wrapper.findAll('textarea')).toHaveLength(1)
+
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuide: null })
+  })
+
+  it('checking the guide box reveals a second editor whose Markdown is sent on save', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.find('input[name="hasActivationGuide"]').setValue(true)
+    const editors = wrapper.findAll('textarea')
+    expect(editors).toHaveLength(2)
+
+    await editors[1]!.setValue('## Paso 1')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuide: '## Paso 1' })
+  })
+
+  it('mounts with the guide box checked when the product already has one', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, activationGuide: 'x' }, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    expect((wrapper.find('input[name="hasActivationGuide"]').element as HTMLInputElement).checked).toBe(true)
+    expect((wrapper.findAll('textarea')[1]!.element as HTMLTextAreaElement).value).toBe('x')
   })
 })

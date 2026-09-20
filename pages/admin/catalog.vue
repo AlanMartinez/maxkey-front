@@ -48,7 +48,7 @@ async function submitNewProduct() {
     name: newProduct.value.name,
     platform: newProduct.value.platform,
     description: newProduct.value.description || undefined,
-    activationGuideUrl: null,
+    activationGuide: null,
     activationType: null,
     imageKeys: [],
     isActive: true,
