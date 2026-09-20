@@ -2,8 +2,8 @@
 const props = defineProps<{ images: string[]; alt: string }>()
 
 const mainImage = computed(() => props.images[0])
-const visibleThumbnails = computed(() => props.images.slice(0, 3))
-const extraCount = computed(() => Math.max(props.images.length - 3, 0))
+const visibleThumbnails = computed(() => props.images.slice(1, 4))
+const extraCount = computed(() => Math.max(props.images.length - 4, 0))
 
 const isZoomOpen = ref(false)
 const zoomIndex = ref(0)
@@ -55,7 +55,12 @@ watch(isZoomOpen, async (open) => {
 <template>
   <div class="flex flex-col gap-3">
     <div class="glass group relative aspect-[3/4] overflow-hidden rounded-2xl bg-white/5">
-      <img v-if="mainImage" :src="mainImage" :alt="alt" class="h-full w-full object-cover" />
+      <img
+        v-if="mainImage"
+        :src="mainImage"
+        :alt="alt"
+        class="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] group-focus-within:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
+      />
       <button
         v-if="mainImage"
         type="button"
@@ -75,18 +80,34 @@ watch(isZoomOpen, async (open) => {
     <div v-if="images.length > 1" class="grid grid-cols-3 gap-3">
       <button
         v-for="(image, i) in visibleThumbnails"
-        :key="`${i}-${image}`"
+        :key="`${i + 1}-${image}`"
         type="button"
-        :aria-label="i === 2 && extraCount > 0 ? `Ver ${extraCount} imágenes más` : `Ver vista ${i + 1}`"
-        class="glass relative aspect-square overflow-hidden rounded-xl bg-white/5 transition hover:border-white/30"
-        @click="openZoom(i)"
+        :aria-label="i === 2 && extraCount > 0 ? `Ver ${extraCount} imágenes más` : `Ver vista ${i + 2}`"
+        class="glass group relative aspect-square overflow-hidden rounded-xl bg-white/5 transition hover:border-white/30"
+        @click="openZoom(i + 1)"
       >
-        <img :src="image" :alt="`${alt} — vista ${i + 1}`" loading="lazy" class="h-full w-full object-cover" />
+        <img
+          :src="image"
+          :alt="`${alt} — vista ${i + 2}`"
+          loading="lazy"
+          class="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05] group-focus-visible:scale-[1.05] motion-reduce:transform-none motion-reduce:transition-none"
+        />
         <span
           v-if="i === 2 && extraCount > 0"
           class="absolute inset-0 flex items-center justify-center bg-black/60 text-lg font-semibold text-white"
         >
           +{{ extraCount }}
+        </span>
+        <span
+          class="absolute inset-0 z-10 flex items-center justify-center bg-black/0 text-white opacity-0 transition duration-300 group-hover:bg-black/25 group-hover:opacity-100 group-focus-visible:bg-black/25 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          aria-hidden="true"
+        >
+          <span class="glass flex h-9 w-9 items-center justify-center rounded-full">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </span>
         </span>
       </button>
     </div>
