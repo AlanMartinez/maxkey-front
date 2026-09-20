@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { AdminCurrency, AdminVariant, UpdateProductVariantRequest } from '~/types/api'
 
-const props = defineProps<{ variant: AdminVariant; saving: boolean }>()
+// `productId` scopes the "Recomendada" radio group: one product = one group, so the browser itself
+// enforces the single-selection rule the backend applies (marking one clears the siblings).
+const props = defineProps<{ variant: AdminVariant; productId: string; saving: boolean }>()
 const emit = defineEmits<{ save: [body: UpdateProductVariantRequest]; delete: [] }>()
 
 const currencies: AdminCurrency[] = ['ARS', 'USD']
@@ -29,9 +31,10 @@ function deriveDiscount(variant: AdminVariant) {
 const discountPercentage = ref(deriveDiscount(props.variant))
 const currency = ref<AdminCurrency>(props.variant.currency)
 const isActive = ref(props.variant.isActive)
-// Not a local form field: the checkbox saves immediately (radio-like per product, the backend
-// clears the siblings), so it always reflects what the server last confirmed.
+// Not a local form field: the radio saves immediately (the backend clears the siblings), so it
+// always reflects what the server last confirmed.
 const isRecommended = computed(() => props.variant.isRecommended)
+const recommendedGroup = computed(() => `recommended-${props.productId}`)
 
 const finalPrice = computed(() => {
   if (!discountPercentage.value || !basePrice.value) return basePrice.value
@@ -62,8 +65,10 @@ function submit(recommended = isRecommended.value) {
   })
 }
 
-function onRecommendedChange(event: Event) {
-  submit((event.target as HTMLInputElement).checked)
+// A radio can only be selected, never cleared: exactly one variant per product is recommended,
+// so picking this row is always `isRecommended: true`.
+function onRecommendedChange() {
+  submit(true)
 }
 
 // Hard delete now (useAdminCatalog.deleteVariant) — inline confirm instead of a browser confirm(),
@@ -74,7 +79,7 @@ const confirming = ref(false)
 <template>
   <div class="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" :class="{ 'opacity-50': !variant.isActive }">
     <label class="flex items-center gap-2 text-xs text-white/70">
-      <input type="checkbox" :checked="isRecommended" :disabled="saving" class="h-4 w-4 rounded border-white/20 bg-white/5" @change="onRecommendedChange" />
+      <input type="radio" :name="recommendedGroup" :value="variant.id" :checked="isRecommended" :disabled="saving" class="h-4 w-4 border-white/20 bg-white/5 accent-accent" @change="onRecommendedChange" />
       Recomendada
     </label>
     <label class="flex items-center gap-2">

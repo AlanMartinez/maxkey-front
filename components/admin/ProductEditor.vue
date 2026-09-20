@@ -268,6 +268,7 @@ function submitNewVariant() {
           v-for="variant in product.variants"
           :key="variant.id"
           :variant="variant"
+          :product-id="product.id"
           :saving="saving"
           @save="(body) => emit('saveVariant', variant.id, body)"
           @delete="emit('deleteVariant', variant.id)"
