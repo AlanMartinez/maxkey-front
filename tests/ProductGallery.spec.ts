@@ -11,17 +11,23 @@ describe('ProductGallery', () => {
     expect(wrapper.find('[role="tablist"]').exists()).toBe(false)
   })
 
-  it('renders a thumbnail per image and swaps the main image on click', async () => {
-    const wrapper = mount(ProductGallery, { props: { images: ['/a.png', '/b.png', '/c.png'], alt: 'Riot Points' } })
-    const thumbs = wrapper.findAll('[role="tab"]')
+  it('excludes the main image from thumbnails and opens the matching gallery image', async () => {
+    const wrapper = mount(ProductGallery, {
+      props: {
+        images: ['/a.png', '/b.png', '/c.png', '/d.png', '/e.png', '/f.png'],
+        alt: 'Riot Points',
+      },
+      global: { stubs: { Teleport: true } },
+    })
+    const thumbnails = wrapper.findAll('button').filter((button) => button.find('img').exists())
 
-    expect(thumbs).toHaveLength(3)
-    expect(thumbs.map((t) => t.attributes('aria-label'))).toEqual(['Vista 1', 'Vista 2', 'Vista 3'])
-    expect(thumbs[0]?.attributes('aria-selected')).toBe('true')
+    expect(thumbnails.map((thumbnail) => thumbnail.find('img').attributes('src'))).toEqual(['/b.png', '/c.png', '/d.png'])
+    expect(thumbnails[2]?.text()).toContain('+2')
 
-    await thumbs[2]?.trigger('click')
+    await thumbnails[2]?.trigger('click')
 
-    expect(wrapper.find('img').attributes('src')).toBe('/c.png')
-    expect(wrapper.findAll('[role="tab"]')[2]?.attributes('aria-selected')).toBe('true')
+    const dots = wrapper.findAll('.absolute.bottom-4 span')
+    expect(dots).toHaveLength(6)
+    expect(dots[3]?.classes()).toContain('bg-white')
   })
 })
