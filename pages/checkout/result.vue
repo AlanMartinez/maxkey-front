@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrderStatusResponse } from '~/types/api'
+import type { OrderStatus, OrderStatusResponse } from '~/types/api'
 import { LAST_ORDER_STORAGE_KEY } from '~/composables/useCheckout'
 
 const POLL_INTERVAL_MS = 3000
@@ -24,11 +24,14 @@ const missing = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
 let tries = 0
 
+// Every status past `Paid` (AwaitingFulfillment, KeysAssigned, Delivered) is only reachable once payment settled.
+const PAID_STATUSES: ReadonlySet<OrderStatus> = new Set(['Paid', 'AwaitingFulfillment', 'KeysAssigned', 'Delivered'])
+
 const outcome = computed<Outcome>(() => {
   if (missing.value) return 'unknown'
   const status = order.value?.status
   if (status === 'Cancelled') return 'rejected'
-  if (status && status !== 'Pending') return 'approved'
+  if (status && PAID_STATUSES.has(status)) return 'approved'
   if (mpStatus.value === 'failure' || mpStatus.value === 'rejected' || ['rejected', 'cancelled'].includes(order.value?.lastPaymentAttemptStatus ?? '')) return 'rejected'
   return 'pending'
 })
@@ -65,9 +68,12 @@ async function reconcile() {
   }
 }
 
-// The cart is cleared only once payment is known to be settled (design §9); a rejected payment keeps it for retry.
+// The cart is cleared once, only when payment is known to be settled (design §9); a rejected or cancelled order keeps it for retry.
+let cartCleared = false
 watch(order, (value) => {
-  if (value && value.status !== 'Pending') cart.clear()
+  if (cartCleared || !value || !PAID_STATUSES.has(value.status)) return
+  cartCleared = true
+  cart.clear()
 })
 onMounted(async () => {
   const fromQuery = route.query.orderId
