@@ -73,6 +73,17 @@ export interface OrderSummaryDto {
   itemCount: number
 }
 
+// Account-owned notification. The backend creates OrderDelivered atomically with the delivery action.
+export type NotificationType = 'OrderDelivered'
+
+export interface AccountNotificationDto {
+  id: string
+  type: NotificationType
+  orderId: string
+  createdAt: string
+  readAt: string | null
+}
+
 // mirrors design.md §7 "GET /me/orders/{id}" response `items[]` (PR #49, key-delivery-gate). `keys` now
 // holds only already-revealed codes and stays empty until revealed via the reveal endpoint below;
 // `revealable` is the server's own signal for whether the reveal action should show for this item —

@@ -3,7 +3,9 @@
 const search = useState('catalog-search', () => '')
 const { count, toggle } = useCart()
 const { isAuthenticated, isAdmin, displayName, openLogin, signOut } = useAuth()
+const { items: notifications, unreadCount, load: loadNotifications, markRead } = useNotifications()
 const isAccountMenuOpen = ref(false)
+const isNotificationsOpen = ref(false)
 // Phones have no room for an inline search box; a toggle reveals it as a second row under the bar.
 const isMobileSearchOpen = ref(false)
 const mobileSearchInput = ref<HTMLInputElement | null>(null)
@@ -22,6 +24,23 @@ async function handleSignOut() {
   closeAccountMenu()
   await signOut()
 }
+
+async function openNotification(notificationId: string) {
+  isNotificationsOpen.value = false
+  await markRead(notificationId)
+}
+
+onMounted(() => {
+  if (isAuthenticated.value) loadNotifications()
+})
+
+watch(isAuthenticated, (authenticated) => {
+  if (authenticated) loadNotifications()
+  else {
+    notifications.value = []
+    isNotificationsOpen.value = false
+  }
+})
 
 async function toggleMobileSearch() {
   isMobileSearchOpen.value = !isMobileSearchOpen.value
@@ -71,7 +90,29 @@ const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-wh
               <AppButton variant="ghost" size="sm" @click="openLogin()">Iniciar sesión</AppButton>
             </div>
           </template>
-          <div v-else class="relative">
+          <template v-else>
+            <div class="relative">
+              <button type="button" aria-label="Notificaciones" :aria-expanded="isNotificationsOpen" :class="iconButton" @click="isNotificationsOpen = !isNotificationsOpen">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+                </svg>
+                <span v-if="unreadCount" class="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-accent px-1.5 text-center text-xs font-semibold leading-5 text-white">{{ unreadCount }}</span>
+              </button>
+              <div v-if="isNotificationsOpen" class="glass absolute right-0 top-full z-30 mt-2 w-72 rounded-xl border border-white/10 p-1.5 text-sm">
+                <p v-if="!notifications.length" class="px-3 py-2 text-white/60">No tenés notificaciones pendientes.</p>
+                <NuxtLink
+                  v-for="notification in notifications"
+                  :key="notification.id"
+                  :to="`/account/orders/${notification.orderId}`"
+                  class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white"
+                  @click="openNotification(notification.id)"
+                >
+                  <span class="block font-medium">Tus keys están listas</span>
+                  <span class="block text-xs text-white/50">Pedido #{{ notification.orderId.slice(0, 8) }}</span>
+                </NuxtLink>
+              </div>
+            </div>
+            <div class="relative">
             <button
               type="button"
               class="flex items-center gap-2 rounded-xl p-1.5 text-sm text-white/80 transition hover:bg-white/5 hover:text-white sm:pr-3"
@@ -92,7 +133,8 @@ const iconButton = 'relative rounded-xl p-2 text-white/80 transition hover:bg-wh
               <NuxtLink v-if="isAdmin" to="/admin" class="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/5 hover:text-white" @click="closeAccountMenu()">Panel admin</NuxtLink>
               <button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-white/80 transition hover:bg-white/5 hover:text-white" @click="handleSignOut()">Cerrar sesión</button>
             </div>
-          </div>
+            </div>
+          </template>
         </slot>
       </div>
     </div>
