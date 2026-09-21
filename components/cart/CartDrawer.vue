@@ -1,5 +1,32 @@
 <script setup lang="ts">
-const { isOpen, isEmpty, lines, subtotal, close, remove, setQuantity } = useCart()
+import type { ProductDetail } from '~/types/api'
+
+const { isOpen, isEmpty, lines, subtotal, close, remove, setQuantity, updatePrices } = useCart()
+const api = useApi()
+let refreshVersion = 0
+
+async function refreshPrices() {
+  const version = ++refreshVersion
+  const details = await Promise.all(
+    [...new Set(lines.value.map((line) => line.productSlug))].map(async (slug) => {
+      try {
+        return await api<ProductDetail>(`/catalog/products/${slug}`)
+      } catch {
+        return null
+      }
+    }),
+  )
+  if (version !== refreshVersion) return
+  updatePrices(details.flatMap((detail) => detail?.variants.map((variant) => ({
+    variantId: variant.id,
+    unitPrice: variant.price,
+    currency: variant.currency,
+  })) ?? []))
+}
+
+watch(isOpen, (open) => {
+  if (open && !isEmpty.value) void refreshPrices()
+}, { immediate: true })
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') close()
