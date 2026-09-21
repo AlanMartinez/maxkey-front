@@ -76,9 +76,8 @@ export interface OrderSummaryDto {
 // mirrors design.md §7 "GET /me/orders/{id}" response `items[]` (PR #49, key-delivery-gate). `keys` now
 // holds only already-revealed codes and stays empty until revealed via the reveal endpoint below;
 // `revealable` is the server's own signal for whether the reveal action should show for this item —
-// never re-derive that from `order.status` client-side. `itemId` is assumed present (not explicitly
-// listed in the PR #49 spec message) since POST .../items/{itemId}/keys/reveal requires it; confirm
-// with the backend if this ever throws a 404 in practice.
+// never re-derive that from `order.status` client-side. `itemId` mirrors MyOrderItemDetail.ItemId and
+// is the path segment for POST .../items/{itemId}/keys/reveal.
 export interface OrderItemDto {
   itemId: string
   productName: string
