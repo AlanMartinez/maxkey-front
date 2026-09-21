@@ -77,23 +77,28 @@ const confirming = ref(false)
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" :class="{ 'opacity-50': !variant.isActive }">
+  <div
+    role="group"
+    :aria-label="`Variante ${region || 'sin región'} ${edition || 'sin edición'}`"
+    class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm"
+    :class="{ 'opacity-50': !variant.isActive }"
+  >
     <label class="flex items-center gap-2 text-xs text-white/70">
       <input type="radio" :name="recommendedGroup" :value="variant.id" :checked="isRecommended" :disabled="saving" class="h-4 w-4 border-white/20 bg-white/5 accent-accent" @change="onRecommendedChange" />
       Recomendada
     </label>
     <label class="flex items-center gap-2">
       <span class="sr-only">Región</span>
-      <input v-model="region" type="text" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model="region" type="text" aria-label="Región" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
     <label class="flex items-center gap-2">
       <span class="sr-only">Edición</span>
-      <input v-model="edition" type="text" placeholder="Edición" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model="edition" type="text" aria-label="Edición" placeholder="Edición" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2">
       <span class="sr-only">Precio real</span>
-      <input v-model.number="basePrice" type="number" min="0" step="0.01" title="Precio real (sin descuento)" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model.number="basePrice" type="number" min="0" step="0.01" aria-label="Precio real" title="Precio real (sin descuento)" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2">
@@ -104,6 +109,7 @@ const confirming = ref(false)
         min="0"
         max="99"
         step="1"
+        aria-label="Descuento porcentual"
         placeholder="% off"
         class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent"
       />
@@ -117,7 +123,7 @@ const confirming = ref(false)
 
     <label class="flex items-center gap-2">
       <span class="sr-only">Moneda</span>
-      <select v-model="currency" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
+      <select v-model="currency" aria-label="Moneda" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
         <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
       </select>
     </label>

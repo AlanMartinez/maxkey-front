@@ -118,115 +118,150 @@ function submitNewVariant() {
     </div>
 
     <form v-if="expanded" class="flex flex-col gap-4" @submit.prevent="submit">
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Slug (URL: /product/…)</span>
-        <input v-model="slug" type="text" required pattern="[a-z0-9-]+" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        <p class="text-xs text-amber-300/80">Cambiarlo rompe cualquier link ya compartido o indexado con el slug anterior.</p>
-      </label>
+      <section role="group" :aria-labelledby="`product-details-title-${product.id}`" class="rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <h3 :id="`product-details-title-${product.id}`" class="mb-3 text-sm font-semibold text-white">Información básica</h3>
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(12rem,.8fr)]">
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Slug (URL: /product/…)</span>
+            <input v-model="slug" name="slug" type="text" required pattern="[a-z0-9-]+" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+            <span class="text-xs text-amber-300/80">Cambiarlo rompe links compartidos o indexados.</span>
+          </label>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Nombre</span>
-        <input v-model="name" type="text" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-      </label>
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Nombre</span>
+            <input v-model="name" name="name" type="text" required class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+          </label>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Plataforma</span>
-        <select v-model="platform" name="platform" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
-          <option v-for="option in platformOptions" :key="option.value" :value="option.value">{{ option.value }}</option>
-        </select>
-      </label>
-
-      <MarkdownEditor v-model="description" label="Descripción (admite Markdown: **negrita**, *cursiva*, listas)" />
-
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
-        <div class="flex items-center gap-3">
-          <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-          <input v-model="imageKey" type="text" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Plataforma</span>
+            <select v-model="platform" name="platform" required class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+              <option v-for="option in platformOptions" :key="option.value" :value="option.value">{{ option.value }}</option>
+            </select>
+          </label>
         </div>
-        <p class="text-xs text-white/40">Es la primera imagen del carrusel en la vista de producto; la miniatura se actualiza al guardar.</p>
-      </label>
+      </section>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Tipo</span>
-        <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-      </label>
-
-      <label class="flex items-center gap-2 text-sm text-white/70">
-        <input v-model="hasActivationGuide" type="checkbox" name="hasActivationGuide" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-        Tiene guía de activación
-      </label>
-
-      <MarkdownEditor v-if="hasActivationGuide" v-model="activationGuide" label="Guía de activación (admite Markdown)" :rows="8" />
-
-      <div class="flex flex-col gap-2">
-        <span class="text-sm text-white/70">Imágenes adicionales de galería (R2, se muestran después de la imagen principal)</span>
-        <div v-for="(key, i) in imageKeys" :key="i" class="flex items-center gap-3">
-          <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-          <input v-model="imageKeys[i]" type="text" placeholder="products/slug-2.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-          <AppButton type="button" variant="ghost" size="sm" @click="imageKeys.splice(i, 1)">Quitar</AppButton>
+      <section :aria-labelledby="`product-description-title-${product.id}`" class="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm">
+        <div>
+          <h3 :id="`product-description-title-${product.id}`" class="font-semibold text-white">Descripción</h3>
+          <p class="mt-1 text-xs text-white/45">Contenido visible en la ficha del producto.</p>
         </div>
-        <button type="button" class="self-start text-sm text-accent hover:text-accent-hover" @click="imageKeys.push('')">
-          + Agregar imagen
-        </button>
-      </div>
+        <MarkdownEditor v-model="description" label="Descripción (admite Markdown: **negrita**, *cursiva*, listas)" />
+      </section>
 
-      <label class="flex items-center gap-2 text-sm text-white/70">
-        <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-        Producto activo
-      </label>
+      <section :aria-labelledby="`product-images-title-${product.id}`" class="flex flex-col gap-4 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 :id="`product-images-title-${product.id}`" class="text-sm font-semibold text-white">Imágenes</h3>
+            <p class="mt-1 text-xs text-white/45">Claves R2 en formato 3:4. La principal abre el carrusel.</p>
+          </div>
+          <button type="button" class="rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover" @click="imageKeys.push('')">
+            + Agregar imagen
+          </button>
+        </div>
 
-      <div class="flex items-center gap-2">
-        <AppButton type="submit" size="sm" :loading="saving" class="self-start">Guardar producto</AppButton>
+        <label class="flex flex-col gap-2 text-sm">
+          <span class="text-white/70">Clave de imagen principal</span>
+          <div class="flex items-center gap-3">
+            <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
+            <input v-model="imageKey" type="text" aria-label="Clave de imagen principal" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+          </div>
+        </label>
+
+        <div v-if="imageKeys.length" class="flex flex-col gap-2 border-t border-white/10 pt-4">
+          <span class="text-xs font-medium text-white/50">Galería adicional</span>
+          <div v-for="(key, i) in imageKeys" :key="i" class="flex items-center gap-3">
+            <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="`${product.name}, imagen adicional ${i + 1}`" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
+            <input v-model="imageKeys[i]" type="text" :aria-label="`Clave de imagen adicional ${i + 1}`" placeholder="products/slug-2.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+            <AppButton type="button" variant="ghost" size="sm" @click="imageKeys.splice(i, 1)">Quitar</AppButton>
+          </div>
+        </div>
+      </section>
+
+      <section :aria-labelledby="`product-activation-title-${product.id}`" class="rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <h3 :id="`product-activation-title-${product.id}`" class="mb-3 text-sm font-semibold text-white">Activación</h3>
+        <div class="flex flex-col gap-4">
+          <div class="grid gap-4 md:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)] md:items-end">
+            <label class="flex min-w-0 flex-col gap-2 text-sm">
+              <span class="text-white/70">Tipo</span>
+              <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+            </label>
+
+            <label class="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white/70">
+              <input v-model="hasActivationGuide" type="checkbox" name="hasActivationGuide" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+              Tiene guía de activación
+            </label>
+          </div>
+
+          <div v-if="hasActivationGuide" class="border-t border-white/10 pt-4">
+            <MarkdownEditor v-model="activationGuide" label="Guía de activación (admite Markdown)" :rows="8" />
+          </div>
+        </div>
+      </section>
+
+      <section :aria-labelledby="`product-variants-title-${product.id}`" class="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 :id="`product-variants-title-${product.id}`" class="text-sm font-semibold text-white">Variantes</h3>
+            <p class="mt-1 text-xs text-white/45">Precio, descuento y disponibilidad por producto.</p>
+          </div>
+          <button
+            v-if="!showNewVariant"
+            type="button"
+            class="shrink-0 rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover"
+            @click="showNewVariant = true"
+          >
+            + Agregar variante
+          </button>
+        </div>
+
+        <div aria-label="Lista de variantes" class="flex flex-col gap-2 overflow-x-auto pb-1">
+          <VariantRow
+            v-for="variant in product.variants"
+            :key="variant.id"
+            :variant="variant"
+            :product-id="product.id"
+            :saving="saving"
+            @save="(body) => emit('saveVariant', variant.id, body)"
+            @delete="emit('deleteVariant', variant.id)"
+          />
+
+          <div v-if="showNewVariant" role="group" aria-label="Nueva variante" class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
+            <input v-model="newVariant.region" type="text" aria-label="Región" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model="newVariant.edition" type="text" aria-label="Edición" placeholder="Edición" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model.number="newVariant.basePrice" type="number" min="0" step="0.01" aria-label="Precio real" placeholder="Precio real" title="Precio real (sin descuento)" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model.number="newVariant.discountPercentage" type="number" min="0" max="99" step="1" aria-label="Descuento porcentual" placeholder="% off" class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <select v-model="newVariant.currency" aria-label="Moneda" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
+              <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <span v-if="newVariant.discountPercentage" class="flex items-center gap-1.5 text-xs">
+              <span class="text-white/40 line-through">{{ formatMoney(newVariant.basePrice, newVariant.currency) }}</span>
+              <span class="font-semibold text-emerald-300">{{ formatMoney(newVariantFinalPrice, newVariant.currency) }}</span>
+              <AppBadge tone="success">-{{ newVariant.discountPercentage }}%</AppBadge>
+            </span>
+            <AppButton type="button" size="sm" :loading="saving" @click="submitNewVariant()">Crear</AppButton>
+            <AppButton type="button" variant="ghost" size="sm" @click="showNewVariant = false">Cancelar</AppButton>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+        <label class="flex items-center gap-2 text-sm text-white/70">
+          <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+          Producto activo
+        </label>
+        <AppButton type="submit" size="sm" :loading="saving">Guardar producto</AppButton>
         <span v-if="saved" class="text-xs text-emerald-300">Guardado ✓</span>
         <AppButton
           type="button"
           variant="ghost"
           size="sm"
-          class="ml-auto self-start text-red-300 hover:border-red-400/60 hover:text-red-300"
+          class="ml-auto text-red-300 hover:border-red-400/60 hover:text-red-300"
           :loading="saving"
           @click="emit('deleteProduct')"
         >
           Eliminar producto
         </AppButton>
-      </div>
-
-      <div class="flex flex-col gap-2 border-t border-white/10 pt-4">
-        <VariantRow
-          v-for="variant in product.variants"
-          :key="variant.id"
-          :variant="variant"
-          :product-id="product.id"
-          :saving="saving"
-          @save="(body) => emit('saveVariant', variant.id, body)"
-          @delete="emit('deleteVariant', variant.id)"
-        />
-
-        <button
-          v-if="!showNewVariant"
-          type="button"
-          class="self-start text-sm text-accent hover:text-accent-hover"
-          @click="showNewVariant = true"
-        >
-          + Agregar variante
-        </button>
-
-        <div v-else class="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
-          <input v-model="newVariant.region" type="text" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model="newVariant.edition" type="text" placeholder="Edición" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model.number="newVariant.basePrice" type="number" min="0" step="0.01" placeholder="Precio real" title="Precio real (sin descuento)" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model.number="newVariant.discountPercentage" type="number" min="0" max="99" step="1" placeholder="% off" class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <select v-model="newVariant.currency" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
-            <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
-          </select>
-          <span v-if="newVariant.discountPercentage" class="flex items-center gap-1.5 text-xs">
-            <span class="text-white/40 line-through">{{ formatMoney(newVariant.basePrice, newVariant.currency) }}</span>
-            <span class="font-semibold text-emerald-300">{{ formatMoney(newVariantFinalPrice, newVariant.currency) }}</span>
-            <AppBadge tone="success">-{{ newVariant.discountPercentage }}%</AppBadge>
-          </span>
-          <AppButton type="button" size="sm" :loading="saving" @click="submitNewVariant()">Crear</AppButton>
-          <AppButton type="button" variant="ghost" size="sm" @click="showNewVariant = false">Cancelar</AppButton>
-        </div>
       </div>
     </form>
   </div>
