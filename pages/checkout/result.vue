@@ -29,13 +29,12 @@ const outcome = computed<Outcome>(() => {
   const status = order.value?.status
   if (status === 'Cancelled') return 'rejected'
   if (status && status !== 'Pending') return 'approved'
-  if (mpStatus.value === 'approved') return 'approved'
-  if (mpStatus.value !== 'pending' || ['rejected', 'cancelled'].includes(order.value?.lastPaymentAttemptStatus ?? '')) return 'rejected'
+  if (mpStatus.value === 'failure' || mpStatus.value === 'rejected' || ['rejected', 'cancelled'].includes(order.value?.lastPaymentAttemptStatus ?? '')) return 'rejected'
   return 'pending'
 })
 
 const copy: Record<Outcome, { title: string; detail: string }> = {
-  approved: { title: 'Pago aprobado', detail: 'Te enviamos las keys a tu correo en cuanto estén listas. También vas a poder verlas en Mis compras.' },
+  approved: { title: 'Pago aprobado', detail: 'Tu pago fue confirmado. En unos minutos podrás revelar tu key. También te enviaremos un email con los pasos.' },
   pending: { title: 'Pago pendiente', detail: 'Estamos confirmando tu pago con Mercado Pago. Te avisamos por email cuando se acredite.' },
   rejected: { title: 'Pago rechazado', detail: 'Mercado Pago no aprobó el pago. Tu pedido sigue disponible: podés reintentar el pago.' },
   unknown: { title: 'No encontramos tu pedido', detail: 'Si ya pagaste, vas a recibir un email con la confirmación.' },
@@ -57,15 +56,24 @@ async function poll() {
   timer = setTimeout(poll, POLL_INTERVAL_MS)
 }
 
+async function reconcile() {
+  if (!orderId.value) return
+  try {
+    await api(`/checkout/orders/${orderId.value}/reconcile`, { method: 'POST' })
+  } catch {
+    // The regular poll keeps waiting when Mercado Pago or the API is temporarily unavailable.
+  }
+}
+
 // The cart is cleared only once payment is known to be settled (design §9); a rejected payment keeps it for retry.
 watch(order, (value) => {
   if (value && value.status !== 'Pending') cart.clear()
 })
-onMounted(() => {
+onMounted(async () => {
   const fromQuery = route.query.orderId
   orderId.value = (typeof fromQuery === 'string' && fromQuery) || sessionStorage.getItem(LAST_ORDER_STORAGE_KEY)
   missing.value = !orderId.value
-  if (mpStatus.value === 'approved') cart.clear()
+  await reconcile()
   poll()
 })
 onUnmounted(() => clearTimeout(timer))
@@ -74,6 +82,7 @@ onUnmounted(() => clearTimeout(timer))
 <template>
   <section class="glass mx-auto flex max-w-lg flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center" :aria-busy="outcome === 'pending' && !exhausted">
     <span v-if="outcome === 'pending' && !exhausted" class="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
+    <span v-else-if="outcome === 'approved'" class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-2xl font-bold text-emerald-400" aria-label="Pago aprobado">✓</span>
     <h1 class="text-2xl font-bold">{{ copy[outcome].title }}</h1>
     <p class="max-w-sm text-sm text-white/60">{{ copy[outcome].detail }}</p>
     <p v-if="order" class="text-xs text-white/40">
