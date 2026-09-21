@@ -128,4 +128,41 @@ describe('ProductEditor', () => {
     expect((wrapper.find('input[name="hasActivationGuide"]').element as HTMLInputElement).checked).toBe(true)
     expect((wrapper.findAll('textarea')[1]!.element as HTMLTextAreaElement).value).toBe('x')
   })
+
+  it('groups basic product fields into one named editing section', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const details = wrapper.find('[role="group"][aria-labelledby="product-details-title-p1"]')
+    expect(details.exists()).toBe(true)
+    expect(details.find('#product-details-title-p1').text()).toBe('Información básica')
+    expect(details.find('input[name="slug"]').exists()).toBe(true)
+    expect(details.find('input[name="name"]').exists()).toBe(true)
+    expect(details.find('select[name="platform"]').exists()).toBe(true)
+  })
+
+  it('keeps primary and additional images in one named section with its add action', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const images = wrapper.find('section[aria-labelledby="product-images-title-p1"]')
+    expect(images.exists()).toBe(true)
+    expect(images.find('#product-images-title-p1').text()).toBe('Imágenes')
+    expect(images.find('input[aria-label="Clave de imagen principal"]').exists()).toBe(true)
+
+    const addImage = images.findAll('button').find((button) => button.text().includes('Agregar imagen'))
+    expect(addImage).toBeDefined()
+    await addImage!.trigger('click')
+    expect(images.find('input[aria-label="Clave de imagen adicional 1"]').exists()).toBe(true)
+  })
+
+  it('exposes product variants as a named section', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const variants = wrapper.find('section[aria-labelledby="product-variants-title-p1"]')
+    expect(variants.exists()).toBe(true)
+    expect(variants.find('#product-variants-title-p1').text()).toBe('Variantes')
+    expect(variants.findAll('[role="group"]')).toHaveLength(2)
+  })
 })

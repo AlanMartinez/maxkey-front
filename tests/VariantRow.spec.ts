@@ -78,4 +78,16 @@ describe('VariantRow', () => {
     expect((radio.element as HTMLInputElement).checked).toBe(true)
     expect(wrapper.find('input[type="checkbox"][name]').exists()).toBe(false)
   })
+
+  it('exposes the compact editor as a named group with labelled controls', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, productId: 'p1', saving: false } })
+
+    const row = wrapper.find('[role="group"][aria-label="Variante AR Standard"]')
+    expect(row.exists()).toBe(true)
+    expect(row.find('input[aria-label="Región"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Edición"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Precio real"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Descuento porcentual"]').exists()).toBe(true)
+    expect(row.find('select[aria-label="Moneda"]').exists()).toBe(true)
+  })
 })
