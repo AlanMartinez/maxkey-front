@@ -71,8 +71,9 @@ const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
             </button>
             <div class="hidden sm:block">
               <AppButton variant="ghost" size="sm" @click="openLogin()">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
                 </svg>
                 Iniciar sesión
               </AppButton>
