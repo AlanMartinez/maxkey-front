@@ -17,6 +17,12 @@ export interface CartLine {
 
 export interface CartState { lines: CartLine[] }
 
+export interface CartLinePrice {
+  variantId: string
+  unitPrice: number
+  currency: string
+}
+
 export type AddResult = { ok: true } | { ok: false; reason: 'max-items' }
 
 export function clampQuantity(quantity: number) {
@@ -78,6 +84,16 @@ export function useCart() {
     if (line) line.quantity = clampQuantity(quantity)
   }
 
+  function updatePrices(prices: CartLinePrice[]) {
+    const byVariantId = new Map(prices.map((price) => [price.variantId, price]))
+    for (const line of state.value.lines) {
+      const price = byVariantId.get(line.variantId)
+      if (!price) continue
+      line.unitPrice = price.unitPrice
+      line.currency = price.currency
+    }
+  }
+
   function clear() {
     state.value.lines = []
   }
@@ -86,5 +102,5 @@ export function useCart() {
   const close = () => { isOpen.value = false }
   const toggle = () => { isOpen.value = !isOpen.value }
 
-  return { lines, count, subtotal, isEmpty, add, remove, setQuantity, clear, isOpen, open, close, toggle }
+  return { lines, count, subtotal, isEmpty, add, remove, setQuantity, updatePrices, clear, isOpen, open, close, toggle }
 }
