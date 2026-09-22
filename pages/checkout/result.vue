@@ -11,6 +11,7 @@ useHead({ title: 'Resultado del pago · CHEKEYS' })
 const route = useRoute()
 const api = useApi()
 const cart = useCart()
+const { isAuthenticated } = useAuth()
 
 // Mercado Pago back_urls carry `status=approved|failure|pending` (design §6a); anything else counts as pending.
 const mpStatus = computed(() => {
@@ -62,7 +63,8 @@ async function poll() {
 async function reconcile() {
   if (!orderId.value) return
   try {
-    await api(`/checkout/orders/${orderId.value}/reconcile`, { method: 'POST' })
+    // URL params only identify an order. Server re-fetches Mercado Pago and validates amount/currency before persisting approval.
+    order.value = await api<OrderStatusResponse>(`/checkout/orders/${orderId.value}/reconcile`, { method: 'POST' })
   } catch {
     // The regular poll keeps waiting when Mercado Pago or the API is temporarily unavailable.
   }
@@ -76,8 +78,11 @@ watch(order, (value) => {
   cart.clear()
 })
 onMounted(async () => {
-  const fromQuery = route.query.orderId
-  orderId.value = (typeof fromQuery === 'string' && fromQuery) || sessionStorage.getItem(LAST_ORDER_STORAGE_KEY)
+  const fromOrderId = route.query.orderId
+  const fromMercadoPago = route.query.external_reference
+  orderId.value = (typeof fromOrderId === 'string' && fromOrderId)
+    || (typeof fromMercadoPago === 'string' && fromMercadoPago)
+    || sessionStorage.getItem(LAST_ORDER_STORAGE_KEY)
   missing.value = !orderId.value
   await reconcile()
   poll()
@@ -96,9 +101,9 @@ onUnmounted(() => clearTimeout(timer))
     </p>
     <div class="mt-2 flex flex-wrap justify-center gap-3">
       <NuxtLink v-if="outcome === 'rejected'" to="/checkout"><AppButton>Reintentar</AppButton></NuxtLink>
-      <!-- /account/orders is delivered in the auth slice (PR17). -->
-      <NuxtLink v-if="outcome === 'approved'" to="/account/orders"><AppButton variant="ghost">Mis compras</AppButton></NuxtLink>
-      <NuxtLink to="/"><AppButton variant="ghost">Volver al catálogo</AppButton></NuxtLink>
+      <NuxtLink v-if="outcome === 'approved' && isAuthenticated" to="/account/orders"><AppButton variant="ghost">Mis compras</AppButton></NuxtLink>
+      <NuxtLink v-else-if="outcome === 'approved'" to="/"><AppButton variant="ghost">Ir al catálogo</AppButton></NuxtLink>
+      <NuxtLink v-else to="/"><AppButton variant="ghost">Volver al catálogo</AppButton></NuxtLink>
     </div>
   </section>
 </template>
