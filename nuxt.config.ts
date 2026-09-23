@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'es' },
-      title: 'CHEKEYS',
+      title: 'Chekeys',
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icon/favicon-32x32.png?v=2' },
