@@ -17,7 +17,7 @@ const products: AdminProduct[] = [{
   imageUrl: 'https://cdn/robux.png',
   detailImageKey: undefined,
   detailImageUrl: undefined,
-  activationGuide: null,
+  activationGuideId: null,
   activationType: null,
   imageKeys: [],
   images: [],
