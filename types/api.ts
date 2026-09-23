@@ -32,10 +32,25 @@ export interface ProductDetail extends ProductSummary {
   detailImageUrl?: string
   /** Resolved gallery URLs, gallery order, main image first (always an array). */
   images: string[]
-  /** Markdown activation guide rendered on the product page; null when the product has none. */
-  activationGuide: string | null
+  /** Slug of the linked ActivationGuide, for building the `/article/{slug}` link; null when the product has none. */
+  activationGuideSlug: string | null
   /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
   activationType: string | null
+}
+
+// mirrors activation-guides design.md "GuideDto" (GET /admin/guides, GET /guides/{slug}, POST/PUT /admin/guides response)
+export interface GuideDto {
+  id: string
+  slug: string
+  title: string
+  contentMarkdown: string
+}
+
+// mirrors activation-guides design.md "POST /admin/guides" and "PUT /admin/guides/{id}" request body
+export interface GuideRequest {
+  slug: string
+  title: string
+  contentMarkdown?: string
 }
 
 // mirrors design.md §7 "POST /checkout/orders" request `items[]`
@@ -156,8 +171,8 @@ export interface AdminProduct {
   detailImageKey?: string
   /** Built the same way as `imageUrl`; falls back to it when unset. */
   detailImageUrl?: string
-  /** Markdown activation guide rendered on the product page; null when the product has none. */
-  activationGuide: string | null
+  /** Id of the linked ActivationGuide; null when the product has none. */
+  activationGuideId: string | null
   /** Free-text activation type shown on the product page (e.g. "Enlace de activación"). */
   activationType: string | null
   /** Raw gallery image R2 keys beyond imageKey/detailImageKey, for re-editing (always an array). */
@@ -176,7 +191,7 @@ export interface UpdateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
-  activationGuide: string | null
+  activationGuideId: string | null
   activationType: string | null
   imageKeys: string[]
   isActive: boolean
@@ -190,7 +205,7 @@ export interface CreateProductRequest {
   description?: string
   imageKey?: string
   detailImageKey?: string
-  activationGuide: string | null
+  activationGuideId: string | null
   activationType: string | null
   imageKeys: string[]
   isActive: boolean
