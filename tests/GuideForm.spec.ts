@@ -16,8 +16,8 @@ describe('GuideForm', () => {
   it('pre-fills fields from an existing guide', async () => {
     const wrapper = await mountSuspended(GuideForm, { props: { guide, saving: false } })
     const inputs = wrapper.findAll('input[type="text"]')
-    expect(inputs[0]!.element.value).toBe('example-activation-guide')
-    expect(inputs[1]!.element.value).toBe('Ejemplo')
+    expect((inputs[0]!.element as HTMLInputElement).value).toBe('example-activation-guide')
+    expect((inputs[1]!.element as HTMLInputElement).value).toBe('Ejemplo')
   })
 
   it('emits save with the trimmed slug/title and current content', async () => {
