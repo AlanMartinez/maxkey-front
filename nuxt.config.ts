@@ -1,5 +1,21 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { send, sendRedirect, setResponseHeaders, setResponseStatus } from 'h3'
+import type { NitroErrorHandler } from 'nitropack/types'
+import { defineNuxtConfig } from 'nuxt/config'
+
+const devErrorHandler: NitroErrorHandler = async (error, event, { defaultHandler }) => {
+  if (error.statusCode === 404 && error.fatal) {
+    return sendRedirect(event, 'https://www.chekeys.com')
+  }
+
+  const response = await defaultHandler(error, event)
+  if (!event.node?.res.headersSent) {
+    setResponseHeaders(event, response.headers)
+  }
+  setResponseStatus(event, response.status, response.statusText)
+  return send(event, JSON.stringify(response.body, null, 2))
+}
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -10,6 +26,10 @@ export default defineNuxtConfig({
   // Most pages are public; auth-only pages opt in via middleware/auth.ts (design.md §9).
   // Supabase is used for auth only; no generated database types (`Database = unknown`).
   supabase: { redirect: false, types: false },
+  nitro: {
+    errorHandler: '~/server/error',
+    devErrorHandler,
+  },
   runtimeConfig: {
     public: {
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
