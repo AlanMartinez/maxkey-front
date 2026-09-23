@@ -39,7 +39,7 @@ function choose(variant: SelectableVariant) {
         </span>
         <span class="flex flex-col items-end">
           <span class="flex items-center gap-2">
-            <AppBadge v-if="discountOf(variant) > 0" tone="discount">-{{ discountOf(variant) }}%</AppBadge>
+            <AppBadge v-if="discountOf(variant) > 0" :tone="discountOf(variant) > 50 ? 'warning' : 'discount'">-{{ discountOf(variant) }}%</AppBadge>
             <span class="font-display font-bold">{{ formatMoney(variant.price, variant.currency) }}</span>
           </span>
           <span v-if="variant.oldPrice" class="text-xs text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</span>

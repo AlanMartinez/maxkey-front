@@ -67,7 +67,7 @@ const buttonLabel = computed(() => {
         </span>
       </div>
       <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-3 sm:pb-2">
-        <h3 class="line-clamp-2 text-sm font-semibold leading-tight">{{ product.name }}</h3>
+        <h3 class="line-clamp-2 text-sm font-semibold leading-tight" :class="{ 'text-amber-500': discount > 50 }">{{ product.name }}</h3>
         <!-- A 16px mark fits the ~110px phone card where the old text badge had to wait for `sm`. -->
         <div class="flex items-center">
           <PlatformLogo :platform="product.platform" />

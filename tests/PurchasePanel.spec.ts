@@ -28,4 +28,10 @@ describe('PurchasePanel', () => {
     expect(wrapper.findAll('button')[1]?.text()).toBe('Agregado ✓')
     expect(wrapper.find('[role="alert"]').text()).toContain('20 productos')
   })
+
+  it('shows an orange offer badge above 50%', async () => {
+    const wrapper = await mountSuspended(PurchasePanel, { props: { variant: { ...variant, price: 4900, oldPrice: 10000 } } })
+
+    expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === '-51%')).toBe(true)
+  })
 })

@@ -32,6 +32,13 @@ describe('VariantSelector', () => {
     expect(amountRows(wrapper)[0]?.text()).not.toContain('%')
   })
 
+  it('shows an orange offer badge above 50%', () => {
+    const offer = { ...variants[1], price: 4900, oldPrice: 10000 }
+    const wrapper = mount(VariantSelector, { props: { variants: [offer], modelValue: offer.id } })
+
+    expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === '-51%')).toBe(true)
+  })
+
   it('tags the recommended variant with "Más elegido"', () => {
     const wrapper = mountSelector('v1', { recommendedId: 'v2' })
 

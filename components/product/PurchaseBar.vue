@@ -57,7 +57,7 @@ const discount = computed(() =>
         <span v-if="variant" class="truncate text-xs text-white/60">{{ variant.name }}</span>
         <span class="flex flex-wrap items-baseline gap-x-2">
           <span class="font-display text-xl font-bold">{{ variant ? formatMoney(variant.price, variant.currency) : '—' }}</span>
-          <AppBadge v-if="discount > 0" tone="discount">-{{ discount }}%</AppBadge>
+          <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
         </span>
         <span v-if="variant?.oldPrice" class="text-xs text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</span>
       </div>
