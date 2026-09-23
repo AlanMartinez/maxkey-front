@@ -268,4 +268,31 @@ describe('ProductEditor', () => {
     expect(variants.find('#product-variants-title-p1').text()).toBe('Variantes')
     expect(variants.findAll('[role="group"]')).toHaveLength(2)
   })
+
+  it('hides "+ Agregar variante" once the product already has one — code-enforced single-variant rule', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    expect(wrapper.findAll('button').find((b) => b.text() === '+ Agregar variante')).toBeUndefined()
+  })
+
+  it('shows "+ Agregar variante" when the product has none yet', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, variants: [] }, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    expect(wrapper.findAll('button').find((b) => b.text() === '+ Agregar variante')).toBeDefined()
+  })
+
+  it('saves every variant row together with the product on "Guardar producto" — no per-row save button', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    const saveVariantCalls = wrapper.emitted('saveVariant')
+    expect(saveVariantCalls).toHaveLength(2)
+    expect(saveVariantCalls?.[0]).toEqual(['v1', expect.objectContaining({ region: 'AR', edition: 'Standard', isRecommended: true })])
+    expect(saveVariantCalls?.[1]).toEqual(['v2', expect.objectContaining({ region: 'AR', edition: 'Promo', isRecommended: true })])
+  })
 })

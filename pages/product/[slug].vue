@@ -176,13 +176,14 @@ async function buyNow() {
       </div>
 
       <div class="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:gap-7">
-        <!-- Desktop keeps the picker and full panel in the sticky column; phones/tablets get both inside
-             the floating PurchaseBar at the end of the article, so only the reassurance lines stay here. -->
-        <div class="hidden lg:block">
-          <VariantSelector v-model="selectedId" :variants="product.variants" :recommended-id="recommendedId" />
-        </div>
+        <!-- Desktop keeps the full panel in the sticky column; phones/tablets get it inside the
+             floating PurchaseBar at the end of the article, so only the reassurance lines stay here.
+             One variant per product now (business rule), so there is nothing left to pick here. -->
         <div class="hidden lg:block">
           <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+        </div>
+        <div class="hidden lg:block">
+          <SecurePaymentBadge />
         </div>
         <div class="border-y border-white/10 py-4 lg:hidden">
           <TrustBadges compact />
