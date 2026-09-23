@@ -13,12 +13,12 @@ const variant: AdminVariant = {
   currency: 'ARS',
   sortOrder: 0,
   isActive: true,
-  isRecommended: false,
+  isRecommended: true,
 }
 
 describe('VariantRow', () => {
   it('requires a confirm click before emitting a hard delete', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant, productId: 'p1', saving: false } })
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
 
     await wrapper.findAll('button').find((b) => b.text() === 'Eliminar')!.trigger('click')
 
@@ -32,50 +32,50 @@ describe('VariantRow', () => {
 
   it('shows the discount badge only when a discount is applied', async () => {
     const discounted = { ...variant, oldPrice: 12000, discountPercentage: 20 }
-    const wrapper = await mountSuspended(VariantRow, { props: { variant: discounted, productId: 'p1', saving: false } })
+    const wrapper = await mountSuspended(VariantRow, { props: { variant: discounted, saving: false } })
 
     expect(wrapper.text()).toContain('-20%')
   })
 
   it('hides the discount badge without one', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant, productId: 'p1', saving: false } })
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
 
     expect(wrapper.text()).not.toMatch(/-\d+%/)
   })
 
-  it('emits save with the edited region and edition', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant, productId: 'p1', saving: false } })
+  it('has no per-row save button — ProductEditor reads getBody() on "Guardar producto" instead', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
+
+    expect(wrapper.findAll('button').map((b) => b.text())).not.toContain('Guardar')
+  })
+
+  it('exposes the edited fields via getBody, always recommended (single-variant business rule)', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
 
     await wrapper.find('input[placeholder="Región"]').setValue('US')
-    await wrapper.findAll('button').find((b) => b.text() === 'Guardar')!.trigger('click')
 
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(expect.objectContaining({ region: 'US', edition: 'Standard' }))
-  })
-
-  it('always carries the current isRecommended value on a regular save', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant: { ...variant, isRecommended: true }, productId: 'p1', saving: false } })
-
-    await wrapper.findAll('button').find((b) => b.text() === 'Guardar')!.trigger('click')
-
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(expect.objectContaining({ isRecommended: true }))
-  })
-
-  it('saves the full record with isRecommended true when the radio is picked', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant, productId: 'p1', saving: false } })
-
-    await wrapper.find('input[type="radio"]').setValue(true)
-
-    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(
-      expect.objectContaining({ isRecommended: true, price: 9500, currency: 'ARS', region: 'AR', edition: 'Standard', sortOrder: 0, isActive: true }),
+    const vm = wrapper.vm as unknown as { getBody: () => Record<string, unknown> }
+    expect(vm.getBody()).toEqual(
+      expect.objectContaining({ region: 'US', edition: 'Standard', price: 9500, currency: 'ARS', sortOrder: 0, isActive: true, isRecommended: true }),
     )
   })
 
-  it('renders the recommended control as a radio grouped by product, reflecting the server flag', async () => {
-    const wrapper = await mountSuspended(VariantRow, { props: { variant: { ...variant, isRecommended: true }, productId: 'p1', saving: false } })
+  it('shows a static "Recomendada" badge instead of a picker', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
 
-    const radio = wrapper.find('input[type="radio"]')
-    expect(radio.attributes('name')).toBe('recommended-p1')
-    expect((radio.element as HTMLInputElement).checked).toBe(true)
-    expect(wrapper.find('input[type="checkbox"][name]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Recomendada')
+    expect(wrapper.find('input[type="radio"]').exists()).toBe(false)
+  })
+
+  it('exposes the compact editor as a named group with labelled controls', async () => {
+    const wrapper = await mountSuspended(VariantRow, { props: { variant, saving: false } })
+
+    const row = wrapper.find('[role="group"][aria-label="Variante AR Standard"]')
+    expect(row.exists()).toBe(true)
+    expect(row.find('input[aria-label="Región"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Edición"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Precio real"]').exists()).toBe(true)
+    expect(row.find('input[aria-label="Descuento porcentual"]').exists()).toBe(true)
+    expect(row.find('select[aria-label="Moneda"]').exists()).toBe(true)
   })
 })

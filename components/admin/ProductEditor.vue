@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
-import { renderMarkdown } from '~/utils/markdown'
 import { PLATFORMS, findPlatform } from '~/utils/platforms'
 
 const props = defineProps<{ product: AdminProduct; saving: boolean; initiallyExpanded?: boolean }>()
@@ -30,59 +29,30 @@ const platformOptions = computed(() =>
 )
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
-const activationGuideUrl = ref(props.product.activationGuideUrl ?? '')
+// The guide is optional and the product page only shows its section when one exists, so the
+// checkbox makes "no guide" an explicit choice instead of relying on an empty textarea.
+const hasActivationGuide = ref(props.product.activationGuide !== null)
+const activationGuide = ref(props.product.activationGuide ?? '')
 const activationType = ref(props.product.activationType ?? '')
 const imageKeys = ref<string[]>([...(props.product.imageKeys ?? [])])
+const coverPreview = ref<string | null>(null)
+const galleryPreviews = ref<string[]>([])
+type DeferredUpload = { uploadSelected: () => Promise<string[]> }
+const coverUpload = ref<DeferredUpload>()
+const galleryUpload = ref<DeferredUpload>()
+const uploadingMedia = ref(false)
 const isActive = ref(props.product.isActive)
-const descriptionInput = ref<HTMLTextAreaElement | null>(null)
-const showDescriptionPreview = ref(false)
 const saved = ref(false)
 
-function onPreviewKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') showDescriptionPreview.value = false
-}
-onMounted(() => window.addEventListener('keydown', onPreviewKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onPreviewKeydown))
-
-// Wraps the current textarea selection in a Markdown marker (bold/italic); with nothing selected,
-// inserts a placeholder word so the admin has something to type over. CommonMark won't treat a
-// closing `**`/`*` as emphasis if it's preceded by whitespace, so leading/trailing spaces in the
-// selection are kept OUTSIDE the markers instead of wrapping them (e.g. "word " → "**word** ").
-function wrapDescriptionSelection(marker: string) {
-  const el = descriptionInput.value
-  if (!el) return
-  const { selectionStart: start, selectionEnd: end } = el
-  const value = description.value
-  const rawSelected = value.slice(start, end)
-  const trimmed = rawSelected.trim() || 'texto'
-  const leadingWs = rawSelected.match(/^\s*/)?.[0] ?? ''
-  const trailingWs = rawSelected.match(/\s*$/)?.[0] ?? ''
-  description.value = value.slice(0, start) + leadingWs + marker + trimmed + marker + trailingWs + value.slice(end)
-  const selStart = start + leadingWs.length
-  nextTick(() => {
-    el.focus()
-    el.setSelectionRange(selStart + marker.length, selStart + marker.length + trimmed.length)
-  })
+// One row per existing variant; ProductEditor reads each row's current field state on submit
+// instead of the row saving itself — there is a single "Guardar producto" action now.
+type VariantRowHandle = { getBody: () => UpdateProductVariantRequest }
+const variantRows = ref<Record<string, VariantRowHandle>>({})
+function registerVariantRow(variantId: string, el: VariantRowHandle | null) {
+  if (el) variantRows.value[variantId] = el
+  else delete variantRows.value[variantId]
 }
 
-// Prefixes every line touched by the selection with a Markdown bullet, so selecting several lines
-// turns them all into one list instead of just the first.
-function prefixDescriptionLines(prefix: string) {
-  const el = descriptionInput.value
-  if (!el) return
-  const { selectionStart: start, selectionEnd: end } = el
-  const value = description.value
-  const lineStart = value.lastIndexOf('\n', start - 1) + 1
-  const lineEndIdx = value.indexOf('\n', end)
-  const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx
-  const block = value.slice(lineStart, lineEnd)
-  const prefixed = block.split('\n').map((line) => (line ? `${prefix}${line}` : line)).join('\n')
-  description.value = value.slice(0, lineStart) + prefixed + value.slice(lineEnd)
-  nextTick(() => {
-    el.focus()
-    el.setSelectionRange(lineStart, lineStart + prefixed.length)
-  })
-}
 let savedTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => clearTimeout(savedTimer))
 
@@ -92,27 +62,57 @@ watch(() => props.product, (product) => {
   platform.value = product.platform
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
-  activationGuideUrl.value = product.activationGuideUrl ?? ''
+  hasActivationGuide.value = product.activationGuide !== null
+  activationGuide.value = product.activationGuide ?? ''
   activationType.value = product.activationType ?? ''
   imageKeys.value = [...(product.imageKeys ?? [])]
+  coverPreview.value = null
+  galleryPreviews.value = []
   isActive.value = product.isActive
 })
 
+function setCoverPreview(urls: string[]) {
+  coverPreview.value = urls[0] ?? null
+}
+
+function setGalleryPreviews(urls: string[]) {
+  galleryPreviews.value = urls
+}
+
 async function submit() {
+  if (uploadingMedia.value) return
+  uploadingMedia.value = true
+  try {
+    const [coverPaths, galleryPaths] = await Promise.all([
+      coverUpload.value?.uploadSelected() ?? Promise.resolve([]),
+      galleryUpload.value?.uploadSelected() ?? Promise.resolve([]),
+    ])
+    if (coverPaths[0]) imageKey.value = coverPaths[0]
+    imageKeys.value.push(...galleryPaths)
   emit('save', {
     slug: slug.value.trim().toLowerCase(),
     name: name.value,
     platform: platform.value,
     description: description.value,
     imageKey: imageKey.value || undefined,
-    activationGuideUrl: activationGuideUrl.value || null,
+    // An enabled-but-blank guide would render an empty section, so it is sent as "no guide".
+    activationGuide: hasActivationGuide.value && activationGuide.value.trim() ? activationGuide.value : null,
     activationType: activationType.value || null,
     imageKeys: imageKeys.value.map((k) => k.trim()).filter(Boolean),
     isActive: isActive.value,
   })
+  for (const variant of props.product.variants) {
+    const row = variantRows.value[variant.id]
+    if (row) emit('saveVariant', variant.id, row.getBody())
+  }
   saved.value = true
   clearTimeout(savedTimer)
   savedTimer = setTimeout(() => (saved.value = false), 2000)
+  } catch {
+    // AdminImageUpload renders upload error; do not persist partial media keys.
+  } finally {
+    uploadingMedia.value = false
+  }
 }
 
 const currencies: AdminCurrency[] = ['ARS', 'USD']
@@ -161,144 +161,157 @@ function submitNewVariant() {
     </div>
 
     <form v-if="expanded" class="flex flex-col gap-4" @submit.prevent="submit">
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Slug (URL: /product/…)</span>
-        <input v-model="slug" type="text" required pattern="[a-z0-9-]+" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        <p class="text-xs text-amber-300/80">Cambiarlo rompe cualquier link ya compartido o indexado con el slug anterior.</p>
-      </label>
+      <section role="group" :aria-labelledby="`product-details-title-${product.id}`" class="rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <h3 :id="`product-details-title-${product.id}`" class="mb-3 text-sm font-semibold text-white">Información básica</h3>
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(12rem,.8fr)]">
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Slug (URL: /product/…)</span>
+            <input v-model="slug" name="slug" type="text" required pattern="[a-z0-9-]+" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+            <span class="text-xs text-amber-300/80">Cambiarlo rompe links compartidos o indexados.</span>
+          </label>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Nombre</span>
-        <input v-model="name" type="text" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-      </label>
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Nombre</span>
+            <input v-model="name" name="name" type="text" required class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+          </label>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Plataforma</span>
-        <select v-model="platform" name="platform" required class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
-          <option v-for="option in platformOptions" :key="option.value" :value="option.value">{{ option.value }}</option>
-        </select>
-      </label>
-
-      <div class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Descripción (admite Markdown: **negrita**, *cursiva*, listas)</span>
-        <div class="flex gap-1.5">
-          <button type="button" title="Negrita" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm font-bold text-white/70 hover:border-white/30 hover:text-white" @click="wrapDescriptionSelection('**')">B</button>
-          <button type="button" title="Cursiva" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm italic text-white/70 hover:border-white/30 hover:text-white" @click="wrapDescriptionSelection('*')">I</button>
-          <button type="button" title="Lista con viñetas" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:border-white/30 hover:text-white" @click="prefixDescriptionLines('- ')">•</button>
-          <button
-            type="button"
-            :disabled="!description.trim()"
-            class="ml-auto text-sm font-medium text-accent hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-            @click="showDescriptionPreview = true"
-          >
-            Vista previa
-          </button>
+          <label class="flex min-w-0 flex-col gap-2 text-sm">
+            <span class="text-white/70">Plataforma</span>
+            <select v-model="platform" name="platform" required class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+              <option v-for="option in platformOptions" :key="option.value" :value="option.value">{{ option.value }}</option>
+            </select>
+          </label>
         </div>
-        <textarea ref="descriptionInput" v-model="description" rows="5" class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white outline-none focus:border-accent" />
-      </div>
+      </section>
 
-      <Teleport to="body">
-        <div v-if="showDescriptionPreview" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/60" aria-hidden="true" @click="showDescriptionPreview = false" />
-          <div role="dialog" aria-modal="true" aria-labelledby="description-preview-title" class="glass relative flex max-h-[80vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl p-6">
-            <button type="button" aria-label="Cerrar" class="absolute right-3 top-3 rounded-xl p-2 text-white/70 transition hover:bg-white/5 hover:text-white" @click="showDescriptionPreview = false">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-            </button>
-            <h2 id="description-preview-title" class="text-lg font-semibold">Vista previa</h2>
-            <div class="markdown-body text-white/70" v-html="renderMarkdown(description)" />
+      <section :aria-labelledby="`product-description-title-${product.id}`" class="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm">
+        <div>
+          <h3 :id="`product-description-title-${product.id}`" class="font-semibold text-white">Descripción</h3>
+          <p class="mt-1 text-xs text-white/45">Contenido visible en la ficha del producto.</p>
+        </div>
+        <MarkdownEditor v-model="description" label="Descripción (admite Markdown: **negrita**, *cursiva*, listas)" />
+      </section>
+
+      <section :aria-labelledby="`product-images-title-${product.id}`" class="flex flex-col gap-5 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <div>
+          <h3 :id="`product-images-title-${product.id}`" class="text-sm font-semibold text-white">Imágenes</h3>
+          <p class="mt-1 text-xs text-white/45">Portada para catálogo y galería para ficha de producto.</p>
+        </div>
+
+        <div data-testid="catalog-cover" class="flex items-center gap-4">
+          <img :src="coverPreview || product.imageUrl || PLACEHOLDER_IMAGE" :alt="`Portada de ${product.name}`" class="h-32 w-24 shrink-0 rounded-xl border border-white/10 object-cover" />
+          <div class="flex flex-col items-start gap-2">
+            <div>
+              <h4 class="text-sm font-medium text-white">Portada de catálogo</h4>
+              <p class="mt-1 text-xs text-white/45">Formato vertical 3:4.</p>
+            </div>
+            <AdminImageUpload ref="coverUpload" folder="/products" label="Cambiar portada" compact :disabled="saving || uploadingMedia" @preview="setCoverPreview" @register="coverUpload = { uploadSelected: $event }" />
           </div>
         </div>
-      </Teleport>
 
-      <label class="flex flex-col gap-2 text-sm">
-        <span class="text-white/70">Clave de imagen — catálogo (R2, 3:4)</span>
-        <div class="flex items-center gap-3">
-          <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-          <input v-model="imageKey" type="text" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+        <div data-testid="product-gallery" class="border-t border-white/10 pt-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="mr-auto">
+              <h4 class="text-sm font-medium text-white">Galería de producto</h4>
+              <p class="mt-1 text-xs text-white/45">Miniaturas cuadradas para ficha y carrusel del producto.</p>
+            </div>
+            <AdminImageUpload ref="galleryUpload" folder="/products" label="Agregar imágenes" compact multiple :disabled="saving || uploadingMedia" @preview="setGalleryPreviews" @register="galleryUpload = { uploadSelected: $event }" />
+          </div>
+          <div v-if="galleryPreviews.length || imageKeys.length" class="mt-3 flex flex-wrap gap-3">
+            <img v-for="url in galleryPreviews" :key="url" :src="url" alt="Vista previa de galería" class="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+            <div v-for="(_, i) in imageKeys" :key="`saved-${i}`" class="group relative h-20 w-20">
+              <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="`${product.name}, imagen adicional ${i + 1}`" class="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+              <button type="button" :aria-label="`Quitar imagen adicional ${i + 1}`" class="absolute -right-1 -top-1 hidden h-5 w-5 rounded-full bg-black/80 text-xs text-white group-hover:block focus:block" @click="imageKeys.splice(i, 1)">×</button>
+            </div>
+          </div>
         </div>
-        <p class="text-xs text-white/40">Es la primera imagen del carrusel en la vista de producto; la miniatura se actualiza al guardar.</p>
-      </label>
+      </section>
 
-      <div class="flex flex-wrap gap-4">
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Guía de activación (URL)</span>
-          <input v-model="activationGuideUrl" type="url" placeholder="https://..." class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        </label>
+      <section :aria-labelledby="`product-activation-title-${product.id}`" class="rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <h3 :id="`product-activation-title-${product.id}`" class="mb-3 text-sm font-semibold text-white">Activación</h3>
+        <div class="flex flex-col gap-4">
+          <div class="grid gap-4 md:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)] md:items-end">
+            <label class="flex min-w-0 flex-col gap-2 text-sm">
+              <span class="text-white/70">Tipo</span>
+              <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+            </label>
 
-        <label class="flex min-w-56 flex-1 flex-col gap-2 text-sm">
-          <span class="text-white/70">Tipo</span>
-          <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-        </label>
-      </div>
+            <label class="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white/70">
+              <input v-model="hasActivationGuide" type="checkbox" name="hasActivationGuide" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+              Tiene guía de activación
+            </label>
+          </div>
 
-      <div class="flex flex-col gap-2">
-        <span class="text-sm text-white/70">Imágenes adicionales de galería (R2, se muestran después de la imagen principal)</span>
-        <div v-for="(key, i) in imageKeys" :key="i" class="flex items-center gap-3">
-          <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-          <input v-model="imageKeys[i]" type="text" placeholder="products/slug-2.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-          <AppButton type="button" variant="ghost" size="sm" @click="imageKeys.splice(i, 1)">Quitar</AppButton>
+          <div v-if="hasActivationGuide" class="border-t border-white/10 pt-4">
+            <MarkdownEditor v-model="activationGuide" label="Guía de activación (admite Markdown)" :rows="8" />
+          </div>
         </div>
-        <button type="button" class="self-start text-sm text-accent hover:text-accent-hover" @click="imageKeys.push('')">
-          + Agregar imagen
-        </button>
-      </div>
+      </section>
 
-      <label class="flex items-center gap-2 text-sm text-white/70">
-        <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-        Producto activo
-      </label>
+      <section :aria-labelledby="`product-variants-title-${product.id}`" class="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 :id="`product-variants-title-${product.id}`" class="text-sm font-semibold text-white">Variantes</h3>
+            <p class="mt-1 text-xs text-white/45">Precio, descuento y disponibilidad por producto.</p>
+          </div>
+          <button
+            v-if="!showNewVariant && !product.variants.length"
+            type="button"
+            class="shrink-0 rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover"
+            @click="showNewVariant = true"
+          >
+            + Agregar variante
+          </button>
+        </div>
 
-      <div class="flex items-center gap-2">
-        <AppButton type="submit" size="sm" :loading="saving" class="self-start">Guardar producto</AppButton>
+        <!-- Every product has exactly one variant now, and it is always the recommended one — see
+             VariantRow.getBody(). The "+ Agregar variante" form above only shows while there is none. -->
+        <div aria-label="Lista de variantes" class="flex flex-col gap-2 overflow-x-auto pb-1">
+          <VariantRow
+            v-for="variant in product.variants"
+            :key="variant.id"
+            :ref="(el) => registerVariantRow(variant.id, el as unknown as VariantRowHandle | null)"
+            :variant="variant"
+            :saving="saving"
+            @delete="emit('deleteVariant', variant.id)"
+          />
+
+          <div v-if="showNewVariant && !product.variants.length" role="group" aria-label="Nueva variante" class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
+            <input v-model="newVariant.region" type="text" aria-label="Región" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model="newVariant.edition" type="text" aria-label="Edición" placeholder="Edición" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model.number="newVariant.basePrice" type="number" min="0" step="0.01" aria-label="Precio real" placeholder="Precio real" title="Precio real (sin descuento)" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <input v-model.number="newVariant.discountPercentage" type="number" min="0" max="99" step="1" aria-label="Descuento porcentual" placeholder="% off" class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+            <select v-model="newVariant.currency" aria-label="Moneda" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
+              <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <span v-if="newVariant.discountPercentage" class="flex items-center gap-1.5 text-xs">
+              <span class="text-white/40 line-through">{{ formatMoney(newVariant.basePrice, newVariant.currency) }}</span>
+              <span class="font-semibold text-emerald-300">{{ formatMoney(newVariantFinalPrice, newVariant.currency) }}</span>
+              <AppBadge tone="success">-{{ newVariant.discountPercentage }}%</AppBadge>
+            </span>
+            <AppButton type="button" size="sm" :loading="saving" @click="submitNewVariant()">Crear</AppButton>
+            <AppButton type="button" variant="ghost" size="sm" @click="showNewVariant = false">Cancelar</AppButton>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+        <label class="flex items-center gap-2 text-sm text-white/70">
+          <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+          Producto activo
+        </label>
+        <AppButton type="submit" size="sm" :loading="saving">Guardar producto</AppButton>
         <span v-if="saved" class="text-xs text-emerald-300">Guardado ✓</span>
         <AppButton
           type="button"
           variant="ghost"
           size="sm"
-          class="ml-auto self-start text-red-300 hover:border-red-400/60 hover:text-red-300"
+          class="ml-auto text-red-300 hover:border-red-400/60 hover:text-red-300"
           :loading="saving"
           @click="emit('deleteProduct')"
         >
           Eliminar producto
         </AppButton>
-      </div>
-
-      <div class="flex flex-col gap-2 border-t border-white/10 pt-4">
-        <VariantRow
-          v-for="variant in product.variants"
-          :key="variant.id"
-          :variant="variant"
-          :product-id="product.id"
-          :saving="saving"
-          @save="(body) => emit('saveVariant', variant.id, body)"
-          @delete="emit('deleteVariant', variant.id)"
-        />
-
-        <button
-          v-if="!showNewVariant"
-          type="button"
-          class="self-start text-sm text-accent hover:text-accent-hover"
-          @click="showNewVariant = true"
-        >
-          + Agregar variante
-        </button>
-
-        <div v-else class="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
-          <input v-model="newVariant.region" type="text" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model="newVariant.edition" type="text" placeholder="Edición" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model.number="newVariant.basePrice" type="number" min="0" step="0.01" placeholder="Precio real" title="Precio real (sin descuento)" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <input v-model.number="newVariant.discountPercentage" type="number" min="0" max="99" step="1" placeholder="% off" class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
-          <select v-model="newVariant.currency" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
-            <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
-          </select>
-          <span v-if="newVariant.discountPercentage" class="flex items-center gap-1.5 text-xs">
-            <span class="text-white/40 line-through">{{ formatMoney(newVariant.basePrice, newVariant.currency) }}</span>
-            <span class="font-semibold text-emerald-300">{{ formatMoney(newVariantFinalPrice, newVariant.currency) }}</span>
-            <AppBadge tone="success">-{{ newVariant.discountPercentage }}%</AppBadge>
-          </span>
-          <AppButton type="button" size="sm" :loading="saving" @click="submitNewVariant()">Crear</AppButton>
-          <AppButton type="button" variant="ghost" size="sm" @click="showNewVariant = false">Cancelar</AppButton>
-        </div>
       </div>
     </form>
   </div>

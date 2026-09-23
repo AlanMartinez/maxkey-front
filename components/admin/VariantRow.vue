@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import type { AdminCurrency, AdminVariant, UpdateProductVariantRequest } from '~/types/api'
 
-// `productId` scopes the "Recomendada" radio group: one product = one group, so the browser itself
-// enforces the single-selection rule the backend applies (marking one clears the siblings).
-const props = defineProps<{ variant: AdminVariant; productId: string; saving: boolean }>()
-const emit = defineEmits<{ save: [body: UpdateProductVariantRequest]; delete: [] }>()
+const props = defineProps<{ variant: AdminVariant; saving: boolean }>()
+const emit = defineEmits<{ delete: [] }>()
 
 const currencies: AdminCurrency[] = ['ARS', 'USD']
 
@@ -31,10 +29,6 @@ function deriveDiscount(variant: AdminVariant) {
 const discountPercentage = ref(deriveDiscount(props.variant))
 const currency = ref<AdminCurrency>(props.variant.currency)
 const isActive = ref(props.variant.isActive)
-// Not a local form field: the radio saves immediately (the backend clears the siblings), so it
-// always reflects what the server last confirmed.
-const isRecommended = computed(() => props.variant.isRecommended)
-const recommendedGroup = computed(() => `recommended-${props.productId}`)
 
 const finalPrice = computed(() => {
   if (!discountPercentage.value || !basePrice.value) return basePrice.value
@@ -50,10 +44,12 @@ watch(() => props.variant, (variant) => {
   isActive.value = variant.isActive
 })
 
-// PUT is a full-record update, so every save path must carry `isRecommended` — omitting it
-// deserializes as false backend-side and would silently un-mark the variant on any edit.
-function submit(recommended = isRecommended.value) {
-  emit('save', {
+// Read by ProductEditor's single "Guardar producto" submit — there is no per-row save anymore.
+// PUT is a full-record update, so every field is carried, including `isRecommended`: omitting it
+// deserializes as false backend-side and would silently un-mark the variant. Business rule is now
+// exactly one variant per product, so it is always the recommended one — no picker needed.
+function getBody(): UpdateProductVariantRequest {
+  return {
     price: finalPrice.value,
     discountPercentage: discountPercentage.value || undefined,
     currency: currency.value,
@@ -61,15 +57,10 @@ function submit(recommended = isRecommended.value) {
     edition: edition.value || undefined,
     sortOrder: props.variant.sortOrder,
     isActive: isActive.value,
-    isRecommended: recommended,
-  })
+    isRecommended: true,
+  }
 }
-
-// A radio can only be selected, never cleared: exactly one variant per product is recommended,
-// so picking this row is always `isRecommended: true`.
-function onRecommendedChange() {
-  submit(true)
-}
+defineExpose({ getBody })
 
 // Hard delete now (useAdminCatalog.deleteVariant) — inline confirm instead of a browser confirm(),
 // same pattern as BuyerCard's resend confirmation, since this can no longer be undone via isActive.
@@ -77,23 +68,25 @@ const confirming = ref(false)
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" :class="{ 'opacity-50': !variant.isActive }">
-    <label class="flex items-center gap-2 text-xs text-white/70">
-      <input type="radio" :name="recommendedGroup" :value="variant.id" :checked="isRecommended" :disabled="saving" class="h-4 w-4 border-white/20 bg-white/5 accent-accent" @change="onRecommendedChange" />
-      Recomendada
-    </label>
+  <div
+    role="group"
+    :aria-label="`Variante ${region || 'sin región'} ${edition || 'sin edición'}`"
+    class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm"
+    :class="{ 'opacity-50': !variant.isActive }"
+  >
+    <AppBadge tone="accent">Recomendada</AppBadge>
     <label class="flex items-center gap-2">
       <span class="sr-only">Región</span>
-      <input v-model="region" type="text" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model="region" type="text" aria-label="Región" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
     <label class="flex items-center gap-2">
       <span class="sr-only">Edición</span>
-      <input v-model="edition" type="text" placeholder="Edición" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model="edition" type="text" aria-label="Edición" placeholder="Edición" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2">
       <span class="sr-only">Precio real</span>
-      <input v-model.number="basePrice" type="number" min="0" step="0.01" title="Precio real (sin descuento)" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
+      <input v-model.number="basePrice" type="number" min="0" step="0.01" aria-label="Precio real" title="Precio real (sin descuento)" class="h-9 w-28 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
     </label>
 
     <label class="flex items-center gap-2">
@@ -104,6 +97,7 @@ const confirming = ref(false)
         min="0"
         max="99"
         step="1"
+        aria-label="Descuento porcentual"
         placeholder="% off"
         class="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent"
       />
@@ -117,7 +111,7 @@ const confirming = ref(false)
 
     <label class="flex items-center gap-2">
       <span class="sr-only">Moneda</span>
-      <select v-model="currency" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
+      <select v-model="currency" aria-label="Moneda" class="h-9 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent">
         <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
       </select>
     </label>
@@ -126,8 +120,6 @@ const confirming = ref(false)
       <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
       Activa
     </label>
-
-    <AppButton type="button" variant="ghost" size="sm" :loading="saving" @click="submit()">Guardar</AppButton>
 
     <template v-if="confirming">
       <span class="text-xs text-red-300">¿Eliminar definitivamente?</span>

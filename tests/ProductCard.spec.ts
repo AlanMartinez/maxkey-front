@@ -74,7 +74,6 @@ describe('ProductCard', () => {
 
     expect(wrapper.find('h3').classes()).toContain('text-amber-500')
   })
-
   it('adds the default variant to the cart from the card without navigating', async () => {
     const fetchMock = stubFetch(200, { ...product, description: 'RP', variants })
     const cart = useCart()

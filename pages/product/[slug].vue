@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import type { ProductDetail } from '~/types/api'
 import type { ApiError } from '~/composables/useApi'
 import { defaultVariant, galleryImages, recommendedVariant, toCartLine } from '~/utils/cartLine'
@@ -30,7 +31,7 @@ const images = computed(() => {
   return base
 })
 
-type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: string; link?: { text: string; href: string } }
+type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: string; action?: { text: string; onClick: () => void } }
 
 const specs = computed<SpecItem[]>(() => {
   if (!product.value) return []
@@ -45,7 +46,7 @@ const specs = computed<SpecItem[]>(() => {
       icon: 'region',
       label: 'Puede activarse en',
       value: regions.join(' / '),
-      link: product.value.activationGuideUrl ? { text: 'Consultar guía de activación', href: product.value.activationGuideUrl } : undefined,
+      action: product.value.activationGuide ? { text: 'Consultar guía de activación', onClick: openActivationGuide } : undefined,
     })
   }
   // Defaults to "Enlace de activación" — the common case for this catalog — when the product hasn't set one yet.
@@ -60,9 +61,22 @@ const DESCRIPTION_PREVIEW_LIMIT = 220
 const descriptionPreview = computed(() => (product.value ? stripMarkdown(product.value.description) : ''))
 const isDescriptionLong = computed(() => descriptionPreview.value.length > DESCRIPTION_PREVIEW_LIMIT)
 const descriptionHtml = computed(() => (product.value ? renderMarkdown(product.value.description) : ''))
+const activationGuideHtml = computed(() => (product.value?.activationGuide ? renderMarkdown(product.value.activationGuide) : ''))
 
+// Only the first rendered bottom section starts open: the guide when there is one, else the description.
+const activationGuideOpen = ref(!!product.value?.activationGuide)
+const fullDescriptionOpen = ref(!product.value?.activationGuide)
+
+// Expands the section before scrolling so the target has its final height when the scroll lands.
+function revealSection(openRef: Ref<boolean>, id: string) {
+  openRef.value = true
+  nextTick(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
+function openActivationGuide() {
+  revealSection(activationGuideOpen, 'activation-guide')
+}
 function scrollToFullDescription() {
-  document.getElementById('full-description')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  revealSection(fullDescriptionOpen, 'full-description')
 }
 
 const cart = useCart()
@@ -146,7 +160,7 @@ async function buyNow() {
                 <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" />
                 <template v-else>{{ spec.value }}</template>
               </dd>
-              <a v-if="spec.link" :href="spec.link.href" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-accent hover:text-accent-hover">{{ spec.link.text }}</a>
+              <button v-if="spec.action" type="button" class="self-start text-xs font-medium text-accent hover:text-accent-hover" @click="spec.action.onClick()">{{ spec.action.text }}</button>
             </div>
           </div>
         </dl>
@@ -162,13 +176,14 @@ async function buyNow() {
       </div>
 
       <div class="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:gap-7">
-        <!-- Desktop keeps the picker and full panel in the sticky column; phones/tablets get both inside
-             the floating PurchaseBar at the end of the article, so only the reassurance lines stay here. -->
-        <div class="hidden lg:block">
-          <VariantSelector v-model="selectedId" :variants="product.variants" :recommended-id="recommendedId" />
-        </div>
+        <!-- Desktop keeps the full panel in the sticky column; phones/tablets get it inside the
+             floating PurchaseBar at the end of the article, so only the reassurance lines stay here.
+             One variant per product now (business rule), so there is nothing left to pick here. -->
         <div class="hidden lg:block">
           <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+        </div>
+        <div class="hidden lg:block">
+          <SecurePaymentBadge />
         </div>
         <div class="border-y border-white/10 py-4 lg:hidden">
           <TrustBadges compact />
@@ -176,15 +191,24 @@ async function buyNow() {
       </div>
     </div>
 
-    <section v-if="isDescriptionLong" id="full-description" class="glass scroll-mt-24 rounded-2xl border border-white/10 p-6 sm:p-8">
-      <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold">
+    <CollapsibleSection v-if="product.activationGuide" id="activation-guide" v-model:open="activationGuideOpen" title="Guía de activación">
+      <template #icon>
+        <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5v-15z" />
+          <path d="M4 20.5A2.5 2.5 0 016.5 18H20M9 8h7M9 12h5" />
+        </svg>
+      </template>
+      <div class="markdown-body text-sm leading-relaxed text-white/70" v-html="activationGuideHtml" />
+    </CollapsibleSection>
+
+    <CollapsibleSection v-if="isDescriptionLong" id="full-description" v-model:open="fullDescriptionOpen" title="Descripción completa">
+      <template #icon>
         <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <path d="M4 6h16M4 12h16M4 18h10" />
         </svg>
-        Descripción completa
-      </h2>
+      </template>
       <div class="markdown-body text-sm leading-relaxed text-white/70" v-html="descriptionHtml" />
-    </section>
+    </CollapsibleSection>
 
     <PurchaseBar
       v-model="selectedId"
