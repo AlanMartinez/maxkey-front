@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { renderMarkdown } from '~/utils/markdown'
+import type { ImageKitFolder } from '~/types/imagekit'
 
-withDefaults(defineProps<{ rows?: number; label?: string }>(), { rows: 5, label: undefined })
+withDefaults(defineProps<{ rows?: number; label?: string; imageFolder?: ImageKitFolder }>(), { rows: 5, label: undefined, imageFolder: undefined })
 const text = defineModel<string>({ required: true })
 
 const input = ref<HTMLTextAreaElement | null>(null)
@@ -54,6 +55,20 @@ function prefixLines(prefix: string) {
     el.setSelectionRange(lineStart, lineStart + prefixed.length)
   })
 }
+
+// Inserted at the current cursor position (or the end, with no selection) — no wrapSelection-style
+// marker pairing, since an image reference isn't wrapped text.
+function insertImage(url: string) {
+  const el = input.value
+  const value = text.value
+  const pos = el?.selectionStart ?? value.length
+  const markdown = `![](${url})`
+  text.value = value.slice(0, pos) + markdown + value.slice(pos)
+  nextTick(() => {
+    el?.focus()
+    el?.setSelectionRange(pos + markdown.length, pos + markdown.length)
+  })
+}
 </script>
 
 <template>
@@ -63,6 +78,7 @@ function prefixLines(prefix: string) {
       <button type="button" title="Negrita" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm font-bold text-white/70 hover:border-white/30 hover:text-white" @click="wrapSelection('**')">B</button>
       <button type="button" title="Cursiva" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm italic text-white/70 hover:border-white/30 hover:text-white" @click="wrapSelection('*')">I</button>
       <button type="button" title="Lista con viñetas" class="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:border-white/30 hover:text-white" @click="prefixLines('- ')">•</button>
+      <AdminImageUpload v-if="imageFolder" :folder="imageFolder" compact auto-upload label="Imagen" @uploaded="(_filePath, url) => insertImage(url)" />
       <button
         type="button"
         :disabled="!text.trim()"
