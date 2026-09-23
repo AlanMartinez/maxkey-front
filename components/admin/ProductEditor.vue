@@ -44,6 +44,15 @@ const uploadingMedia = ref(false)
 const isActive = ref(props.product.isActive)
 const saved = ref(false)
 
+// One row per existing variant; ProductEditor reads each row's current field state on submit
+// instead of the row saving itself — there is a single "Guardar producto" action now.
+type VariantRowHandle = { getBody: () => UpdateProductVariantRequest }
+const variantRows = ref<Record<string, VariantRowHandle>>({})
+function registerVariantRow(variantId: string, el: VariantRowHandle | null) {
+  if (el) variantRows.value[variantId] = el
+  else delete variantRows.value[variantId]
+}
+
 let savedTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => clearTimeout(savedTimer))
 
@@ -92,6 +101,10 @@ async function submit() {
     imageKeys: imageKeys.value.map((k) => k.trim()).filter(Boolean),
     isActive: isActive.value,
   })
+  for (const variant of props.product.variants) {
+    const row = variantRows.value[variant.id]
+    if (row) emit('saveVariant', variant.id, row.getBody())
+  }
   saved.value = true
   clearTimeout(savedTimer)
   savedTimer = setTimeout(() => (saved.value = false), 2000)
@@ -242,7 +255,7 @@ function submitNewVariant() {
             <p class="mt-1 text-xs text-white/45">Precio, descuento y disponibilidad por producto.</p>
           </div>
           <button
-            v-if="!showNewVariant"
+            v-if="!showNewVariant && !product.variants.length"
             type="button"
             class="shrink-0 rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover"
             @click="showNewVariant = true"
@@ -251,18 +264,19 @@ function submitNewVariant() {
           </button>
         </div>
 
+        <!-- Every product has exactly one variant now, and it is always the recommended one — see
+             VariantRow.getBody(). The "+ Agregar variante" form above only shows while there is none. -->
         <div aria-label="Lista de variantes" class="flex flex-col gap-2 overflow-x-auto pb-1">
           <VariantRow
             v-for="variant in product.variants"
             :key="variant.id"
+            :ref="(el) => registerVariantRow(variant.id, el as unknown as VariantRowHandle | null)"
             :variant="variant"
-            :product-id="product.id"
             :saving="saving"
-            @save="(body) => emit('saveVariant', variant.id, body)"
             @delete="emit('deleteVariant', variant.id)"
           />
 
-          <div v-if="showNewVariant" role="group" aria-label="Nueva variante" class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
+          <div v-if="showNewVariant && !product.variants.length" role="group" aria-label="Nueva variante" class="flex min-w-max flex-nowrap items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/5 p-3 text-sm">
             <input v-model="newVariant.region" type="text" aria-label="Región" placeholder="Región" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
             <input v-model="newVariant.edition" type="text" aria-label="Edición" placeholder="Edición" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
             <input v-model.number="newVariant.basePrice" type="number" min="0" step="0.01" aria-label="Precio real" placeholder="Precio real" title="Precio real (sin descuento)" class="h-9 w-24 rounded-lg border border-white/10 bg-white/5 px-2 text-white outline-none focus:border-accent" />
