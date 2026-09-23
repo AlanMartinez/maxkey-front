@@ -57,6 +57,14 @@ const buttonLabel = computed(() => {
     <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
         <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover" />
+        <span
+          v-if="discount > 50"
+          data-testid="offer-ribbon"
+          aria-label="Oferta especial"
+          class="absolute left-0 top-3 bg-amber-500 px-3 py-1 text-xs font-bold tracking-wide text-bg"
+        >
+          OFERTA
+        </span>
       </div>
       <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-3 sm:pb-2">
         <h3 class="line-clamp-2 text-sm font-semibold leading-tight">{{ product.name }}</h3>
@@ -68,7 +76,7 @@ const buttonLabel = computed(() => {
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="hidden text-white/50 sm:inline">Desde</span>
             <span class="text-base font-semibold">{{ formatMoney(product.fromPrice) }}</span>
-            <AppBadge v-if="discount > 0" tone="discount">-{{ discount }}%</AppBadge>
+            <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
           </p>
           <p v-if="product.oldPrice" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
         </div>

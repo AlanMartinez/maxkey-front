@@ -54,6 +54,21 @@ describe('ProductCard', () => {
     expect(wrapper.text()).not.toContain('%')
   })
 
+  it('keeps the green discount badge and no offer ribbon at exactly 50%', async () => {
+    const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, fromPrice: 5000, oldPrice: 10000 } } })
+
+    expect(wrapper.find('.bg-discount').text()).toBe('-50%')
+    expect(wrapper.find('[data-testid="offer-ribbon"]').exists()).toBe(false)
+  })
+
+  it('shows an orange offer badge and ribbon above 50%', async () => {
+    const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, fromPrice: 4900, oldPrice: 10000 } } })
+
+    expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === '-51%')).toBe(true)
+    expect(wrapper.find('[data-testid="offer-ribbon"]').text()).toBe('OFERTA')
+    expect(wrapper.find('[data-testid="offer-ribbon"]').attributes('aria-label')).toBe('Oferta especial')
+  })
+
   it('adds the default variant to the cart from the card without navigating', async () => {
     const fetchMock = stubFetch(200, { ...product, description: 'RP', variants })
     const cart = useCart()
