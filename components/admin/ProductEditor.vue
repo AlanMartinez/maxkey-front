@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
+import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, GuideDto, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
 import { PLATFORMS, findPlatform } from '~/utils/platforms'
 
-const props = defineProps<{ product: AdminProduct; saving: boolean; initiallyExpanded?: boolean }>()
+const props = defineProps<{ product: AdminProduct; guides: GuideDto[]; saving: boolean; initiallyExpanded?: boolean }>()
 const emit = defineEmits<{
   save: [body: UpdateProductRequest]
   saveVariant: [variantId: string, body: UpdateProductVariantRequest]
@@ -29,10 +29,7 @@ const platformOptions = computed(() =>
 )
 const description = ref(props.product.description)
 const imageKey = ref(props.product.imageKey ?? '')
-// The guide is optional and the product page only shows its section when one exists, so the
-// checkbox makes "no guide" an explicit choice instead of relying on an empty textarea.
-const hasActivationGuide = ref(props.product.activationGuide !== null)
-const activationGuide = ref(props.product.activationGuide ?? '')
+const activationGuideId = ref(props.product.activationGuideId ?? '')
 const activationType = ref(props.product.activationType ?? '')
 const imageKeys = ref<string[]>([...(props.product.imageKeys ?? [])])
 const coverPreview = ref<string | null>(null)
@@ -62,8 +59,7 @@ watch(() => props.product, (product) => {
   platform.value = product.platform
   description.value = product.description
   imageKey.value = product.imageKey ?? ''
-  hasActivationGuide.value = product.activationGuide !== null
-  activationGuide.value = product.activationGuide ?? ''
+  activationGuideId.value = product.activationGuideId ?? ''
   activationType.value = product.activationType ?? ''
   imageKeys.value = [...(product.imageKeys ?? [])]
   coverPreview.value = null
@@ -95,8 +91,7 @@ async function submit() {
     platform: platform.value,
     description: description.value,
     imageKey: imageKey.value || undefined,
-    // An enabled-but-blank guide would render an empty section, so it is sent as "no guide".
-    activationGuide: hasActivationGuide.value && activationGuide.value.trim() ? activationGuide.value : null,
+    activationGuideId: activationGuideId.value || null,
     activationType: activationType.value || null,
     imageKeys: imageKeys.value.map((k) => k.trim()).filter(Boolean),
     isActive: isActive.value,
@@ -236,14 +231,13 @@ function submitNewVariant() {
               <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
             </label>
 
-            <label class="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white/70">
-              <input v-model="hasActivationGuide" type="checkbox" name="hasActivationGuide" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-              Tiene guía de activación
+            <label class="flex min-w-0 flex-col gap-2 text-sm">
+              <span class="text-white/70">Guía de activación</span>
+              <select v-model="activationGuideId" name="activationGuideId" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+                <option value="">Sin guía</option>
+                <option v-for="guide in guides" :key="guide.id" :value="guide.id">{{ guide.title }}</option>
+              </select>
             </label>
-          </div>
-
-          <div v-if="hasActivationGuide" class="border-t border-white/10 pt-4">
-            <MarkdownEditor v-model="activationGuide" label="Guía de activación (admite Markdown)" :rows="8" />
           </div>
         </div>
       </section>
