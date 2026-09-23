@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { SUPPORT_EMAIL, WHATSAPP_NUMBER, whatsappUrl } from '~/utils/contact'
 
 describe('whatsappUrl', () => {
-  it('links to the support number without a prefilled text when no message is given', () => {
-    expect(whatsappUrl()).toBe(`https://wa.me/${WHATSAPP_NUMBER}`)
+  it('links to current support WhatsApp number without a prefilled text', () => {
+    expect(whatsappUrl()).toBe('https://wa.me/5491135829627')
   })
 
   it('URL-encodes the prefilled message', () => {
