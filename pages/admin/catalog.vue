@@ -22,6 +22,8 @@ const {
   deleteVariant,
 } = await useAdminCatalog()
 
+const { guides } = await useAdminGuides()
+
 // Coming from the "Ver en Catálogo" Vault link: the card itself opens pre-expanded (initiallyExpanded
 // prop below), this just brings it into view. No-op if the id doesn't match any rendered card.
 onMounted(() => {
@@ -56,7 +58,7 @@ async function submitNewProduct() {
     platform: newProduct.value.platform,
     description: newProduct.value.description || undefined,
     imageKey: newProduct.value.imageKey || undefined,
-    activationGuide: null,
+    activationGuideId: null,
     activationType: null,
     imageKeys: [],
     isActive: true,
@@ -128,6 +130,7 @@ async function submitNewProduct() {
         v-for="product in filteredProducts"
         :key="product.id"
         :product="product"
+        :guides="guides"
         :saving="saving"
         :initially-expanded="product.id === highlightedProductId"
         @save="(body: UpdateProductRequest) => saveProduct(product.id, body)"

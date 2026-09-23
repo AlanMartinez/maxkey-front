@@ -31,7 +31,7 @@ const images = computed(() => {
   return base
 })
 
-type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: string; action?: { text: string; onClick: () => void } }
+type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: string; action?: { text: string; href: string } }
 
 const specs = computed<SpecItem[]>(() => {
   if (!product.value) return []
@@ -46,7 +46,7 @@ const specs = computed<SpecItem[]>(() => {
       icon: 'region',
       label: 'Puede activarse en',
       value: regions.join(' / '),
-      action: product.value.activationGuide ? { text: 'Consultar guía de activación', onClick: openActivationGuide } : undefined,
+      action: product.value.activationGuideSlug ? { text: 'Consultar guía de activación', href: `/article/${product.value.activationGuideSlug}` } : undefined,
     })
   }
   // Defaults to "Enlace de activación" — the common case for this catalog — when the product hasn't set one yet.
@@ -61,19 +61,13 @@ const DESCRIPTION_PREVIEW_LIMIT = 220
 const descriptionPreview = computed(() => (product.value ? stripMarkdown(product.value.description) : ''))
 const isDescriptionLong = computed(() => descriptionPreview.value.length > DESCRIPTION_PREVIEW_LIMIT)
 const descriptionHtml = computed(() => (product.value ? renderMarkdown(product.value.description) : ''))
-const activationGuideHtml = computed(() => (product.value?.activationGuide ? renderMarkdown(product.value.activationGuide) : ''))
 
-// Only the first rendered bottom section starts open: the guide when there is one, else the description.
-const activationGuideOpen = ref(!!product.value?.activationGuide)
-const fullDescriptionOpen = ref(!product.value?.activationGuide)
+const fullDescriptionOpen = ref(false)
 
 // Expands the section before scrolling so the target has its final height when the scroll lands.
 function revealSection(openRef: Ref<boolean>, id: string) {
   openRef.value = true
   nextTick(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-}
-function openActivationGuide() {
-  revealSection(activationGuideOpen, 'activation-guide')
 }
 function scrollToFullDescription() {
   revealSection(fullDescriptionOpen, 'full-description')
@@ -160,7 +154,7 @@ async function buyNow() {
                 <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" />
                 <template v-else>{{ spec.value }}</template>
               </dd>
-              <button v-if="spec.action" type="button" class="self-start text-xs font-medium text-accent hover:text-accent-hover" @click="spec.action.onClick()">{{ spec.action.text }}</button>
+              <NuxtLink v-if="spec.action" :to="spec.action.href" class="self-start text-xs font-medium text-accent hover:text-accent-hover">{{ spec.action.text }}</NuxtLink>
             </div>
           </div>
         </dl>
@@ -190,16 +184,6 @@ async function buyNow() {
         </div>
       </div>
     </div>
-
-    <CollapsibleSection v-if="product.activationGuide" id="activation-guide" v-model:open="activationGuideOpen" title="Guía de activación">
-      <template #icon>
-        <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5v-15z" />
-          <path d="M4 20.5A2.5 2.5 0 016.5 18H20M9 8h7M9 12h5" />
-        </svg>
-      </template>
-      <div class="markdown-body text-sm leading-relaxed text-white/70" v-html="activationGuideHtml" />
-    </CollapsibleSection>
 
     <CollapsibleSection v-if="isDescriptionLong" id="full-description" v-model:open="fullDescriptionOpen" title="Descripción completa">
       <template #icon>

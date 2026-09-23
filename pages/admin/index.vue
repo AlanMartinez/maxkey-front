@@ -23,6 +23,10 @@ useHead({ title: 'Admin · CHEKEYS' })
         <h2 class="text-lg font-semibold">Vault</h2>
         <p class="text-sm text-white/60">Precargar stock de claves y activar auto-entrega.</p>
       </NuxtLink>
+      <NuxtLink to="/admin/guides" class="glass flex flex-col gap-2 rounded-2xl p-6 transition hover:border-accent/50">
+        <h2 class="text-lg font-semibold">Guías de activación</h2>
+        <p class="text-sm text-white/60">Crear y editar guías reutilizables entre productos.</p>
+      </NuxtLink>
     </nav>
   </section>
 </template>

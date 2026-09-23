@@ -3,7 +3,7 @@ import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import ProductEditor from '~/components/admin/ProductEditor.vue'
 import AdminImageUpload from '~/components/admin/AdminImageUpload.vue'
-import type { AdminProduct } from '~/types/api'
+import type { AdminProduct, GuideDto } from '~/types/api'
 
 mockNuxtImport('useApi', () => () => vi.fn())
 
@@ -17,7 +17,7 @@ const product: AdminProduct = {
   imageUrl: 'https://cdn/robux.png',
   detailImageKey: undefined,
   detailImageUrl: undefined,
-  activationGuide: null,
+  activationGuideId: null,
   activationType: null,
   imageKeys: [],
   images: [],
@@ -28,9 +28,11 @@ const product: AdminProduct = {
   ],
 }
 
+const guides: GuideDto[] = [{ id: 'g1', slug: 'example-activation-guide', title: 'Ejemplo', contentMarkdown: '' }]
+
 describe('ProductEditor', () => {
   it('renders collapsed with a thumbnail, summary, and no form fields', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
 
     expect(wrapper.find('img').attributes('src')).toBe('https://cdn/robux.png')
     expect(wrapper.text()).toContain('Roblox - 100 Robux')
@@ -39,7 +41,7 @@ describe('ProductEditor', () => {
   })
 
   it('expands to show editable fields on click', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
 
     await wrapper.find('button').trigger('click')
 
@@ -48,7 +50,7 @@ describe('ProductEditor', () => {
   })
 
   it('keeps a legacy platform value selectable so saving does not silently drop it', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const select = wrapper.find('select[name="platform"]')
@@ -57,7 +59,7 @@ describe('ProductEditor', () => {
   })
 
   it('emits the selected platform in the save payload', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     await wrapper.find('select[name="platform"]').setValue('Steam')
@@ -67,14 +69,14 @@ describe('ProductEditor', () => {
   })
 
   it('only shows the discount badge on the variant that actually has one', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     expect(wrapper.text().match(/-\d+%/g)).toEqual(['-20%'])
   })
 
   it('bold button keeps a trailing space outside the markers, since CommonMark won\'t close emphasis right after whitespace', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const textarea = wrapper.find('textarea')
@@ -88,7 +90,7 @@ describe('ProductEditor', () => {
 
   it('opens a preview modal that renders the description as Markdown', async () => {
     // Teleport renders the modal onto document.body, outside the mounted wrapper's own tree.
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false }, attachTo: document.body })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false }, attachTo: document.body })
     await wrapper.find('button').trigger('click')
 
     await wrapper.find('textarea').setValue('**bold**')
@@ -98,43 +100,33 @@ describe('ProductEditor', () => {
     expect(document.querySelector('[role="dialog"]')?.innerHTML).toContain('<strong')
   })
 
-  it('starts with the activation guide unchecked and sends null when the product has none', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+  it('lets the admin pick an existing guide and includes it in the save payload', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
-    const checkbox = wrapper.find('input[name="hasActivationGuide"]')
-    expect((checkbox.element as HTMLInputElement).checked).toBe(false)
-    expect(wrapper.findAll('textarea')).toHaveLength(1)
-
+    await wrapper.find('select[name="activationGuideId"]').setValue('g1')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuide: null })
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuideId: 'g1' })
   })
 
-  it('checking the guide box reveals a second editor whose Markdown is sent on save', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+  it('sends null when no guide is selected', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides: [], saving: false } })
     await wrapper.find('button').trigger('click')
-
-    await wrapper.find('input[name="hasActivationGuide"]').setValue(true)
-    const editors = wrapper.findAll('textarea')
-    expect(editors).toHaveLength(2)
-
-    await editors[1]!.setValue('## Paso 1')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuide: '## Paso 1' })
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ activationGuideId: null })
   })
 
-  it('mounts with the guide box checked when the product already has one', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, activationGuide: 'x' }, saving: false } })
+  it('mounts with the product\'s current guide preselected', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, activationGuideId: 'g1' }, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
-    expect((wrapper.find('input[name="hasActivationGuide"]').element as HTMLInputElement).checked).toBe(true)
-    expect((wrapper.findAll('textarea')[1]!.element as HTMLTextAreaElement).value).toBe('x')
+    expect((wrapper.find('select[name="activationGuideId"]').element as HTMLSelectElement).value).toBe('g1')
   })
 
   it('groups basic product fields into one named editing section', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const details = wrapper.find('[role="group"][aria-labelledby="product-details-title-p1"]')
@@ -146,7 +138,7 @@ describe('ProductEditor', () => {
   })
 
   it('keeps primary and additional images in one named section with compact upload controls', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const images = wrapper.find('section[aria-labelledby="product-images-title-p1"]')
@@ -165,6 +157,7 @@ describe('ProductEditor', () => {
           imageKeys: ['/products/gallery.png'],
           images: ['https://cdn/gallery.png'],
         },
+        guides,
         saving: false,
       },
     })
@@ -184,7 +177,7 @@ describe('ProductEditor', () => {
   })
 
   it('updates cover and gallery previews independently before save', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const [coverUpload, galleryUpload] = wrapper.findAllComponents(AdminImageUpload)
@@ -197,7 +190,7 @@ describe('ProductEditor', () => {
   })
 
   it('does not use an uploaded event before save', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const [primaryUpload] = wrapper.findAllComponents(AdminImageUpload)
@@ -210,7 +203,7 @@ describe('ProductEditor', () => {
   })
 
   it('uploads staged cover on save and includes returned key in parent payload', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
     await wrapper.vm.$nextTick()
     const [coverUpload] = wrapper.findAllComponents(AdminImageUpload)
@@ -225,7 +218,7 @@ describe('ProductEditor', () => {
   })
 
   it('does not emit product save when staged cover upload fails', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
     await wrapper.vm.$nextTick()
     const [coverUpload] = wrapper.findAllComponents(AdminImageUpload)
@@ -238,7 +231,7 @@ describe('ProductEditor', () => {
   })
 
   it('uses gallery ImageKit paths returned during save payload', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     await wrapper.vm.$nextTick()
@@ -252,7 +245,7 @@ describe('ProductEditor', () => {
   })
 
   it('renders persisted gallery URLs as thumbnails without exposing storage paths', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, imageKeys: ['/products/gallery.png'], images: ['https://cdn/gallery.png'] }, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, imageKeys: ['/products/gallery.png'], images: ['https://cdn/gallery.png'] }, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     expect(wrapper.find('img[alt="Roblox - 100 Robux, imagen adicional 1"]').attributes('src')).toBe('https://cdn/gallery.png')
@@ -260,7 +253,7 @@ describe('ProductEditor', () => {
   })
 
   it('exposes product variants as a named section', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     const variants = wrapper.find('section[aria-labelledby="product-variants-title-p1"]')
@@ -270,21 +263,21 @@ describe('ProductEditor', () => {
   })
 
   it('hides "+ Agregar variante" once the product already has one — code-enforced single-variant rule', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     expect(wrapper.findAll('button').find((b) => b.text() === '+ Agregar variante')).toBeUndefined()
   })
 
   it('shows "+ Agregar variante" when the product has none yet', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, variants: [] }, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product: { ...product, variants: [] }, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     expect(wrapper.findAll('button').find((b) => b.text() === '+ Agregar variante')).toBeDefined()
   })
 
   it('saves every variant row together with the product on "Guardar producto" — no per-row save button', async () => {
-    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
     await wrapper.find('button').trigger('click')
 
     await wrapper.find('form').trigger('submit')

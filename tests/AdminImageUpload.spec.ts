@@ -34,7 +34,7 @@ describe('AdminImageUpload', () => {
     api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
     upload.mockImplementation(async (options: { onProgress?: (event: { loaded: number; total: number }) => void }) => {
       options.onProgress?.({ loaded: 1, total: 1 })
-      return { filePath: '/products/robux.png' }
+      return { filePath: '/products/robux.png', url: 'https://ik.imagekit.io/test-account/products/robux.png' }
     })
     const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
     const file = new File(['image'], 'robux.png', { type: 'image/png' })
@@ -51,7 +51,7 @@ describe('AdminImageUpload', () => {
 
   it('uploads staged image only when uploadSelected is called', async () => {
     api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
-    upload.mockResolvedValue({ filePath: '/products/robux.png' })
+    upload.mockResolvedValue({ filePath: '/products/robux.png', url: 'https://ik.imagekit.io/test-account/products/robux.png' })
     const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
     const file = new File(['image'], 'robux.png', { type: 'image/png' })
     const input = wrapper.find('input[type="file"]')
@@ -67,7 +67,22 @@ describe('AdminImageUpload', () => {
       body: { filePath: 'products/robux.png' },
     })
     expect(uploadedPaths).toEqual(['products/robux.png'])
-    expect(wrapper.emitted('uploaded')).toEqual([['products/robux.png']])
+    expect(wrapper.emitted('uploaded')).toEqual([['products/robux.png', 'https://ik.imagekit.io/test-account/products/robux.png']])
+  })
+
+  it('uploads immediately on selection when autoUpload is set, without waiting for a manual uploadSelected call', async () => {
+    api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
+    upload.mockResolvedValue({ filePath: '/guides/step-1.png', url: 'https://ik.imagekit.io/test-account/guides/step-1.png' })
+    const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/guides', autoUpload: true } })
+    const file = new File(['image'], 'step-1.png', { type: 'image/png' })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file] })
+
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(upload).toHaveBeenCalledWith(expect.objectContaining({ file, folder: '/guides' }))
+    expect(wrapper.emitted('uploaded')).toEqual([['guides/step-1.png', 'https://ik.imagekit.io/test-account/guides/step-1.png']])
   })
 
   it('does not return or emit a path when ImageKit asset registration fails', async () => {

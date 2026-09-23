@@ -18,7 +18,7 @@ function buildProduct(): AdminProduct {
     imageUrl: '',
     detailImageKey: undefined,
     detailImageUrl: undefined,
-    activationGuide: null,
+    activationGuideId: null,
     activationType: null,
     imageKeys: [],
     images: [],
