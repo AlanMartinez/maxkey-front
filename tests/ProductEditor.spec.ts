@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { describe, expect, it, vi } from 'vitest'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import ProductEditor from '~/components/admin/ProductEditor.vue'
+import AdminImageUpload from '~/components/admin/AdminImageUpload.vue'
 import type { AdminProduct } from '~/types/api'
+
+mockNuxtImport('useApi', () => () => vi.fn())
 
 const product: AdminProduct = {
   id: 'p1',
@@ -154,6 +157,47 @@ describe('ProductEditor', () => {
     expect(addImage).toBeDefined()
     await addImage!.trigger('click')
     expect(images.find('input[aria-label="Clave de imagen adicional 1"]').exists()).toBe(true)
+  })
+
+  it('uses uploaded primary ImageKit path in save payload', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const [primaryUpload] = wrapper.findAllComponents(AdminImageUpload)
+    primaryUpload!.vm.$emit('uploaded', '/products/robux-new.png')
+    await wrapper.vm.$nextTick()
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ imageKey: '/products/robux-new.png' })
+  })
+
+  it('appends uploaded gallery ImageKit paths in save payload', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    const uploads = wrapper.findAllComponents(AdminImageUpload)
+    uploads[1]!.vm.$emit('uploaded', '/products/robux-gallery.png')
+    await wrapper.vm.$nextTick()
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ imageKeys: ['/products/robux-gallery.png'] })
+  })
+
+  it('keeps manually entered image keys as save fallback', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.find('input[aria-label="Clave de imagen principal"]').setValue('products/manual-primary.png')
+    const images = wrapper.find('section[aria-labelledby="product-images-title-p1"]')
+    const addImage = images.findAll('button').find((button) => button.text().includes('Agregar imagen'))
+    await addImage!.trigger('click')
+    await images.find('input[aria-label="Clave de imagen adicional 1"]').setValue(' products/manual-gallery.png ')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({
+      imageKey: 'products/manual-primary.png',
+      imageKeys: ['products/manual-gallery.png'],
+    })
   })
 
   it('exposes product variants as a named section', async () => {

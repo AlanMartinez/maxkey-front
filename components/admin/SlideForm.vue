@@ -44,9 +44,10 @@ function submit() {
       <span class="text-white/70">Bajada</span>
       <input v-model="caption" type="text" class="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-white outline-none focus:border-accent" />
     </label>
+    <AdminImageUpload folder="/carousel" :disabled="saving" @uploaded="(filePath) => (imageKey = filePath)" />
     <label class="flex flex-col gap-1 text-sm">
-      <span class="text-white/70">Clave de imagen (R2)</span>
-      <input v-model="imageKey" type="text" placeholder="Usa la del producto" class="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-white outline-none focus:border-accent" />
+      <span class="text-white/70">Clave de imagen (ImageKit)</span>
+      <input v-model="imageKey" aria-label="Clave de imagen del carrusel" type="text" placeholder="Usa la del producto" class="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-white outline-none focus:border-accent" />
     </label>
     <label class="flex items-center gap-2 text-sm text-white/70">
       <input v-model="isActive" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />

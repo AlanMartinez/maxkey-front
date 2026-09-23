@@ -153,12 +153,14 @@ function submitNewVariant() {
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 :id="`product-images-title-${product.id}`" class="text-sm font-semibold text-white">Imágenes</h3>
-            <p class="mt-1 text-xs text-white/45">Claves R2 en formato 3:4. La principal abre el carrusel.</p>
+            <p class="mt-1 text-xs text-white/45">Imágenes en formato 3:4. La principal abre el carrusel.</p>
           </div>
           <button type="button" class="rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover" @click="imageKeys.push('')">
             + Agregar imagen
           </button>
         </div>
+
+        <AdminImageUpload folder="/products" :disabled="saving" @uploaded="imageKey = $event" />
 
         <label class="flex flex-col gap-2 text-sm">
           <span class="text-white/70">Clave de imagen principal</span>
@@ -167,6 +169,8 @@ function submitNewVariant() {
             <input v-model="imageKey" type="text" aria-label="Clave de imagen principal" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
           </div>
         </label>
+
+        <AdminImageUpload folder="/products" multiple :disabled="saving" @uploaded="imageKeys.push($event)" />
 
         <div v-if="imageKeys.length" class="flex flex-col gap-2 border-t border-white/10 pt-4">
           <span class="text-xs font-medium text-white/50">Galería adicional</span>
