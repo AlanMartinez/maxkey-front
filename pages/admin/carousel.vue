@@ -37,6 +37,7 @@ async function onUpdate(id: string, body: CarouselSlideRequest) {
           @cancel="editingId = null"
         />
         <div v-else class="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+          <img :src="slide.imageUrl" :alt="`Vista previa: ${slide.title ?? slide.productName}`" class="h-20 w-20 shrink-0 rounded-lg border border-white/10 object-cover" />
           <span class="min-w-0 flex-1 truncate">{{ slide.title ?? slide.productName }} · {{ slide.productSlug }}</span>
           <AppBadge :tone="slide.isActive ? 'success' : 'neutral'">{{ slide.isActive ? 'Activa' : 'Inactiva' }}</AppBadge>
           <span class="text-white/50">#{{ slide.sortOrder }}</span>

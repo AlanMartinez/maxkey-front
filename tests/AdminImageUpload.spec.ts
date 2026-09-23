@@ -30,7 +30,7 @@ describe('AdminImageUpload', () => {
     expect(upload).not.toHaveBeenCalled()
   })
 
-  it('uploads accepted image to requested folder and emits ImageKit filePath', async () => {
+  it('only stages accepted image locally until parent explicitly uploads it', async () => {
     api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
     upload.mockImplementation(async (options: { onProgress?: (event: { loaded: number; total: number }) => void }) => {
       options.onProgress?.({ loaded: 1, total: 1 })
@@ -44,35 +44,75 @@ describe('AdminImageUpload', () => {
     await input.trigger('change')
     await flushPromises()
 
-    expect(api).toHaveBeenCalledWith('/admin/media/imagekit-auth', { method: 'GET' })
-    expect(upload).toHaveBeenCalledWith(expect.objectContaining({
-      file,
-      fileName: 'robux.png',
-      folder: '/products',
-      token: 'token',
-      signature: 'signature',
-      expire: 1790100000,
-      publicKey: 'public_key',
-    }))
-    expect(wrapper.emitted('uploaded')?.[0]).toEqual(['/products/robux.png'])
+    expect(api).not.toHaveBeenCalled()
+    expect(upload).not.toHaveBeenCalled()
+    expect(wrapper.emitted('preview')?.[0]).toEqual([['blob:preview']])
   })
 
-  it('uploads only first dropped image when multiple is disabled', async () => {
+  it('uploads staged image only when uploadSelected is called', async () => {
+    api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
+    upload.mockResolvedValue({ filePath: '/products/robux.png' })
+    const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
+    const file = new File(['image'], 'robux.png', { type: 'image/png' })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file] })
+    await input.trigger('change')
+
+    const uploadedPaths = await wrapper.vm.uploadSelected()
+
+    expect(api).toHaveBeenCalledWith('/admin/media/imagekit-auth', { method: 'GET' })
+    expect(upload).toHaveBeenCalledWith(expect.objectContaining({ file, folder: '/products' }))
+    expect(api).toHaveBeenNthCalledWith(2, '/admin/media/imagekit-assets', {
+      method: 'POST',
+      body: { filePath: 'products/robux.png' },
+    })
+    expect(uploadedPaths).toEqual(['products/robux.png'])
+    expect(wrapper.emitted('uploaded')).toEqual([['products/robux.png']])
+  })
+
+  it('does not return or emit a path when ImageKit asset registration fails', async () => {
+    api.mockResolvedValueOnce({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
+    api.mockRejectedValueOnce(new Error('registration unavailable'))
+    upload.mockResolvedValue({ filePath: '/products/robux.png' })
+    const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
+    const file = new File(['image'], 'robux.png', { type: 'image/png' })
+    const input = wrapper.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file] })
+    await input.trigger('change')
+
+    await expect(wrapper.vm.uploadSelected()).rejects.toThrow('No se pudo registrar la imagen subida.')
+
+    expect(api).toHaveBeenNthCalledWith(1, '/admin/media/imagekit-auth', { method: 'GET' })
+    expect(api).toHaveBeenNthCalledWith(2, '/admin/media/imagekit-assets', {
+      method: 'POST',
+      body: { filePath: 'products/robux.png' },
+    })
+    expect(wrapper.emitted('uploaded')).toBeUndefined()
+  })
+
+  it('uses thumbnail-sized previews and compact picker control', async () => {
+    const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
+
+    expect(wrapper.find('[data-testid="image-upload-dropzone"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="image-upload-picker"]').text()).toContain('Subir imagen')
+    expect(wrapper.find('[data-testid="image-upload-picker"]').classes()).toContain('h-20')
+  })
+
+  it('stages only first dropped image when multiple is disabled', async () => {
     api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
     upload.mockResolvedValue({ filePath: '/products/first.png' })
     const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
     const first = new File(['first'], 'first.png', { type: 'image/png' })
     const second = new File(['second'], 'second.png', { type: 'image/png' })
 
-    await wrapper.find('[aria-label="Subir imagen"] > div').trigger('drop', { dataTransfer: { files: [first, second] } })
+    await wrapper.find('[data-testid="image-upload-picker"]').trigger('drop', { dataTransfer: { files: [first, second] } })
     await flushPromises()
 
-    expect(upload).toHaveBeenCalledTimes(1)
-    expect(upload).toHaveBeenCalledWith(expect.objectContaining({ file: first }))
-    expect(wrapper.emitted('uploaded')).toEqual([['/products/first.png']])
+    expect(upload).not.toHaveBeenCalled()
+    expect(api).not.toHaveBeenCalled()
   })
 
-  it('shows a safe error when ImageKit response has no filePath', async () => {
+  it('shows a safe error when ImageKit response has no filePath after upload is requested', async () => {
     api.mockResolvedValue({ token: 'token', signature: 'signature', expire: 1790100000, publicKey: 'public_key' })
     upload.mockResolvedValue({})
     const wrapper = await mountSuspended(AdminImageUpload, { props: { folder: '/products' } })
@@ -81,6 +121,7 @@ describe('AdminImageUpload', () => {
     Object.defineProperty(input.element, 'files', { value: [file] })
 
     await input.trigger('change')
+    await expect(wrapper.vm.uploadSelected()).rejects.toThrow('No se pudo obtener la ruta de la imagen subida.')
     await flushPromises()
 
     expect(wrapper.text()).toContain('No se pudo obtener la ruta de la imagen subida.')
@@ -94,12 +135,12 @@ describe('AdminImageUpload', () => {
     Object.defineProperty(input.element, 'files', { value: [file] })
 
     await input.trigger('change')
-    await wrapper.find('[aria-label="Subir imagen"] > div').trigger('drop', { dataTransfer: { files: [file] } })
+    await wrapper.find('[data-testid="image-upload-picker"]').trigger('drop', { dataTransfer: { files: [file] } })
     await flushPromises()
 
     expect(input.attributes('disabled')).toBeDefined()
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[aria-label="Subir imagen"] > div').attributes('aria-disabled')).toBe('true')
+    expect(wrapper.find('[data-testid="image-upload-picker"]').attributes('aria-disabled')).toBe('true')
     expect(api).not.toHaveBeenCalled()
     expect(upload).not.toHaveBeenCalled()
   })
