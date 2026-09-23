@@ -35,6 +35,12 @@ const hasActivationGuide = ref(props.product.activationGuide !== null)
 const activationGuide = ref(props.product.activationGuide ?? '')
 const activationType = ref(props.product.activationType ?? '')
 const imageKeys = ref<string[]>([...(props.product.imageKeys ?? [])])
+const coverPreview = ref<string | null>(null)
+const galleryPreviews = ref<string[]>([])
+type DeferredUpload = { uploadSelected: () => Promise<string[]> }
+const coverUpload = ref<DeferredUpload>()
+const galleryUpload = ref<DeferredUpload>()
+const uploadingMedia = ref(false)
 const isActive = ref(props.product.isActive)
 const saved = ref(false)
 
@@ -51,10 +57,29 @@ watch(() => props.product, (product) => {
   activationGuide.value = product.activationGuide ?? ''
   activationType.value = product.activationType ?? ''
   imageKeys.value = [...(product.imageKeys ?? [])]
+  coverPreview.value = null
+  galleryPreviews.value = []
   isActive.value = product.isActive
 })
 
+function setCoverPreview(urls: string[]) {
+  coverPreview.value = urls[0] ?? null
+}
+
+function setGalleryPreviews(urls: string[]) {
+  galleryPreviews.value = urls
+}
+
 async function submit() {
+  if (uploadingMedia.value) return
+  uploadingMedia.value = true
+  try {
+    const [coverPaths, galleryPaths] = await Promise.all([
+      coverUpload.value?.uploadSelected() ?? Promise.resolve([]),
+      galleryUpload.value?.uploadSelected() ?? Promise.resolve([]),
+    ])
+    if (coverPaths[0]) imageKey.value = coverPaths[0]
+    imageKeys.value.push(...galleryPaths)
   emit('save', {
     slug: slug.value.trim().toLowerCase(),
     name: name.value,
@@ -70,6 +95,11 @@ async function submit() {
   saved.value = true
   clearTimeout(savedTimer)
   savedTimer = setTimeout(() => (saved.value = false), 2000)
+  } catch {
+    // AdminImageUpload renders upload error; do not persist partial media keys.
+  } finally {
+    uploadingMedia.value = false
+  }
 }
 
 const currencies: AdminCurrency[] = ['ARS', 'USD']
@@ -149,31 +179,37 @@ function submitNewVariant() {
         <MarkdownEditor v-model="description" label="Descripción (admite Markdown: **negrita**, *cursiva*, listas)" />
       </section>
 
-      <section :aria-labelledby="`product-images-title-${product.id}`" class="flex flex-col gap-4 rounded-xl border border-white/10 bg-white/[0.025] p-4">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 :id="`product-images-title-${product.id}`" class="text-sm font-semibold text-white">Imágenes</h3>
-            <p class="mt-1 text-xs text-white/45">Claves R2 en formato 3:4. La principal abre el carrusel.</p>
-          </div>
-          <button type="button" class="rounded-lg border border-accent/30 px-3 py-1.5 text-sm font-medium text-accent transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent-hover" @click="imageKeys.push('')">
-            + Agregar imagen
-          </button>
+      <section :aria-labelledby="`product-images-title-${product.id}`" class="flex flex-col gap-5 rounded-xl border border-white/10 bg-white/[0.025] p-4">
+        <div>
+          <h3 :id="`product-images-title-${product.id}`" class="text-sm font-semibold text-white">Imágenes</h3>
+          <p class="mt-1 text-xs text-white/45">Portada para catálogo y galería para ficha de producto.</p>
         </div>
 
-        <label class="flex flex-col gap-2 text-sm">
-          <span class="text-white/70">Clave de imagen principal</span>
-          <div class="flex items-center gap-3">
-            <img :src="product.imageUrl || PLACEHOLDER_IMAGE" :alt="product.name" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-            <input v-model="imageKey" type="text" aria-label="Clave de imagen principal" placeholder="products/slug.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+        <div data-testid="catalog-cover" class="flex items-center gap-4">
+          <img :src="coverPreview || product.imageUrl || PLACEHOLDER_IMAGE" :alt="`Portada de ${product.name}`" class="h-32 w-24 shrink-0 rounded-xl border border-white/10 object-cover" />
+          <div class="flex flex-col items-start gap-2">
+            <div>
+              <h4 class="text-sm font-medium text-white">Portada de catálogo</h4>
+              <p class="mt-1 text-xs text-white/45">Formato vertical 3:4.</p>
+            </div>
+            <AdminImageUpload ref="coverUpload" folder="/products" label="Cambiar portada" compact :disabled="saving || uploadingMedia" @preview="setCoverPreview" @register="coverUpload = { uploadSelected: $event }" />
           </div>
-        </label>
+        </div>
 
-        <div v-if="imageKeys.length" class="flex flex-col gap-2 border-t border-white/10 pt-4">
-          <span class="text-xs font-medium text-white/50">Galería adicional</span>
-          <div v-for="(key, i) in imageKeys" :key="i" class="flex items-center gap-3">
-            <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="`${product.name}, imagen adicional ${i + 1}`" class="h-16 w-[3.2rem] shrink-0 rounded-lg border border-white/10 object-cover" />
-            <input v-model="imageKeys[i]" type="text" :aria-label="`Clave de imagen adicional ${i + 1}`" placeholder="products/slug-2.png" class="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
-            <AppButton type="button" variant="ghost" size="sm" @click="imageKeys.splice(i, 1)">Quitar</AppButton>
+        <div data-testid="product-gallery" class="border-t border-white/10 pt-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="mr-auto">
+              <h4 class="text-sm font-medium text-white">Galería de producto</h4>
+              <p class="mt-1 text-xs text-white/45">Miniaturas cuadradas para ficha y carrusel del producto.</p>
+            </div>
+            <AdminImageUpload ref="galleryUpload" folder="/products" label="Agregar imágenes" compact multiple :disabled="saving || uploadingMedia" @preview="setGalleryPreviews" @register="galleryUpload = { uploadSelected: $event }" />
+          </div>
+          <div v-if="galleryPreviews.length || imageKeys.length" class="mt-3 flex flex-wrap gap-3">
+            <img v-for="url in galleryPreviews" :key="url" :src="url" alt="Vista previa de galería" class="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+            <div v-for="(_, i) in imageKeys" :key="`saved-${i}`" class="group relative h-20 w-20">
+              <img :src="product.images?.[i] || PLACEHOLDER_IMAGE" :alt="`${product.name}, imagen adicional ${i + 1}`" class="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+              <button type="button" :aria-label="`Quitar imagen adicional ${i + 1}`" class="absolute -right-1 -top-1 hidden h-5 w-5 rounded-full bg-black/80 text-xs text-white group-hover:block focus:block" @click="imageKeys.splice(i, 1)">×</button>
+            </div>
           </div>
         </div>
       </section>

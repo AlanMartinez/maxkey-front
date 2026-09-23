@@ -32,7 +32,9 @@ onMounted(() => {
 })
 
 const showNewProduct = ref(false)
-const newProduct = ref({ slug: '', name: '', platform: '', description: '' })
+const newProduct = ref({ slug: '', name: '', platform: '', description: '', imageKey: '' })
+const newProductUpload = ref<(() => Promise<string[]>)>()
+const uploadingNewProductMedia = ref(false)
 
 // Client-side filter — the admin list has no pagination, and a text filter is enough at this scale.
 const search = ref('')
@@ -43,19 +45,30 @@ const filteredProducts = computed(() => {
 })
 
 async function submitNewProduct() {
+  if (uploadingNewProductMedia.value) return
+  uploadingNewProductMedia.value = true
+  try {
+    const imagePaths = await (newProductUpload.value?.() ?? Promise.resolve([]))
+    if (imagePaths[0]) newProduct.value.imageKey = imagePaths[0]
   const created = await createProduct({
     slug: newProduct.value.slug,
     name: newProduct.value.name,
     platform: newProduct.value.platform,
     description: newProduct.value.description || undefined,
+    imageKey: newProduct.value.imageKey || undefined,
     activationGuide: null,
     activationType: null,
     imageKeys: [],
     isActive: true,
   })
   if (created) {
-    newProduct.value = { slug: '', name: '', platform: '', description: '' }
+    newProduct.value = { slug: '', name: '', platform: '', description: '', imageKey: '' }
     showNewProduct.value = false
+  }
+  } catch {
+    // AdminImageUpload renders upload error; do not create product when media upload fails.
+  } finally {
+    uploadingNewProductMedia.value = false
   }
 }
 </script>
@@ -87,6 +100,10 @@ async function submitNewProduct() {
         <span class="text-white/70">Descripción</span>
         <textarea v-model="newProduct.description" rows="2" class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white outline-none focus:border-accent" />
       </label>
+      <div class="flex flex-col gap-2 text-sm">
+        <span class="text-white/70">Imagen principal</span>
+        <AdminImageUpload folder="/products" :disabled="saving || uploadingNewProductMedia" @register="newProductUpload = $event" />
+      </div>
       <AppButton type="submit" size="sm" :loading="saving" class="self-start">Crear producto</AppButton>
     </form>
 

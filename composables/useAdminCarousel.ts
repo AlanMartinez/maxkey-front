@@ -8,10 +8,12 @@ import { ApiError } from '~/composables/useApi'
  */
 export async function useAdminCarousel() {
   const api = useApi()
-  const { data: slides, status, error, refresh } = await useAsyncData('admin-carousel', () => api<AdminCarouselSlideDto[]>('/admin/carousel'), { default: () => [] })
-  const { data: products } = await useAsyncData('admin-carousel-products', () => api<AdminProduct[]>('/admin/catalog/products'), { default: () => [] })
-
+  // Must run before the first `await`: composables lose the Nuxt instance after an await in an async setup.
   const toast = useToast()
+  const slidesAsync = useAsyncData('admin-carousel', () => api<AdminCarouselSlideDto[]>('/admin/carousel'), { default: () => [] })
+  const productsAsync = useAsyncData('admin-carousel-products', () => api<AdminProduct[]>('/admin/catalog/products'), { default: () => [] })
+  const [{ data: slides, status, error, refresh }, { data: products }] = await Promise.all([slidesAsync, productsAsync])
+
   const saving = ref(false)
   const saveError = ref<ApiError | null>(null)
 
