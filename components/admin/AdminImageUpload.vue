@@ -10,10 +10,11 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   label?: string
   compact?: boolean
-}>(), { multiple: false, disabled: false, label: 'Subir imagen', compact: false })
+  autoUpload?: boolean
+}>(), { multiple: false, disabled: false, label: 'Subir imagen', compact: false, autoUpload: false })
 
 const emit = defineEmits<{
-  uploaded: [filePath: string]
+  uploaded: [filePath: string, url: string]
   preview: [urls: string[]]
   register: [uploadSelected: () => Promise<string[]>]
 }>()
@@ -63,6 +64,10 @@ function stageFiles(files: File[]) {
   selectedFiles.value = acceptedFiles
   previewUrls.value = acceptedFiles.map((file) => URL.createObjectURL(file))
   emit('preview', previewUrls.value)
+
+  if (props.autoUpload) {
+    void uploadSelected()
+  }
 }
 
 async function uploadSelected(): Promise<string[]> {
@@ -102,6 +107,7 @@ async function uploadSelected(): Promise<string[]> {
         throw new Error(error.value)
       }
       const filePath = result.filePath.replace(/^\/+/, '')
+      const url = result.url ?? ''
 
       try {
         await api('/admin/media/imagekit-assets', {
@@ -114,7 +120,7 @@ async function uploadSelected(): Promise<string[]> {
       }
 
       uploadedPaths.push(filePath)
-      emit('uploaded', filePath)
+      emit('uploaded', filePath, url)
     }
     selectedFiles.value = []
     return uploadedPaths

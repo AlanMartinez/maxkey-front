@@ -1,4 +1,4 @@
-export type ImageKitFolder = '/products' | '/carousel'
+export type ImageKitFolder = '/products' | '/carousel' | '/guides'
 
 export interface ImageKitAuthResponse {
   token: string

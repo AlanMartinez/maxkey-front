@@ -100,7 +100,7 @@ export async function useAdminCatalog() {
       platform: product.platform,
       description: product.description,
       imageKey: product.imageKey,
-      activationGuide: product.activationGuide,
+      activationGuideId: product.activationGuideId,
       activationType: product.activationType,
       imageKeys: product.imageKeys,
       isActive: false,
