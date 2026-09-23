@@ -17,20 +17,19 @@ import { ApiError, isBackendUnreachable } from '~/composables/useApi'
 // mock-variant-2a as its empty-state fixture.
 const mockVaultProducts: AdminVaultProduct[] = [
   {
-    // Multi-variant product with one variant already fully sold out.
+    // Single-variant product with stock already assigned.
     id: 'mock-product-1',
     name: 'Windows 11 Pro (mock)',
     vaultEnabled: true,
     variants: [
       { id: 'mock-variant-1a', region: 'Global', edition: 'Retail', availableCount: 12, assignedCount: 4 },
-      { id: 'mock-variant-1b', region: 'EU', edition: 'OEM', availableCount: 0, assignedCount: 9 },
     ],
   },
   {
-    // Vault disabled, and its one variant has no region/edition metadata at all.
+    // One variant has no region/edition metadata at all.
     id: 'mock-product-2',
     name: 'Office 2021 Pro Plus (mock)',
-    vaultEnabled: false,
+    vaultEnabled: true,
     variants: [
       { id: 'mock-variant-2a', region: null, edition: null, availableCount: 3, assignedCount: 0 },
     ],
@@ -45,20 +44,22 @@ const mockVaultProducts: AdminVaultProduct[] = [
     ],
   },
   {
-    // Vault disabled but still has stock loaded from before it was turned off.
+    // Healthy single-variant product with stock loaded.
     id: 'mock-product-4',
     name: 'Minecraft Java Edition (mock)',
-    vaultEnabled: false,
+    vaultEnabled: true,
     variants: [
       { id: 'mock-variant-4a', region: 'Global', edition: 'Retail', availableCount: 25, assignedCount: 15 },
     ],
   },
   {
-    // Vault enabled but nothing loaded yet — zero variants.
+    // Vault enabled but nothing loaded yet.
     id: 'mock-product-5',
     name: 'FIFA 24 Ultimate Edition (mock)',
     vaultEnabled: true,
-    variants: [],
+    variants: [
+      { id: 'mock-variant-5a', region: 'Global', edition: 'Digital', availableCount: 0, assignedCount: 0 },
+    ],
   },
   {
     // Near-exhausted stock: heavily assigned relative to what's left available.
@@ -70,14 +71,12 @@ const mockVaultProducts: AdminVaultProduct[] = [
     ],
   },
   {
-    // Several variants with distinct real-looking region/edition combos.
+    // Single variant with a real-looking region/edition combo.
     id: 'mock-product-7',
     name: 'Grand Theft Auto V (mock)',
     vaultEnabled: true,
     variants: [
       { id: 'mock-variant-7a', region: 'US', edition: 'Retail', availableCount: 18, assignedCount: 6 },
-      { id: 'mock-variant-7b', region: 'EU', edition: 'OEM', availableCount: 5, assignedCount: 2 },
-      { id: 'mock-variant-7c', region: 'LATAM', edition: 'Retail', availableCount: 30, assignedCount: 1 },
     ],
   },
   {

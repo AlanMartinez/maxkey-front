@@ -11,11 +11,12 @@ const props = defineProps<{
   keysFailed: boolean
   // undefined = never fetched yet, [] = fetched and empty — distinguishes the two for the toggle below.
   keys: AdminVaultKey[] | undefined
+  forceExpanded?: boolean
 }>()
 const emit = defineEmits<{ upload: [rawCodes: string]; viewKeys: [] }>()
 
 // Collapsed by default, same reasoning as VaultProductRow: keeps the list scannable with many items.
-const expanded = ref(false)
+const expanded = ref(props.forceExpanded ?? false)
 
 // Modal instead of an inline list — a variant's key count is unbounded (could be thousands),
 // so it gets its own scrollable surface rather than growing the row indefinitely.
@@ -67,13 +68,13 @@ function submit() {
 <template>
   <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
     <div class="flex flex-wrap items-center gap-2">
-      <button type="button" class="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left" @click="expanded = !expanded">
+      <button type="button" class="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left" :class="{ 'cursor-default': forceExpanded }" @click="!forceExpanded && (expanded = !expanded)">
         <span class="text-white/70">{{ variant.region || variant.edition ? [variant.region, variant.edition].filter(Boolean).join(' · ') : 'Variante única' }}</span>
         <AppBadge :tone="stockTone">{{ variant.availableCount }} disponible(s)</AppBadge>
         <AppBadge tone="neutral">{{ variant.assignedCount }} asignada(s)</AppBadge>
       </button>
       <button type="button" class="shrink-0 text-sm text-accent hover:text-accent-hover" @click="openKeysModal()">Ver keys →</button>
-      <button type="button" class="shrink-0 text-white/50 transition" :class="{ 'rotate-180': expanded }" @click="expanded = !expanded">⌄</button>
+      <button v-if="!forceExpanded" type="button" class="shrink-0 text-white/50 transition" :class="{ 'rotate-180': expanded }" @click="expanded = !expanded">⌄</button>
     </div>
 
     <template v-if="expanded">
