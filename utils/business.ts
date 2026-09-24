@@ -1,5 +1,10 @@
 // Legal identity shown in the footer and legal pages. Leave a field empty and its line is hidden.
-export const BUSINESS = { legalName: '', cuit: '', address: '', dataFiscalUrl: '' }
+export const BUSINESS = {
+  legalName: 'MOBISUR',
+  cuit: '20-35885558-0',
+  address: 'Alberdi 979, Río Grande, Tierra del Fuego',
+  dataFiscalUrl: '',
+}
 export const CONSUMER_DEFENSE_URL = 'https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario'
 export const WITHDRAWAL_DAYS = 10
 

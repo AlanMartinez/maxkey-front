@@ -32,6 +32,7 @@ describe('AppFooter', () => {
   })
 
   it('hides the legal identity row while the business data is not configured', async () => {
+    Object.assign(BUSINESS, { legalName: '', cuit: '', address: '', dataFiscalUrl: '' })
     const wrapper = await mountSuspended(AppFooter)
 
     expect(wrapper.find('[data-testid="footer-identity"]').exists()).toBe(false)
