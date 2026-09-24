@@ -15,9 +15,13 @@ const busy = computed(() => status.value === 'submitting' || status.value === 'r
 const fieldError = computed(() => validation.value ?? (error.value?.status === 422 ? errorMessage.value : null))
 const generalError = computed(() => (error.value && error.value.status !== 422 ? errorMessage.value : null))
 
+// Whitespace and capitalisation are forgiven: the address is normalised once here, before validation and submit.
 async function pay() {
-  validation.value = isValidEmail(email.value) ? null : 'Ingresá un email válido.'
-  if (!validation.value) await submit(email.value)
+  const normalized = email.value.trim().toLowerCase()
+  validation.value = isValidEmail(normalized) ? null : 'Ingresá un email válido.'
+  if (validation.value) return
+  email.value = normalized
+  await submit(normalized)
 }
 </script>
 
@@ -30,12 +34,14 @@ async function pay() {
     </EmptyState>
     <form v-else class="grid items-start gap-6 lg:grid-cols-[1fr_380px]" novalidate @submit.prevent="pay()">
       <div class="flex flex-col gap-6">
+        <CheckoutSteps :current="1" />
         <h1 class="text-3xl font-bold">Checkout</h1>
         <ContactForm v-model="email" :disabled="busy" :error="fieldError" />
         <PaymentMethodSelector v-model="paymentMethod" :disabled="busy" />
       </div>
       <OrderSummary :lines="lines" :subtotal="subtotal">
         <PayWithMercadoPago :status="status" />
+        <SecureCheckoutNote />
         <p v-if="generalError" role="alert" class="text-center text-sm text-red-300">{{ generalError }}</p>
       </OrderSummary>
     </form>
