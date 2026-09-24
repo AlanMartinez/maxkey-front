@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { OrderStatus, OrderStatusResponse } from '~/types/api'
 import { LAST_ORDER_STORAGE_KEY } from '~/composables/useCheckout'
+import { whatsappUrl } from '~/utils/contact'
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_TRIES = 20
@@ -38,11 +39,13 @@ const outcome = computed<Outcome>(() => {
 })
 
 const copy: Record<Outcome, { title: string; detail: string }> = {
-  approved: { title: 'Pago aprobado', detail: 'Tu pago fue confirmado. En unos minutos podrás revelar tu key. También te enviaremos un email con los pasos.' },
+  approved: { title: 'Pago aprobado', detail: 'Tu pago fue confirmado. Te enviamos la confirmación por email y la key queda disponible en Mis compras.' },
   pending: { title: 'Pago pendiente', detail: 'Estamos confirmando tu pago con Mercado Pago. Te avisamos por email cuando se acredite.' },
   rejected: { title: 'Pago rechazado', detail: 'Mercado Pago no aprobó el pago. Tu pedido sigue disponible: podés reintentar el pago.' },
   unknown: { title: 'No encontramos tu pedido', detail: 'Si ya pagaste, vas a recibir un email con la confirmación.' },
 }
+
+const helpHref = computed(() => whatsappUrl(`Hola, necesito ayuda con mi pedido${orderId.value ? ` ${orderId.value}` : ''} en CHEKEYS`))
 
 async function poll() {
   if (!orderId.value) return
@@ -91,19 +94,31 @@ onUnmounted(() => clearTimeout(timer))
 </script>
 
 <template>
-  <section class="glass mx-auto flex max-w-lg flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center" :aria-busy="outcome === 'pending' && !exhausted">
+  <section class="glass mx-auto flex max-w-lg flex-col items-center gap-4 rounded-2xl px-6 py-10 text-center sm:py-12" :aria-busy="outcome === 'pending' && !exhausted">
+    <CheckoutSteps :current="outcome === 'approved' ? 3 : 2" class="mb-4 justify-center" />
     <span v-if="outcome === 'pending' && !exhausted" class="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
     <span v-else-if="outcome === 'approved'" class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-2xl font-bold text-emerald-400" aria-label="Pago aprobado">✓</span>
     <h1 class="text-2xl font-bold">{{ copy[outcome].title }}</h1>
     <p class="max-w-sm text-sm text-white/60">{{ copy[outcome].detail }}</p>
-    <p v-if="order" class="text-xs text-white/40">
-      {{ formatMoney(order.totalAmount, order.currency) }} · {{ order.buyerEmailMasked }}
-    </p>
+    <div v-if="order" class="flex flex-col items-center gap-1.5 text-xs text-white/40">
+      <p class="flex max-w-full items-center gap-2">
+        <span>Pedido</span>
+        <CopyableValue :value="order.orderId" class="max-w-[16rem] text-white/70" />
+      </p>
+      <p>{{ formatMoney(order.totalAmount, order.currency) }} · {{ order.buyerEmailMasked }}</p>
+    </div>
+    <OrderProgress v-if="outcome === 'approved' && order" :status="order.status" class="mt-2" />
     <div class="mt-2 flex flex-wrap justify-center gap-3">
       <NuxtLink v-if="outcome === 'rejected'" to="/checkout"><AppButton>Reintentar</AppButton></NuxtLink>
-      <NuxtLink v-if="outcome === 'approved' && isAuthenticated" to="/account/orders"><AppButton variant="ghost">Mis compras</AppButton></NuxtLink>
+      <template v-if="outcome === 'approved' && isAuthenticated && orderId">
+        <NuxtLink :to="`/account/orders/${orderId}`"><AppButton>Ver mi pedido</AppButton></NuxtLink>
+        <NuxtLink to="/"><AppButton variant="ghost">Ir al catálogo</AppButton></NuxtLink>
+      </template>
       <NuxtLink v-else-if="outcome === 'approved'" to="/"><AppButton variant="ghost">Ir al catálogo</AppButton></NuxtLink>
       <NuxtLink v-else to="/"><AppButton variant="ghost">Volver al catálogo</AppButton></NuxtLink>
     </div>
+    <a :href="helpHref" target="_blank" rel="noopener" class="mt-4 text-xs text-white/50 transition hover:text-white">
+      ¿Algo salió mal? Escribinos por WhatsApp
+    </a>
   </section>
 </template>

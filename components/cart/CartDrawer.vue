@@ -39,6 +39,11 @@ function goToCheckout() {
   close()
   return navigateTo('/checkout')
 }
+
+function goToCatalog() {
+  close()
+  return navigateTo('/#catalogo')
+}
 </script>
 
 <template>
@@ -53,7 +58,9 @@ function goToCheckout() {
           </button>
         </header>
         <div class="flex-1 overflow-y-auto px-6">
-          <p v-if="isEmpty" class="py-12 text-center text-sm text-white/60">Tu carrito está vacío.</p>
+          <EmptyState v-if="isEmpty" class="my-6 border-0 bg-transparent" title="Tu carrito está vacío" description="Elegí un producto, pagá con Mercado Pago y recibí tu key al instante.">
+            <AppButton variant="ghost" @click="goToCatalog()">Ver ofertas</AppButton>
+          </EmptyState>
           <ul v-else class="divide-y divide-white/10">
             <CartLine v-for="line in lines" :key="line.variantId" :line="line" @update:quantity="setQuantity(line.variantId, $event)" @remove="remove(line.variantId)" />
           </ul>

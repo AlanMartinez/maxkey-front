@@ -22,7 +22,6 @@ defineProps<{ lines: CartLine[]; subtotal: number }>()
       <span class="text-white/60">Subtotal</span>
       <span class="text-xl font-bold">{{ formatMoney(subtotal, lines[0]?.currency) }}</span>
     </p>
-    <p class="text-xs text-white/50">El total se confirma en Mercado Pago.</p>
     <slot />
   </section>
 </template>
