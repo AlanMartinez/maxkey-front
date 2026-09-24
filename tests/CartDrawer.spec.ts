@@ -47,7 +47,8 @@ describe('CartDrawer', () => {
     wrapper = await mountSuspended(CartDrawer)
 
     expect(document.body.textContent).toContain('Tu carrito está vacío')
-    expect(document.body.textContent).toContain('Elegí un producto, pagá con Mercado Pago y recibí tu key al instante.')
+    expect(document.body.textContent).toContain('Elegí un producto, pagá con Mercado Pago y recibí tu key por email en minutos (máximo 24 h).')
+    expect(document.body.textContent).not.toContain('al instante')
     expect(document.body.textContent).toContain('Ver ofertas')
     expect(document.body.textContent).not.toContain('Ir a pagar')
   })

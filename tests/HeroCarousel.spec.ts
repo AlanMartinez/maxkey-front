@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import type { DOMWrapper } from '@vue/test-utils'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import HeroCarousel from '~/components/catalog/HeroCarousel.vue'
@@ -16,6 +17,10 @@ const apiSlides: CarouselSlideDto[] = [
 function activeIndex(wrapper: { findAll: (selector: string) => DOMWrapper<Element>[] }) {
   return wrapper.findAll('[role="tab"]').findIndex((tab) => tab.attributes('aria-selected') === 'true')
 }
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe('HeroCarousel', () => {
   it('fetches the public carousel and fills the frame with the active slide', async () => {
@@ -49,6 +54,32 @@ describe('HeroCarousel', () => {
     expect(activeIndex(wrapper)).toBe(2)
   })
 
+  it('pauses autoplay while hovered or focused and resumes on leave', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    apiMock.mockResolvedValue(apiSlides)
+    const wrapper = await mountSuspended(HeroCarousel)
+    const section = wrapper.find('section')
+
+    vi.advanceTimersByTime(5000)
+    await nextTick()
+    expect(activeIndex(wrapper)).toBe(1)
+
+    await section.trigger('mouseenter')
+    vi.advanceTimersByTime(10000)
+    await nextTick()
+    expect(activeIndex(wrapper)).toBe(1)
+
+    await section.trigger('mouseleave')
+    vi.advanceTimersByTime(5000)
+    await nextTick()
+    expect(activeIndex(wrapper)).toBe(2)
+
+    await section.trigger('focusin')
+    vi.advanceTimersByTime(10000)
+    await nextTick()
+    expect(activeIndex(wrapper)).toBe(2)
+  })
+
   it('renders the static fallback slides when the API returns an empty array', async () => {
     apiMock.mockResolvedValue([])
     const wrapper = await mountSuspended(HeroCarousel)
@@ -58,6 +89,9 @@ describe('HeroCarousel', () => {
     expect(wrapper.findAll('[role="tab"]')).toHaveLength(3)
     // Fallback slides have no real product behind them; they link to the catalog anchor.
     expect(wrapper.find('a').attributes('href')).toBe('/#catalogo')
+    // Neutral copy only: no hard-coded discount claims that the catalog prices might contradict.
+    expect(wrapper.findAll('h1').map((h) => h.text())).toEqual(['Keys para tus juegos favoritos', 'Gift cards y suscripciones', 'Pagá seguro con Mercado Pago'])
+    expect(wrapper.text()).not.toContain('%')
   })
 
   it('renders the static fallback slides when the fetch fails', async () => {

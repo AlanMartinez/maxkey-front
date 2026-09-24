@@ -1,9 +1,12 @@
 <script setup lang="ts">
-// Mirrors the "TRUST BAR" block of the Chekeys mock: three centered reassurance items.
+import { DELIVERY, SECURE_PAYMENT, VERIFIED_KEYS } from '~/utils/promises'
+
+// Mirrors the "TRUST BAR" block of the Chekeys mock: three centered reassurance items. Labels come
+// from utils/promises.ts so they never contradict the FAQ or the refund policy.
 const items = [
-  { label: 'Entrega instantánea', icon: 'bolt' },
-  { label: 'Keys 100% verificadas', icon: 'shield' },
-  { label: 'Pago 100% seguro', icon: 'lock' },
+  { ...DELIVERY, icon: 'bolt' },
+  { ...VERIFIED_KEYS, icon: 'shield' },
+  { ...SECURE_PAYMENT, icon: 'lock' },
 ] as const
 </script>
 
@@ -11,7 +14,7 @@ const items = [
   <div class="flex justify-center">
     <!-- Phones: one row of three stacked icon+label cells so the strip never wraps to a second line. -->
     <ul class="grid w-full grid-cols-3 justify-center gap-x-2 text-[11px] leading-tight text-white/60 sm:flex sm:w-auto sm:flex-wrap sm:gap-x-10 sm:gap-y-3 sm:text-sm" aria-label="Garantías">
-      <li v-for="item in items" :key="item.label" class="flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-2 sm:text-left">
+      <li v-for="item in items" :key="item.short" :title="item.detail" class="flex flex-col items-center gap-1.5 text-center sm:flex-row sm:gap-2 sm:text-left">
         <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path v-if="item.icon === 'bolt'" d="M13 3L4 14h6l-1 7 9-11h-6z" />
           <template v-else-if="item.icon === 'shield'">
@@ -23,7 +26,8 @@ const items = [
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </template>
         </svg>
-        {{ item.label }}
+        <NuxtLink v-if="item.href" :to="item.href" class="transition hover:text-white hover:underline">{{ item.short }}</NuxtLink>
+        <span v-else>{{ item.short }}</span>
       </li>
     </ul>
   </div>

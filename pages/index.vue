@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ProductSummary } from '~/types/api'
+import { SITE_DESCRIPTION } from '~/utils/business'
+
+useSeo({ title: 'CHEKEYS · Keys, gift cards y suscripciones', description: SITE_DESCRIPTION, path: '/' })
 
 const api = useApi()
 // Pre-selected from `?platform=` so the product breadcrumb can link back to a filtered catalog.
@@ -42,7 +45,7 @@ watch(data, (list) => {
         <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
       </ErrorState>
       <ProductGrid v-else :products="data ?? []" :pending="status === 'pending'">
-        <template #empty><EmptyState title="Sin resultados" description="Prueba con otra plataforma u otra búsqueda." /></template>
+        <template #empty><EmptyState title="Sin resultados" description="Probá con otra plataforma u otra búsqueda." /></template>
       </ProductGrid>
     </section>
   </div>

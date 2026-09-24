@@ -4,6 +4,8 @@ export interface LegalSection {
   title: string
   paragraphs: string[]
   bullets?: string[]
+  /** Related pages, rendered as a "Ver también" row under the section. */
+  links?: { label: string; to: string }[]
 }
 
 defineProps<{ title: string; subtitle?: string; updatedAt: string; sections: LegalSection[] }>()
@@ -39,7 +41,12 @@ defineProps<{ title: string; subtitle?: string; updatedAt: string; sections: Leg
           <ul v-if="section.bullets?.length" class="mt-4 flex flex-col gap-2 pl-5 text-white/70">
             <li v-for="bullet in section.bullets" :key="bullet" class="list-disc leading-relaxed marker:text-accent">{{ bullet }}</li>
           </ul>
+          <p v-if="section.links?.length" class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <NuxtLink v-for="link in section.links" :key="link.to" :to="link.to" class="font-medium text-accent transition hover:text-accent-hover hover:underline">{{ link.label }}</NuxtLink>
+          </p>
         </section>
+        <!-- Pages that need more than prose (e.g. the withdrawal form) append it after the numbered sections. -->
+        <slot />
       </div>
     </div>
   </article>

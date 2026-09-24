@@ -112,6 +112,10 @@ export interface OrderItemDto {
   quantity: number
   keys: string[]
   revealable: boolean
+  /** Populated by backend GET /me/orders/{id}; optional until the backend ships it. Builds the "Ver producto" link. */
+  productSlug?: string
+  /** Populated by backend GET /me/orders/{id}; optional until the backend ships it. Builds the "Guía de activación" link; null when the product has none. */
+  activationGuideSlug?: string | null
 }
 
 // mirrors design.md §7 "GET /me/orders/{id}" response (OrderDetail). Key visibility is per-item now

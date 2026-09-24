@@ -5,6 +5,7 @@ import type { ApiError } from '~/composables/useApi'
 import { defaultVariant, galleryImages, recommendedVariant, toCartLine } from '~/utils/cartLine'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
 import { renderMarkdown, stripMarkdown } from '~/utils/markdown'
+import { SITE_DESCRIPTION, SITE_NAME } from '~/utils/business'
 
 const slug = useRoute().params.slug as string
 const api = useApi()
@@ -15,7 +16,38 @@ const { data: product, status, error, refresh } = await useAsyncData(`product-${
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
 
-useHead({ title: () => (product.value ? `${product.value.name} · CHEKEYS` : 'CHEKEYS') })
+// Meta description is the plain-text description (Markdown stripped) clipped to the ~160 chars search engines show.
+const SEO_DESCRIPTION_LIMIT = 160
+const seoDescription = computed(() => (product.value ? stripMarkdown(product.value.description).slice(0, SEO_DESCRIPTION_LIMIT) : SITE_DESCRIPTION))
+const seo = useSeo(() => ({
+  title: product.value?.name ?? SITE_NAME,
+  description: seoDescription.value,
+  path: `/product/${slug}`,
+  image: product.value ? galleryImages(product.value)[0] : undefined,
+  type: 'product',
+}))
+
+// schema.org Product so search results can show price/availability. `<` is escaped so a description
+// can never close the script tag early.
+const productJsonLd = computed(() => {
+  if (!product.value) return ''
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.value.name,
+    image: seo.image(),
+    description: seoDescription.value,
+    sku: product.value.id,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'ARS',
+      price: product.value.fromPrice,
+      availability: 'https://schema.org/InStock',
+      url: seo.url(),
+    },
+  }).replace(/</g, '\\u003c')
+})
+useHead({ script: [{ type: 'application/ld+json', innerHTML: productJsonLd }] })
 
 const selectedId = ref<string | null>(defaultVariant(product.value?.variants ?? [])?.id ?? null)
 const selected = computed(() => product.value?.variants.find((v) => v.id === selectedId.value) ?? defaultVariant(product.value?.variants ?? []))

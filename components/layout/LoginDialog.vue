@@ -32,7 +32,7 @@ async function continueWithGoogle() {
           <img v-if="!pending" src="/images/brands/google-g.png" alt="" aria-hidden="true" width="20" height="20" class="h-5 w-5 flex-none rounded-full bg-white" />
           Continuar con Google
         </AppButton>
-        <p class="text-xs text-white/40">Puedes comprar sin cuenta; el email es suficiente.</p>
+        <p class="text-xs text-white/40">Podés comprar sin cuenta; con tu email alcanza.</p>
       </div>
     </div>
   </Teleport>

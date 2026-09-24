@@ -43,7 +43,7 @@ onUnmounted(() => {
       <span class="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
       <p class="text-sm text-white/60">Conectando…</p>
     </template>
-    <ErrorState v-else title="No pudimos iniciar sesión" detail="Intenta nuevamente desde el catálogo.">
+    <ErrorState v-else title="No pudimos iniciar sesión" detail="Intentá nuevamente desde el catálogo.">
       <template #retry>
         <NuxtLink to="/?login=1"><AppButton variant="ghost">Reintentar</AppButton></NuxtLink>
       </template>
