@@ -3,7 +3,7 @@ import type { ProductDetail, ProductSummary } from '~/types/api'
 import { productImageUrl } from '~/utils/productImage'
 import { defaultVariant, toCartLine } from '~/utils/cartLine'
 
-const props = defineProps<{ product: ProductSummary }>()
+const props = defineProps<{ product: ProductSummary; compact?: boolean }>()
 
 const discount = computed(() =>
   props.product.oldPrice ? Math.round((1 - props.product.fromPrice / props.product.oldPrice) * 100) : 0,
@@ -67,18 +67,24 @@ const buttonLabel = computed(() => {
         </span>
       </div>
       <div class="flex flex-1 flex-col gap-1.5 p-2.5 pb-2 sm:gap-2 sm:p-3 sm:pb-2">
-        <h3 class="line-clamp-2 text-sm font-semibold leading-tight" :class="{ 'text-amber-500': discount > 50 }">{{ product.name }}</h3>
+        <h3
+          :title="product.name"
+          class="text-sm font-semibold leading-tight"
+          :class="[compact ? 'truncate' : 'line-clamp-2', { 'text-amber-500': discount > 50 }]"
+        >
+          {{ product.name }}
+        </h3>
         <!-- A 16px mark fits the ~110px phone card where the old text badge had to wait for `sm`. -->
         <div class="flex items-center">
           <PlatformLogo :platform="product.platform" />
         </div>
         <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span class="hidden text-white/50 sm:inline">Desde</span>
+            <span v-if="!compact" class="hidden text-white/50 sm:inline">Desde</span>
             <span class="text-base font-semibold">{{ formatMoney(product.fromPrice) }}</span>
             <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
           </p>
-          <p v-if="product.oldPrice" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
+          <p v-if="product.oldPrice && !compact" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
         </div>
       </div>
     </NuxtLink>
@@ -94,7 +100,7 @@ const buttonLabel = computed(() => {
         @click.stop.prevent="addDefaultVariant()"
       >
         <CartIcon v-if="!adding" />
-        <span class="hidden sm:inline">{{ buttonLabel }}</span>
+        <span v-if="!compact" class="hidden sm:inline">{{ buttonLabel }}</span>
       </AppButton>
     </div>
   </article>

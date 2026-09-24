@@ -217,6 +217,8 @@ async function buyNow() {
       </div>
     </div>
 
+    <RecommendedCarousel :current-slug="product.slug" :platform="product.platform" />
+
     <CollapsibleSection v-if="isDescriptionLong" id="full-description" v-model:open="fullDescriptionOpen" title="Descripción completa">
       <template #icon>
         <svg class="h-5 w-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
