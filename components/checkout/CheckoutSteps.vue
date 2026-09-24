@@ -5,12 +5,14 @@ const steps = ['Carrito', 'Tus datos', 'Pago seguro', 'Tu key']
 </script>
 
 <template>
-  <!-- Phones only show the active label; numbers keep every step identifiable at ~360px. -->
-  <ol aria-label="Pasos de la compra" class="flex flex-wrap items-center gap-2 text-xs sm:gap-3 sm:text-sm">
+  <!-- Single row always: connectors flex to absorb the slack, labels never wrap, and phones only show
+       the active label so four steps fit inside a ~330px card. -->
+  <ol aria-label="Pasos de la compra" class="flex w-full max-w-lg flex-nowrap items-center gap-2 text-xs">
     <li
       v-for="(label, i) in steps"
       :key="label"
       class="flex items-center gap-2"
+      :class="{ 'flex-1': i < steps.length - 1 }"
       :aria-current="i === current ? 'step' : undefined"
       :data-state="i < current ? 'done' : i === current ? 'active' : 'todo'"
     >
@@ -21,8 +23,8 @@ const steps = ['Carrito', 'Tus datos', 'Pago seguro', 'Tu key']
         <svg v-if="i < current" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>
         <template v-else>{{ i + 1 }}</template>
       </span>
-      <span :class="i === current ? 'font-medium text-white' : 'hidden text-white/50 sm:inline'">{{ label }}</span>
-      <span v-if="i < steps.length - 1" class="h-px w-4 bg-white/15 sm:w-8" aria-hidden="true" />
+      <span class="whitespace-nowrap" :class="i === current ? 'font-medium text-white' : 'hidden text-white/50 sm:inline'">{{ label }}</span>
+      <span v-if="i < steps.length - 1" class="h-px min-w-3 flex-1 bg-white/15" aria-hidden="true" />
     </li>
   </ol>
 </template>
