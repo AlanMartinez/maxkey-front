@@ -22,16 +22,19 @@ const products = computed(() => {
 
 // Infinite-loop via edge cloning: a few real cards are duplicated on each side of the track so the
 // belt keeps sliding past the "ends"; crossing into a clone snaps the position back with transitions
-// off, invisibly to the eye.
-const CLONE_COUNT = 4
+// off, invisibly to the eye. Capped to the catalog size itself — a fixed clone count would start
+// `index` past the end of a short, uncloned track (e.g. a 3-product catalog), pushing every real
+// card out of the visible area.
+const cloneCount = computed(() => Math.min(4, products.value.length))
 const track = computed(() => {
-  if (products.value.length <= CLONE_COUNT) return products.value
-  const head = products.value.slice(0, CLONE_COUNT)
-  const tail = products.value.slice(-CLONE_COUNT)
+  const n = cloneCount.value
+  if (n === 0) return []
+  const head = products.value.slice(0, n)
+  const tail = products.value.slice(-n)
   return [...tail, ...products.value, ...head]
 })
 
-const index = ref(CLONE_COUNT)
+const index = ref(cloneCount.value)
 const withTransition = ref(true)
 const trackEl = ref<HTMLElement | null>(null)
 // Bumped on resize to force `trackStyle` to re-read the DOM — card width (and the flex `gap`) changes
@@ -64,10 +67,10 @@ function prev() {
 // clone territory — the clones are visually identical, so the jump is imperceptible.
 function onTransitionEnd() {
   const total = products.value.length
-  if (index.value >= total + CLONE_COUNT) {
+  if (index.value >= total + cloneCount.value) {
     withTransition.value = false
     index.value -= total
-  } else if (index.value < CLONE_COUNT) {
+  } else if (index.value < cloneCount.value) {
     withTransition.value = false
     index.value += total
   }

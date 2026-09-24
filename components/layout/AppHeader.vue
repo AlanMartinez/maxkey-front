@@ -81,7 +81,12 @@ const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
           <span v-if="count > 0" class="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-accent px-1.5 text-center text-xs font-semibold leading-5 text-white" data-testid="cart-count">{{ count }}</span>
         </button>
         <slot name="account">
-          <template v-if="!isAuthenticated" key="guest">
+          <!-- A real keyed element, not a keyed `<template>` fragment, guarantees Vue tears down and
+               remounts this block on login/logout — a `<template key>` fragment was observed reusing
+               the guest branch's DOM node for the authenticated branch in production, leaving the
+               account dropdown nested inside the stale "Iniciar sesión" wrapper instead of its own
+               trigger button. `contents` keeps the wrapper invisible to the flex layout. -->
+          <div v-if="!isAuthenticated" key="guest" class="contents">
             <button type="button" aria-label="Iniciar sesión" :class="iconButton" class="sm:hidden" @click="openLogin()">
               <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" />
@@ -97,8 +102,8 @@ const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
                 Iniciar sesión
               </AppButton>
             </div>
-          </template>
-          <template v-else key="auth">
+          </div>
+          <div v-else key="auth" class="contents">
             <div class="relative">
               <button type="button" aria-label="Notificaciones" :aria-expanded="isNotificationsOpen" :class="iconButton" @click="isNotificationsOpen = !isNotificationsOpen">
                 <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -163,7 +168,7 @@ const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
               </button>
             </div>
             </div>
-          </template>
+          </div>
         </slot>
       </div>
     </div>
