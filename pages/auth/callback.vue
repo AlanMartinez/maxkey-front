@@ -18,7 +18,11 @@ function finish() {
   clearTimeout(timer)
   const target = redirect.value
   redirect.value = null
-  navigateTo(target || '/')
+  // A real browser navigation (not a client-side route push) lands the target page through its
+  // normal SSR render, with the session already in the request — the already-public hero carousel
+  // and catalog come back fully formed instead of flashing a loading state while this freshly-booted
+  // SPA (the OAuth redirect landed here cold, nothing cached) fetches them from scratch client-side.
+  navigateTo(target || '/', { external: true })
 }
 
 onMounted(() => {
