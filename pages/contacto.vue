@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { SUPPORT_EMAIL, SUPPORT_HOURS, whatsappUrl } from '~/utils/contact'
 
-useHead({
-  title: 'Contacto · CHEKEYS',
-  meta: [{ name: 'description', content: 'Soporte de CHEKEYS por email y WhatsApp. Incluí tu número de orden para una respuesta más rápida.' }],
+useSeo({
+  title: 'Contacto',
+  description: 'Soporte de CHEKEYS por email y WhatsApp. Incluí tu número de orden para una respuesta más rápida.',
+  path: '/contacto',
 })
 
 const whatsappHref = whatsappUrl('Hola, necesito ayuda con mi compra en CHEKEYS')
@@ -20,7 +21,7 @@ const channels = [
   },
   {
     title: 'WhatsApp',
-    detail: 'Consultas rápidas sobre una compra o una clave.',
+    detail: 'Consultas rápidas sobre una compra o una key.',
     value: 'Abrir chat',
     href: whatsappHref,
     response: 'En minutos, dentro del horario de atención',
@@ -30,8 +31,8 @@ const channels = [
 ] as const
 
 const tips = [
-  'Incluí el número de orden: lo encontrás en “Mis compras” y en el email de confirmación.',
-  'Si una clave falla, adjuntá una captura del mensaje de error de la plataforma.',
+  'Incluí el número de orden: lo encontrás en el email de confirmación y, si iniciaste sesión, en “Mis compras”.',
+  'Si una key falla, adjuntá una captura del mensaje de error de la plataforma.',
   'Indicá la región de tu cuenta en la plataforma donde intentás canjear.',
 ]
 </script>
@@ -84,6 +85,8 @@ const tips = [
       <p class="mt-8 text-white/40">
         Quizás tu duda ya esté resuelta en las
         <NuxtLink to="/ayuda" class="text-accent transition hover:text-accent-hover">preguntas frecuentes</NuxtLink>.
+        Si querés revocar una compra, usá el
+        <NuxtLink to="/arrepentimiento" class="text-accent transition hover:text-accent-hover">botón de arrepentimiento</NuxtLink>.
       </p>
     </div>
   </section>

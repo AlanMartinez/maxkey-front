@@ -1,7 +1,10 @@
 <script setup lang="ts">
-useHead({
-  title: 'Preguntas frecuentes · CHEKEYS',
-  meta: [{ name: 'description', content: 'Respuestas sobre pagos, entrega de claves, activación, cuenta y soporte en CHEKEYS.' }],
+import { DELIVERY_MAX_HOURS, REFUND_CLAIM_DAYS } from '~/utils/promises'
+
+useSeo({
+  title: 'Preguntas frecuentes',
+  description: 'Respuestas sobre pagos, entrega de keys, activación, cuenta y soporte en CHEKEYS.',
+  path: '/ayuda',
 })
 
 const groups = [
@@ -19,7 +22,7 @@ const groups = [
       },
       {
         q: '¿Necesito una cuenta para comprar?',
-        a: 'Sí. Iniciás sesión con tu cuenta de Google en un paso; así las claves quedan asociadas a tu cuenta y podés volver a consultarlas desde “Mis compras” cuando quieras.',
+        a: 'No. Con tu email alcanza: ahí te llega la key. Si iniciás sesión con Google, además queda guardada en Mis compras.',
       },
       {
         q: 'Pagué pero la orden sigue pendiente. ¿Qué hago?',
@@ -32,8 +35,8 @@ const groups = [
     title: 'Entrega y activación',
     items: [
       {
-        q: '¿Cuándo recibo mi clave?',
-        a: 'Apenas Mercado Pago confirma el pago. La clave aparece en “Mis compras” y te enviamos un aviso por email. En la mayoría de los casos es inmediato.',
+        q: '¿Cuándo recibo mi key?',
+        a: `Apenas Mercado Pago confirma el pago. Generalmente en minutos, máximo ${DELIVERY_MAX_HOURS} h. Te la enviamos por email y, si iniciaste sesión, también la ves en “Mis compras”.`,
       },
       {
         q: '¿Cómo activo el código?',
@@ -41,11 +44,15 @@ const groups = [
       },
       {
         q: '¿Qué significa la región de un producto?',
-        a: 'Algunas claves solo pueden canjearse en cuentas de determinada región. Antes de comprar verificá que la región indicada coincida con la de tu cuenta en la plataforma; las claves reveladas con región incompatible no se reembolsan.',
+        a: 'Algunas keys solo pueden canjearse en cuentas de determinada región. Antes de comprar verificá que la región indicada coincida con la de tu cuenta en la plataforma; las keys reveladas con región incompatible no se reembolsan.',
       },
       {
-        q: 'La clave no funciona. ¿Qué hago?',
-        a: 'Primero revisá que la estés ingresando en la plataforma y región correctas. Si el problema persiste, contactanos con el número de orden y una captura del error; verificamos la clave con nuestro proveedor y te damos una solución.',
+        q: 'La key no funciona. ¿Qué hago?',
+        a: 'Primero revisá que la estés ingresando en la plataforma y región correctas. Si el problema persiste, contactanos con el número de orden y una captura del error; verificamos la key directamente (somos el proveedor) y te damos una solución.',
+      },
+      {
+        q: '¿Qué pasa cuando revelo la key?',
+        a: 'Revelar la key en Mis compras equivale a recibir el producto. Desde ese momento no hay reembolso por arrepentimiento, compra equivocada o región incompatible. La única excepción: que la plataforma la rechace como inválida o ya usada y lo confirmemos; en ese caso la reemplazamos o te devolvemos el dinero.',
       },
     ],
   },
@@ -55,15 +62,15 @@ const groups = [
     items: [
       {
         q: '¿Dónde veo mis compras anteriores?',
-        a: 'En la sección “Mis compras”, disponible desde el menú de tu cuenta. Ahí encontrás cada orden con su estado y las claves entregadas.',
+        a: 'En la sección “Mis compras”, disponible desde el menú de tu cuenta cuando iniciás sesión con Google. Ahí encontrás cada orden con su estado y las keys entregadas. Si compraste sin cuenta, la key está en el email de entrega.',
       },
       {
         q: '¿Puedo pedir un reembolso?',
-        a: 'Sí, cuando la clave no fue entregada o resultó inválida y todavía no fue revelada. Los detalles están en nuestra Política de reembolsos.',
+        a: `Sí, cuando la key no fue entregada o resultó inválida y todavía no fue revelada, dentro de los ${REFUND_CLAIM_DAYS} días posteriores a la entrega. Una vez que revelás la key, ya no hay reembolso salvo que la plataforma la rechace como inválida. Los detalles están en nuestra Política de reembolsos.`,
       },
       {
         q: '¿Qué datos personales guardan?',
-        a: 'Solo los necesarios para operar: nombre y email de tu cuenta de Google, historial de órdenes y datos técnicos mínimos. Podés leer el detalle en la Política de privacidad.',
+        a: 'Solo los necesarios para operar: tu email (y nombre, si iniciás sesión con Google), historial de órdenes y datos técnicos mínimos. Podés leer el detalle en la Política de privacidad.',
       },
       {
         q: '¿Cómo me comunico con soporte?',
@@ -80,7 +87,7 @@ const groups = [
       <p class="text-xs font-semibold uppercase tracking-wider text-accent">Centro de ayuda</p>
       <h1 class="mt-2 text-3xl font-bold sm:text-4xl">Preguntas frecuentes</h1>
       <p class="mt-4 text-base leading-relaxed text-white/60">
-        Todo lo que necesitás saber sobre pagos, entrega y activación de tus claves.
+        Todo lo que necesitás saber sobre pagos, entrega y activación de tus keys.
       </p>
     </header>
 

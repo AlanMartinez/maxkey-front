@@ -1,21 +1,24 @@
 <script setup lang="ts">
-useHead({
-  title: 'Cómo funciona · CHEKEYS',
-  meta: [{ name: 'description', content: 'Comprar en CHEKEYS en cuatro pasos: elegí el producto, pagá con Mercado Pago, recibí tu clave al instante y activala.' }],
+import { DELIVERY_INLINE, DELIVERY_MAX_HOURS } from '~/utils/promises'
+
+useSeo({
+  title: 'Cómo funciona',
+  description: `Comprar en CHEKEYS en cuatro pasos: elegí el producto, pagá con Mercado Pago, recibí tu key ${DELIVERY_INLINE} y activala.`,
+  path: '/como-funciona',
 })
 
 const steps = [
   {
     title: 'Elegí tu producto',
-    detail: 'Buscá el juego, la tarjeta de regalo o la suscripción que necesitás. Cada producto indica plataforma, región y stock antes de comprar.',
+    detail: 'Buscá el juego, la gift card o la suscripción que necesitás. Cada producto indica plataforma y región antes de comprar.',
   },
   {
     title: 'Pagá con Mercado Pago',
     detail: 'Te redirigimos a Mercado Pago para pagar con tarjeta, dinero en cuenta o transferencia. Nunca vemos ni guardamos los datos de tu tarjeta.',
   },
   {
-    title: 'Recibí tu clave al instante',
-    detail: 'Cuando el pago se acredita, la clave queda disponible en “Mis compras” y te avisamos por email.',
+    title: 'Recibí tu key en minutos',
+    detail: `Cuando el pago se acredita te enviamos la key por email, generalmente en minutos y como máximo en ${DELIVERY_MAX_HOURS} h. Si iniciaste sesión, también queda en “Mis compras”.`,
   },
   {
     title: 'Activá y jugá',
@@ -28,9 +31,9 @@ const steps = [
   <section class="mx-auto flex w-full max-w-2xl flex-col gap-14 py-4 sm:py-8">
     <header>
       <p class="text-xs font-medium uppercase tracking-[0.2em] text-accent/80">Cómo funciona</p>
-      <h1 class="mt-3 text-2xl font-semibold tracking-tight text-white/90 sm:text-3xl">Comprar una clave lleva menos de dos minutos</h1>
+      <h1 class="mt-3 text-2xl font-semibold tracking-tight text-white/90 sm:text-3xl">Comprar una key lleva menos de dos minutos</h1>
       <p class="mt-4 max-w-lg text-sm leading-relaxed text-white/50 sm:text-base">
-        Sin envíos, sin esperas. Elegís, pagás de forma segura y la clave aparece en tu cuenta lista para activar.
+        Sin envíos, sin cuenta obligatoria. Elegís, pagás de forma segura y la key te llega por email lista para activar.
       </p>
     </header>
 

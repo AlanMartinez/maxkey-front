@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import PurchasePanel from '~/components/product/PurchasePanel.vue'
+import { DELIVERY, REFUND, SUPPORT } from '~/utils/promises'
 
 const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS', isRecommended: true }
 
@@ -12,7 +13,10 @@ describe('PurchasePanel', () => {
     expect(wrapper.find('.line-through').text()).toContain('21.000')
     const buttons = wrapper.findAll('button')
     expect(buttons.map((b) => b.text())).toEqual(['Comprar ahora', 'Agregar al carrito'])
-    for (const line of ['Entrega automática en minutos', 'Garantía de reembolso 24h', 'Soporte humano 24/7']) expect(wrapper.text()).toContain(line)
+    for (const line of [DELIVERY.short, DELIVERY.detail, REFUND.short, SUPPORT.short]) expect(wrapper.text()).toContain(line)
+    for (const stale of ['24h', '24/7', 'automática']) expect(wrapper.text()).not.toContain(stale)
+    // Promises backed by a page link to it.
+    expect(wrapper.findAll('a').map((a) => a.attributes('href'))).toEqual(expect.arrayContaining(['/reembolsos', '/contacto']))
 
     await buttons[0]?.trigger('click')
     await buttons[1]?.trigger('click')

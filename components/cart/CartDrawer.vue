@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ProductDetail } from '~/types/api'
+import { DELIVERY_INLINE } from '~/utils/promises'
+
+const emptyDescription = `Elegí un producto, pagá con Mercado Pago y recibí tu key ${DELIVERY_INLINE}.`
 
 const { isOpen, isEmpty, lines, subtotal, close, remove, setQuantity, updatePrices } = useCart()
 const api = useApi()
@@ -58,7 +61,7 @@ function goToCatalog() {
           </button>
         </header>
         <div class="flex-1 overflow-y-auto px-6">
-          <EmptyState v-if="isEmpty" class="my-6 border-0 bg-transparent" title="Tu carrito está vacío" description="Elegí un producto, pagá con Mercado Pago y recibí tu key al instante.">
+          <EmptyState v-if="isEmpty" class="my-6 border-0 bg-transparent" title="Tu carrito está vacío" :description="emptyDescription">
             <AppButton variant="ghost" @click="goToCatalog()">Ver ofertas</AppButton>
           </EmptyState>
           <ul v-else class="divide-y divide-white/10">

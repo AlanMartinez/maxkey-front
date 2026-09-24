@@ -1,21 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { send, sendRedirect, setResponseHeaders, setResponseStatus } from 'h3'
-import type { NitroErrorHandler } from 'nitropack/types'
 import { defineNuxtConfig } from 'nuxt/config'
+import { SITE_DESCRIPTION, SITE_NAME } from './utils/business'
 
-const devErrorHandler: NitroErrorHandler = async (error, event, { defaultHandler }) => {
-  if (error.statusCode === 404 && error.fatal) {
-    return sendRedirect(event, 'https://www.chekeys.com')
-  }
-
-  const response = await defaultHandler(error, event)
-  if (!event.node?.res.headersSent) {
-    setResponseHeaders(event, response.headers)
-  }
-  setResponseStatus(event, response.status, response.statusText)
-  return send(event, JSON.stringify(response.body, null, 2))
-}
+// Same value as the `bg` token in tailwind.config.ts and public/icon/site.webmanifest, so the browser
+// chrome (address bar, PWA splash) matches the app background.
+const THEME_COLOR = '#0A0A0E'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -26,10 +16,8 @@ export default defineNuxtConfig({
   // Most pages are public; auth-only pages opt in via middleware/auth.ts (design.md §9).
   // Supabase is used for auth only; no generated database types (`Database = unknown`).
   supabase: { redirect: false, types: false },
-  nitro: {
-    errorHandler: '~/server/error',
-    devErrorHandler,
-  },
+  // No custom `nitro.errorHandler`: Nuxt's own handler renders error.vue (branded 404 / 500) and sets
+  // the real status code. A custom handler here would replace it, not extend it.
   runtimeConfig: {
     public: {
       // Overridden by NUXT_PUBLIC_API_BASE_URL / NUXT_PUBLIC_SITE_URL (design.md §10).
@@ -45,7 +33,12 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'es' },
-      title: 'Chekeys',
+      title: SITE_NAME,
+      meta: [
+        { name: 'description', content: SITE_DESCRIPTION },
+        { name: 'theme-color', content: THEME_COLOR },
+        { property: 'og:site_name', content: SITE_NAME },
+      ],
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icon/favicon-32x32.png?v=2' },

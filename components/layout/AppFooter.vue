@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BUSINESS, CONSUMER_DEFENSE_URL, SITE_DESCRIPTION } from '~/utils/business'
 import { SUPPORT_EMAIL, whatsappUrl } from '~/utils/contact'
 
 const whatsappHref = whatsappUrl('Hola, necesito ayuda con mi compra en CHEKEYS')
@@ -12,8 +13,13 @@ const legalLinks = [
   { label: 'Términos y condiciones', to: '/terminos' },
   { label: 'Política de privacidad', to: '/privacidad' },
   { label: 'Política de reembolsos', to: '/reembolsos' },
+  { label: 'Botón de arrepentimiento', to: '/arrepentimiento' },
 ]
 const footerLink = 'text-white/60 transition hover:text-white'
+
+// Legal identity row (razón social, CUIT, domicilio) only renders once the data is configured in
+// utils/business.ts — an empty "CUIT" label would hurt trust more than no row at all.
+const identity = computed(() => [BUSINESS.legalName, BUSINESS.cuit && `CUIT ${BUSINESS.cuit}`, BUSINESS.address].filter(Boolean).join(' · '))
 </script>
 
 <template>
@@ -24,9 +30,7 @@ const footerLink = 'text-white/60 transition hover:text-white'
           <NuxtLink to="/" class="inline-flex" aria-label="CHEKEYS">
             <img src="/images/logo/logo_letras.png" alt="CHEKEYS" class="h-9 w-auto" />
           </NuxtLink>
-          <p class="mt-4 max-w-xs leading-relaxed text-white/50">
-            Claves digitales para juegos, tarjetas de regalo y suscripciones, con entrega inmediata y pago protegido.
-          </p>
+          <p class="mt-4 max-w-xs leading-relaxed text-white/50">{{ SITE_DESCRIPTION }}</p>
         </div>
 
         <nav aria-label="Ayuda">
@@ -40,6 +44,7 @@ const footerLink = 'text-white/60 transition hover:text-white'
           <h2 class="text-xs font-semibold uppercase tracking-wider text-white/80">Legal</h2>
           <ul class="mt-4 flex flex-col gap-2.5">
             <li v-for="link in legalLinks" :key="link.to"><NuxtLink :to="link.to" :class="footerLink">{{ link.label }}</NuxtLink></li>
+            <li><a :href="CONSUMER_DEFENSE_URL" target="_blank" rel="noopener" :class="footerLink">Defensa del Consumidor</a></li>
           </ul>
         </nav>
 
@@ -50,6 +55,11 @@ const footerLink = 'text-white/60 transition hover:text-white'
             <li><a :href="whatsappHref" target="_blank" rel="noopener" :class="footerLink">WhatsApp</a></li>
           </ul>
         </div>
+      </div>
+
+      <div v-if="BUSINESS.legalName" data-testid="footer-identity" class="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
+        <p>{{ identity }}</p>
+        <a v-if="BUSINESS.dataFiscalUrl" :href="BUSINESS.dataFiscalUrl" target="_blank" rel="noopener" class="transition hover:text-white">Data Fiscal AFIP</a>
       </div>
     </div>
   </footer>

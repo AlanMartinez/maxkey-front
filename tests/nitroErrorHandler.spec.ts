@@ -1,74 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { NitroErrorHandler } from 'nitropack/types'
+import { describe, expect, it } from 'vitest'
 import config from '../nuxt.config'
-import productionErrorHandler from '../server/error'
 
-const {
-  sendMock,
-  sendRedirectMock,
-  setResponseHeadersMock,
-  setResponseStatusMock,
-} = vi.hoisted(() => ({
-  sendMock: vi.fn(),
-  sendRedirectMock: vi.fn(),
-  setResponseHeadersMock: vi.fn(),
-  setResponseStatusMock: vi.fn(),
-}))
-
-vi.mock('h3', async (importOriginal) => ({
-  ...await importOriginal<typeof import('h3')>(),
-  send: sendMock,
-  sendRedirect: sendRedirectMock,
-  setResponseHeaders: setResponseHeadersMock,
-  setResponseStatus: setResponseStatusMock,
-}))
-
-vi.mock('nitropack/runtime', () => ({
-  defineNitroErrorHandler: <T>(handler: T) => handler,
-}))
-
-describe('Nitro error handlers', () => {
-  beforeEach(() => {
-    sendMock.mockClear()
-    sendRedirectMock.mockClear()
-    setResponseHeadersMock.mockClear()
-    setResponseStatusMock.mockClear()
+// Regression guard for the branded 404: a custom `nitro.errorHandler` replaces (does not extend) the
+// Nuxt handler that renders error.vue, and the old handlers redirected fatal 404s to an external domain.
+describe('nuxt.config error pipeline', () => {
+  it('leaves Nuxt error rendering in place: no custom Nitro error handlers', () => {
+    expect(config.nitro?.errorHandler).toBeUndefined()
+    expect(config.nitro?.devErrorHandler).toBeUndefined()
   })
 
-  it('redirects fatal production 404 errors to Chekeys home', async () => {
-    const event = {} as never
+  it('declares the branded default head (title, description, dark theme-color, og:site_name)', () => {
+    const head = config.app?.head
+    const meta = (key: 'name' | 'property', value: string) => head?.meta?.find((m) => m?.[key] === value)?.content
 
-    await productionErrorHandler({ statusCode: 404, fatal: true } as never, event, {} as never)
-
-    expect(sendRedirectMock).toHaveBeenCalledWith(event, 'https://www.chekeys.com')
-  })
-
-  it('redirects fatal development 404 errors to Chekeys home', async () => {
-    const event = {} as never
-    const handler = config.nitro?.devErrorHandler as NitroErrorHandler
-
-    await handler({ statusCode: 404, fatal: true } as never, event, { defaultHandler: vi.fn() })
-
-    expect(sendRedirectMock).toHaveBeenCalledWith(event, 'https://www.chekeys.com')
-  })
-
-  it('uses Nitro development error response for non-404 failures', async () => {
-    const event = { node: { res: { headersSent: false } } } as never
-    const response = {
-      status: 500,
-      statusText: 'Server Error',
-      headers: { 'content-type': 'application/json' },
-      body: { error: true },
-    }
-    const defaultHandler = vi.fn().mockResolvedValue(response)
-    const handler = config.nitro?.devErrorHandler as NitroErrorHandler
-
-    await handler({ statusCode: 500, fatal: true } as never, event, { defaultHandler })
-
-    expect(defaultHandler).toHaveBeenCalled()
-    expect(setResponseHeadersMock).toHaveBeenCalledWith(event, response.headers)
-    expect(setResponseStatusMock).toHaveBeenCalledWith(event, response.status, response.statusText)
-    expect(sendMock).toHaveBeenCalledWith(event, JSON.stringify(response.body, null, 2))
-    expect(sendRedirectMock).not.toHaveBeenCalled()
+    expect(head?.title).toBe('CHEKEYS')
+    expect(meta('name', 'description')).toBeTruthy()
+    expect(meta('name', 'theme-color')).toBe('#0A0A0E')
+    expect(meta('property', 'og:site_name')).toBe('CHEKEYS')
   })
 })

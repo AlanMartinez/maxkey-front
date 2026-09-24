@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ title?: string; detail?: string }>(), {
   title: 'Algo salió mal',
-  detail: 'No pudimos cargar la información. Intenta de nuevo.',
+  detail: 'No pudimos cargar la información. Intentá de nuevo.',
 })
 </script>
 

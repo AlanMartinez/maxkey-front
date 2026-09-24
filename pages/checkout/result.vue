@@ -2,17 +2,20 @@
 import type { OrderStatus, OrderStatusResponse } from '~/types/api'
 import { LAST_ORDER_STORAGE_KEY } from '~/composables/useCheckout'
 import { whatsappUrl } from '~/utils/contact'
+import { DELIVERY_MAX_HOURS } from '~/utils/promises'
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_TRIES = 20
 type Outcome = 'approved' | 'pending' | 'rejected' | 'unknown'
+// `pending` splits once polling gives up: same order state, different message and no spinner.
+type CopyKey = Outcome | 'exhausted'
 
 useHead({ title: 'Resultado del pago · CHEKEYS' })
 
 const route = useRoute()
 const api = useApi()
 const cart = useCart()
-const { isAuthenticated } = useAuth()
+const { isAuthenticated, openLogin } = useAuth()
 
 // Mercado Pago back_urls carry `status=approved|failure|pending` (design §6a); anything else counts as pending.
 const mpStatus = computed(() => {
@@ -38,12 +41,16 @@ const outcome = computed<Outcome>(() => {
   return 'pending'
 })
 
-const copy: Record<Outcome, { title: string; detail: string }> = {
-  approved: { title: 'Pago aprobado', detail: 'Tu pago fue confirmado. Te enviamos la confirmación por email y la key queda disponible en Mis compras.' },
+const copy: Record<CopyKey, { title: string; detail: string }> = {
+  approved: { title: 'Pago aprobado', detail: `Pago aprobado. Te enviamos la confirmación por email. La key te llega por email en minutos (máximo ${DELIVERY_MAX_HOURS} h) y, si iniciaste sesión, queda en Mis compras.` },
   pending: { title: 'Pago pendiente', detail: 'Estamos confirmando tu pago con Mercado Pago. Te avisamos por email cuando se acredite.' },
+  exhausted: { title: 'Todavía estamos confirmando tu pago', detail: 'Mercado Pago aún no nos confirmó la acreditación. No hace falta que esperes acá: te llega un email apenas se confirme. Si querés, escribinos por WhatsApp con el número de pedido y lo revisamos.' },
   rejected: { title: 'Pago rechazado', detail: 'Mercado Pago no aprobó el pago. Tu pedido sigue disponible: podés reintentar el pago.' },
   unknown: { title: 'No encontramos tu pedido', detail: 'Si ya pagaste, vas a recibir un email con la confirmación.' },
 }
+const copyKey = computed<CopyKey>(() => (outcome.value === 'pending' && exhausted.value ? 'exhausted' : outcome.value))
+// Guests who paid can still see their keys later by signing in with the same email.
+const offerLogin = computed(() => !isAuthenticated.value && (outcome.value === 'approved' || outcome.value === 'pending'))
 
 const helpHref = computed(() => whatsappUrl(`Hola, necesito ayuda con mi pedido${orderId.value ? ` ${orderId.value}` : ''} en CHEKEYS`))
 
@@ -98,8 +105,8 @@ onUnmounted(() => clearTimeout(timer))
     <CheckoutSteps :current="outcome === 'approved' ? 3 : 2" class="mb-4 justify-center" />
     <span v-if="outcome === 'pending' && !exhausted" class="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
     <span v-else-if="outcome === 'approved'" class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-2xl font-bold text-emerald-400" aria-label="Pago aprobado">✓</span>
-    <h1 class="text-2xl font-bold">{{ copy[outcome].title }}</h1>
-    <p class="max-w-sm text-sm text-white/60">{{ copy[outcome].detail }}</p>
+    <h1 class="text-2xl font-bold">{{ copy[copyKey].title }}</h1>
+    <p class="max-w-sm text-sm text-white/60">{{ copy[copyKey].detail }}</p>
     <div v-if="order" class="flex flex-col items-center gap-1.5 text-xs text-white/40">
       <p class="flex max-w-full items-center gap-2">
         <span>Pedido</span>
@@ -117,6 +124,7 @@ onUnmounted(() => clearTimeout(timer))
       <NuxtLink v-else-if="outcome === 'approved'" to="/"><AppButton variant="ghost">Ir al catálogo</AppButton></NuxtLink>
       <NuxtLink v-else to="/"><AppButton variant="ghost">Volver al catálogo</AppButton></NuxtLink>
     </div>
+    <AppButton v-if="offerLogin" variant="ghost" size="sm" class="mt-1" @click="openLogin()">Iniciar sesión con Google para ver tus keys</AppButton>
     <a :href="helpHref" target="_blank" rel="noopener" class="mt-4 text-xs text-white/50 transition hover:text-white">
       ¿Algo salió mal? Escribinos por WhatsApp
     </a>

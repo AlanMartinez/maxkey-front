@@ -5,14 +5,15 @@ const props = defineProps<{ status: OrderStatus }>()
 
 type StepState = 'done' | 'active' | 'todo'
 
-const KEY_READY: ReadonlySet<OrderStatus> = new Set(['KeysAssigned', 'Delivered'])
-
+// Only `Delivered` means the buyer can actually see the key (key-delivery-gate: KeysAssigned is an
+// internal step, an admin still has to confirm delivery). Marking it done earlier promised a key
+// that was not there yet.
 const steps = computed<{ label: string; state: StepState }[]>(() => {
-  const ready = KEY_READY.has(props.status)
+  const delivered = props.status === 'Delivered'
   return [
     { label: 'Pago confirmado', state: 'done' },
-    { label: 'Preparando tu key', state: ready ? 'done' : 'active' },
-    { label: 'Lista en Mis compras', state: ready ? 'done' : 'todo' },
+    { label: 'Preparando tu key', state: delivered ? 'done' : 'active' },
+    { label: 'Key entregada', state: delivered ? 'done' : 'todo' },
   ]
 })
 

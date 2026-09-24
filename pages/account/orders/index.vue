@@ -19,7 +19,9 @@ const { data: orders, status, error, refresh } = await useAsyncData('my-orders',
     <ErrorState v-else-if="error">
       <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
     </ErrorState>
-    <EmptyState v-else-if="!orders?.length" title="Todavía no tienes compras" />
+    <EmptyState v-else-if="!orders?.length" title="Todavía no tenés compras" description="Cuando compres con esta cuenta, tus órdenes y keys van a aparecer acá.">
+      <NuxtLink to="/"><AppButton variant="ghost">Ver catálogo</AppButton></NuxtLink>
+    </EmptyState>
     <div v-else class="grid gap-4 sm:grid-cols-2">
       <OrderCard v-for="order in orders" :key="order.id" :order="order" />
     </div>

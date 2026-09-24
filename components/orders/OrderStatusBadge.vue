@@ -10,7 +10,7 @@ const copy: Record<OrderStatus, { label: string; tone: 'neutral' | 'accent' | 's
   Pending: { label: 'Pendiente de pago', tone: 'neutral' },
   Paid: { label: 'Pagado', tone: 'accent' },
   AwaitingFulfillment: { label: 'Preparando entrega', tone: 'accent' },
-  KeysAssigned: { label: 'Claves asignadas', tone: 'accent' },
+  KeysAssigned: { label: 'Keys asignadas', tone: 'accent' },
   Delivered: { label: 'Entregado', tone: 'success' },
   Cancelled: { label: 'Cancelado', tone: 'danger' },
 }

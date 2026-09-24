@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { OrderDetailDto, RevealKeysResponse } from '~/types/api'
+import type { OrderDetailDto, OrderItemDto, RevealKeysResponse } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
+import { whatsappUrl } from '~/utils/contact'
 import { canRevealKeys } from '~/utils/orders'
 
 definePageMeta({ middleware: 'auth' })
@@ -21,6 +22,10 @@ useHead({ title: 'Detalle de compra · CHEKEYS' })
 const revealing = reactive<Record<string, boolean>>({})
 const revealError = reactive<Record<string, ApiError | null>>({})
 
+// Revealing is the point of no return for refunds (see /reembolsos "Keys reveladas"), so the button
+// opens a confirmation first and the API is only called from `confirmReveal`.
+const pendingReveal = ref<string | null>(null)
+
 async function reveal(itemId: string) {
   if (!order.value) return
   revealing[itemId] = true
@@ -34,6 +39,16 @@ async function reveal(itemId: string) {
   } finally {
     revealing[itemId] = false
   }
+}
+
+async function confirmReveal() {
+  const itemId = pendingReveal.value
+  pendingReveal.value = null
+  if (itemId) await reveal(itemId)
+}
+
+function itemHelpHref(item: OrderItemDto) {
+  return whatsappUrl(`Hola, tengo un problema con la key de ${item.productName} (${item.variantName}) del pedido ${id} en CHEKEYS`)
 }
 </script>
 
@@ -63,10 +78,16 @@ async function reveal(itemId: string) {
         <!-- Key visibility is per-item now (item.keys / item.revealable), not gated by order.status. -->
         <div v-if="item.keys.length" class="flex flex-col gap-2">
           <KeyReveal v-for="code in item.keys" :key="code" :code="code" />
+          <!-- Activation help sits right next to the codes: guide when the product has one, otherwise the product page. -->
+          <p class="flex flex-wrap gap-x-4 gap-y-1 text-xs" data-testid="item-help">
+            <NuxtLink v-if="item.activationGuideSlug" :to="`/article/${item.activationGuideSlug}`" class="font-medium text-accent transition hover:text-accent-hover hover:underline">Guía de activación</NuxtLink>
+            <NuxtLink v-else-if="item.productSlug" :to="`/product/${item.productSlug}`" class="font-medium text-accent transition hover:text-accent-hover hover:underline">Ver producto</NuxtLink>
+            <a :href="itemHelpHref(item)" target="_blank" rel="noopener" class="text-white/50 transition hover:text-white">¿Problemas con esta key?</a>
+          </p>
         </div>
         <!-- Primary accent: this item's keys were never revealed. Once revealed, the codes replace the button (branch above). -->
         <div v-else-if="canRevealKeys(item)" class="flex flex-col gap-2">
-          <AppButton type="button" size="sm" :loading="revealing[item.itemId]" @click="reveal(item.itemId)">Revelar key</AppButton>
+          <AppButton type="button" size="sm" :loading="revealing[item.itemId]" @click="pendingReveal = item.itemId">Revelar key</AppButton>
           <span v-if="revealError[item.itemId]" role="alert" class="text-xs text-red-300">{{ revealError[item.itemId]?.friendlyMessage() }}</span>
         </div>
         <p v-else class="text-xs text-white/50">Tus keys aparecerán aquí cuando la orden esté entregada</p>
@@ -74,5 +95,16 @@ async function reveal(itemId: string) {
     </ul>
 
     <p class="text-right text-lg font-semibold">{{ formatMoney(order.totalAmount, order.currency) }}</p>
+
+    <ConfirmDialog
+      v-if="pendingReveal"
+      title="Antes de revelar tu key"
+      body="Al revelar la key ya no podés pedir reembolso por arrepentimiento o error de compra. Confirmá que la plataforma y la región sean las correctas."
+      :link="{ label: 'Ver política de reembolsos', to: '/reembolsos' }"
+      confirm-label="Revelar key"
+      cancel-label="Cancelar"
+      @confirm="confirmReveal()"
+      @cancel="pendingReveal = null"
+    />
   </section>
 </template>

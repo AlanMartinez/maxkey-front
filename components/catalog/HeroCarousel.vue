@@ -4,11 +4,12 @@ import type { CarouselSlideDto } from '~/types/api'
 // FALLBACK-ONLY: static slides shown when `GET /catalog/carousel` returns an empty array or the
 // request fails (design D2 Data Flow) — e.g. if the frontend deploys before backend PR #29 is
 // live. Never shown once the endpoint returns real slides. `productSlug: ''` routes to the catalog
-// anchor instead of a real product page, since these placeholders aren't backed by one.
+// anchor instead of a real product page, since these placeholders aren't backed by one. Titles stay
+// neutral: a hard-coded discount here could contradict the real prices in the catalog.
 const FALLBACK_SLIDES: CarouselSlideDto[] = [
-  { id: 'fallback-1', title: 'Riot Points con 90% de descuento', imageUrl: '/images/promos/riot-promo-text-20260913.png', productSlug: '', sortOrder: 0 },
-  { id: 'fallback-2', title: 'Robux con 75% de descuento', imageUrl: '/images/promos/robux-promo-text-20260913.png', productSlug: '', sortOrder: 1 },
-  { id: 'fallback-3', title: 'GTA V con 50% de descuento', imageUrl: '/images/promos/gta-promo-text-20260913.png', productSlug: '', sortOrder: 2 },
+  { id: 'fallback-1', title: 'Keys para tus juegos favoritos', imageUrl: '/images/promos/riot-promo-text-20260913.png', productSlug: '', sortOrder: 0 },
+  { id: 'fallback-2', title: 'Gift cards y suscripciones', imageUrl: '/images/promos/robux-promo-text-20260913.png', productSlug: '', sortOrder: 1 },
+  { id: 'fallback-3', title: 'Pagá seguro con Mercado Pago', imageUrl: '/images/promos/gta-promo-text-20260913.png', productSlug: '', sortOrder: 2 },
 ]
 
 // Public, unauthenticated (carousel spec "Public Carousel Listing"; design D2/D6).
@@ -17,6 +18,9 @@ const { data: fetchedSlides } = await useAsyncData('carousel', () => api<Carouse
 const slides = computed(() => (fetchedSlides.value.length ? fetchedSlides.value : FALLBACK_SLIDES))
 
 const active = ref(0)
+// Autoplay holds while the pointer is over the carousel or something inside it has focus (WCAG 2.2.2),
+// so a buyer reading a slide or tabbing through the controls is not moved along.
+const paused = ref(false)
 let timer: ReturnType<typeof setInterval> | undefined
 
 function goTo(index: number) {
@@ -32,7 +36,7 @@ function onTablistKeydown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  if (slides.value.length > 1) timer = setInterval(next, 5000)
+  if (slides.value.length > 1) timer = setInterval(() => { if (!paused.value) next() }, 5000)
 })
 onUnmounted(() => clearInterval(timer))
 
@@ -41,7 +45,15 @@ const overlayButton = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 ite
 
 <template>
   <!-- The promo art is 2172x724; the fixed aspect ratio keeps the image edge-to-edge so no band shows under it. -->
-  <section id="ofertas" aria-label="Ofertas destacadas" class="glass relative aspect-[2172/724] overflow-hidden rounded-3xl">
+  <section
+    id="ofertas"
+    aria-label="Ofertas destacadas"
+    class="glass relative aspect-[2172/724] overflow-hidden rounded-3xl"
+    @mouseenter="paused = true"
+    @mouseleave="paused = false"
+    @focusin="paused = true"
+    @focusout="paused = false"
+  >
     <div v-for="(slide, i) in slides" v-show="i === active" :key="slide.id" class="absolute inset-0">
       <h1 class="sr-only">{{ slide.title }}</h1>
       <NuxtLink :to="slide.productSlug ? `/product/${slide.productSlug}` : '/#catalogo'" class="block h-full w-full focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
