@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { ProductVariantDto } from '~/types/api'
 
-const props = withDefaults(defineProps<{ productName: string; variant?: ProductVariantDto; busy?: boolean; addedLabel?: boolean; error?: string | null }>(), {
+const props = withDefaults(defineProps<{ productName: string; variant?: ProductVariantDto; loading?: boolean; busy?: boolean; addedLabel?: boolean; error?: string | null }>(), {
   variant: undefined,
+  loading: false,
   busy: false,
   addedLabel: false,
   error: null,
@@ -23,6 +24,10 @@ const discount = computed(() =>
         <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
       </p>
       <p v-if="variant.oldPrice" class="text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</p>
+    </div>
+    <div v-else-if="loading" class="mb-2 flex flex-col gap-2" aria-busy="true">
+      <p class="text-sm font-semibold text-white/70">{{ productName }}</p>
+      <Skeleton class="h-9 w-40" />
     </div>
     <AppButton size="lg" class="w-full" :disabled="!variant" :loading="busy" @click="$emit('buy')">Comprar ahora</AppButton>
     <AppButton variant="ghost" size="lg" class="w-full" :disabled="!variant || busy" @click="$emit('add')">

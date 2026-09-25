@@ -4,17 +4,24 @@ import type { ProductSummary } from '~/types/api'
 const props = defineProps<{ currentSlug: string; platform: string }>()
 
 const api = useApi()
-const { data: allProducts } = await useAsyncData(
-  `recommended-${props.currentSlug}`,
+// Lazy so it never holds up navigation to the product page. One shared key + cache lookup means the
+// full list is fetched once per session instead of once per product visited.
+const { data: allProducts, status } = useAsyncData(
+  'recommended-products',
   () => api<ProductSummary[]>('/catalog/products'),
-  { default: () => [] },
+  {
+    lazy: true,
+    default: () => [],
+    getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+  },
 )
+const loading = computed(() => status.value === 'pending' && !allProducts.value?.length)
 
 const MAX_ITEMS = 16
 // Same-platform products lead the list (closest to "related"); the rest of the catalog fills the
 // remainder. There's no category/tag field to do real relatedness with (see types/api.ts).
 const products = computed(() => {
-  const others = allProducts.value.filter((p) => p.slug !== props.currentSlug)
+  const others = (allProducts.value ?? []).filter((p) => p.slug !== props.currentSlug)
   const samePlatform = others.filter((p) => p.platform === props.platform)
   const rest = others.filter((p) => p.platform !== props.platform)
   return [...samePlatform, ...rest].slice(0, MAX_ITEMS)
@@ -40,6 +47,12 @@ const trackEl = ref<HTMLElement | null>(null)
 // Bumped on resize to force `trackStyle` to re-read the DOM — card width (and the flex `gap`) changes
 // at each breakpoint and isn't otherwise a Vue-reactive value.
 const layoutTick = ref(0)
+
+// The list can arrive after mount (lazy fetch), so re-anchor on the first real card without animating.
+watch(cloneCount, (n) => {
+  withTransition.value = false
+  index.value = n
+})
 
 function cardStep() {
   layoutTick.value // eslint-disable-line no-unused-expressions -- reactive dependency, see comment above
@@ -89,7 +102,13 @@ const trackStyle = computed(() => ({
 </script>
 
 <template>
-  <section v-if="products.length" aria-labelledby="recommended-heading" class="border-t border-white/10 pt-8">
+  <section v-if="loading" aria-busy="true" aria-label="Cargando recomendados" class="border-t border-white/10 pt-8">
+    <Skeleton class="mb-4 h-4 w-32" />
+    <div class="flex gap-5 overflow-hidden sm:gap-6">
+      <Skeleton v-for="n in 8" :key="n" class="aspect-[3/4] w-28 shrink-0 sm:w-36 lg:w-40" />
+    </div>
+  </section>
+  <section v-else-if="products.length" aria-labelledby="recommended-heading" class="border-t border-white/10 pt-8">
     <h2 id="recommended-heading" class="mb-4 text-sm font-semibold uppercase tracking-wide text-white/70">Recomendados</h2>
     <div class="group relative">
       <div class="overflow-hidden">

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import RecommendedCarousel from '~/components/catalog/RecommendedCarousel.vue'
 import type { ProductSummary } from '~/types/api'
@@ -34,6 +34,22 @@ function translateX(style: string | undefined) {
 }
 
 describe('RecommendedCarousel', () => {
+  beforeEach(() => {
+    clearNuxtData('recommended-products')
+    apiMock.mockReset()
+  })
+
+  it('reuses the fetched catalog across products instead of refetching', async () => {
+    apiMock.mockResolvedValue([product('current'), product('a'), product('b')])
+    await mountSuspended(RecommendedCarousel, { props: { currentSlug: 'current', platform: 'Steam' } })
+    const wrapper = await mountSuspended(RecommendedCarousel, { props: { currentSlug: 'a', platform: 'Steam' } })
+
+    expect(apiMock).toHaveBeenCalledTimes(1)
+    const names = wrapper.findAll('h3').map((h) => h.text())
+    expect(names).toContain('current')
+    expect(names).not.toContain('a')
+  })
+
   it('starts within the track when the catalog is smaller than the usual clone count', async () => {
     // Regression: a fixed clone count started `index` past the end of an uncloned short track,
     // pushing every real card out of the visible area (prod bug with a 3-product catalog).

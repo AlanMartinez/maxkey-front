@@ -3,24 +3,40 @@ import type { Ref } from 'vue'
 import type { ProductDetail } from '~/types/api'
 import type { ApiError } from '~/composables/useApi'
 import { defaultVariant, galleryImages, recommendedVariant, toCartLine } from '~/utils/cartLine'
-import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
+import { PLACEHOLDER_IMAGE, productImageUrl } from '~/utils/productImage'
 import { renderMarkdown, stripMarkdown } from '~/utils/markdown'
 import { SITE_DESCRIPTION, SITE_NAME } from '~/utils/business'
 
 const slug = useRoute().params.slug as string
 const api = useApi()
 
-// Catalog spec: Product Detail Lookup (GET /catalog/products/{slug}; unknown or inactive slug → 404).
-const { data: product, status, error, refresh } = await useAsyncData(`product-${slug}`, () => api<ProductDetail>(`/catalog/products/${slug}`))
+// Summary cached when a catalog card was clicked: lets name, image and price paint before the detail arrives.
+const preview = useProductPreview().get(slug)
 
-const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
-if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
+// Catalog spec: Product Detail Lookup (GET /catalog/products/{slug}; unknown or inactive slug → 404).
+// SSR still awaits the detail (SEO, real 404); client navigation is lazy so the route switches instantly.
+const { data: product, status, error, refresh } = await useAsyncData(`product-${slug}`, () => api<ProductDetail>(`/catalog/products/${slug}`), {
+  lazy: import.meta.client,
+})
+
+const notFound = () => {
+  const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
+  return httpStatus === 404
+}
+const NOT_FOUND = { statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true }
+if (notFound()) throw createError(NOT_FOUND)
+watch(error, () => {
+  if (notFound()) showError(NOT_FOUND)
+})
+
+const detailLoading = computed(() => !product.value && status.value !== 'error')
+const view = computed(() => product.value ?? preview)
 
 // Meta description is the plain-text description (Markdown stripped) clipped to the ~160 chars search engines show.
 const SEO_DESCRIPTION_LIMIT = 160
 const seoDescription = computed(() => (product.value ? stripMarkdown(product.value.description).slice(0, SEO_DESCRIPTION_LIMIT) : SITE_DESCRIPTION))
 const seo = useSeo(() => ({
-  title: product.value?.name ?? SITE_NAME,
+  title: view.value?.name ?? SITE_NAME,
   description: seoDescription.value,
   path: `/product/${slug}`,
   image: product.value ? galleryImages(product.value)[0] : undefined,
@@ -53,7 +69,8 @@ const selectedId = ref<string | null>(defaultVariant(product.value?.variants ?? 
 const selected = computed(() => product.value?.variants.find((v) => v.id === selectedId.value) ?? defaultVariant(product.value?.variants ?? []))
 const recommendedId = computed(() => recommendedVariant(product.value?.variants ?? [])?.id ?? null)
 const images = computed(() => {
-  const base = product.value ? galleryImages(product.value) : []
+  if (!product.value) return view.value ? [productImageUrl(view.value)] : []
+  const base = galleryImages(product.value)
   // DEV-ONLY: pads with placeholders so the thumbnail/gallery UI can be previewed before real
   // multi-image data exists. `import.meta.dev` is dead-code-eliminated in production builds, so
   // real buyers never see fake thumbnails.
@@ -146,31 +163,52 @@ async function buyNow() {
 </script>
 
 <template>
-  <Skeleton v-if="status === 'pending'" class="h-96 w-full" />
-  <ErrorState v-else-if="!product">
+  <ErrorState v-if="!product && status === 'error'">
     <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
   </ErrorState>
+  <!-- No cached summary (deep link, external nav): skeleton mirrors the real layout so nothing jumps. -->
+  <div v-else-if="!view" class="flex flex-col gap-6 sm:gap-8 lg:gap-10" aria-busy="true">
+    <Skeleton class="h-4 w-48" />
+    <Skeleton class="h-9 w-3/4 max-w-xl" />
+    <div class="grid items-start gap-6 sm:gap-8 lg:grid-cols-[0.85fr_1.1fr_0.85fr] lg:gap-10">
+      <Skeleton class="mx-auto aspect-[3/4] w-full max-w-xs lg:max-w-none" />
+      <div class="order-3 flex flex-col gap-4 lg:order-none">
+        <Skeleton v-for="n in 3" :key="n" class="h-12 w-full" />
+        <Skeleton class="mt-4 h-24 w-full" />
+      </div>
+      <Skeleton class="order-2 hidden h-72 w-full lg:order-none lg:block" />
+    </div>
+  </div>
   <article v-else class="flex flex-col gap-6 sm:gap-8 lg:gap-10">
     <nav aria-label="Migas de pan" class="text-sm text-white/50">
       <ol class="flex flex-wrap items-center gap-2">
         <li><NuxtLink to="/" class="transition hover:text-white">Inicio</NuxtLink></li>
         <li aria-hidden="true">/</li>
-        <li><NuxtLink :to="{ path: '/', query: { platform: product.platform } }" class="transition hover:text-white">{{ product.platform }}</NuxtLink></li>
+        <li><NuxtLink :to="{ path: '/', query: { platform: view.platform } }" class="transition hover:text-white">{{ view.platform }}</NuxtLink></li>
         <li aria-hidden="true">/</li>
-        <li class="min-w-0 truncate text-white/80" aria-current="page">{{ product.name }}</li>
+        <li class="min-w-0 truncate text-white/80" aria-current="page">{{ view.name }}</li>
       </ol>
     </nav>
 
-    <h1 class="text-2xl font-bold leading-tight tracking-tight sm:text-3xl lg:text-4xl">{{ product.name }}</h1>
+    <h1 class="text-2xl font-bold leading-tight tracking-tight sm:text-3xl lg:text-4xl">{{ view.name }}</h1>
 
     <!-- Below `lg` the three columns stack; `order-*` puts the variant picker right under the gallery
          (where a buyer looks first) and pushes specs/description below it. -->
     <div class="grid items-start gap-6 sm:gap-8 lg:grid-cols-[0.85fr_1.1fr_0.85fr] lg:gap-10">
       <div class="mx-auto w-full max-w-xs lg:max-w-none">
-        <ProductGallery :images="images" :alt="product.name" />
+        <ProductGallery :images="images" :alt="view.name" />
       </div>
 
-      <div class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
+      <div v-if="detailLoading" class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10" aria-busy="true">
+        <div class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
+          <Skeleton v-for="n in 3" :key="n" class="h-12 w-full" />
+        </div>
+        <div class="flex flex-col gap-2 border-t border-white/10 pt-8">
+          <Skeleton class="mb-2 h-4 w-40" />
+          <Skeleton v-for="n in 4" :key="n" class="h-3 w-full rounded" />
+        </div>
+      </div>
+      <div v-else-if="product" class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
         <!-- Two specs per row on phones/tablets; desktop keeps the vertical list in its column. -->
         <dl v-if="specs.length" class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
           <div v-for="spec in specs" :key="spec.icon" class="flex items-start gap-2.5 lg:gap-3">
@@ -211,7 +249,7 @@ async function buyNow() {
              floating PurchaseBar at the end of the article, so only the reassurance lines stay here.
              One variant per product now (business rule), so there is nothing left to pick here. -->
         <div class="hidden lg:block">
-          <PurchasePanel :product-name="product.name" :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+          <PurchasePanel :product-name="view.name" :variant="selected" :loading="detailLoading" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
         </div>
         <div class="hidden lg:block">
           <SecurePaymentBadge />
@@ -222,7 +260,7 @@ async function buyNow() {
       </div>
     </div>
 
-    <RecommendedCarousel :current-slug="product.slug" :platform="product.platform" />
+    <RecommendedCarousel :current-slug="view.slug" :platform="view.platform" />
 
     <CollapsibleSection v-if="isDescriptionLong" id="full-description" v-model:open="fullDescriptionOpen" title="Descripción completa">
       <template #icon>
@@ -234,11 +272,12 @@ async function buyNow() {
     </CollapsibleSection>
 
     <PurchaseBar
-      :product-name="product.name"
+      :product-name="view.name"
       v-model="selectedId"
-      :variants="product.variants"
+      :variants="product?.variants"
       :recommended-id="recommendedId"
       :variant="selected"
+      :loading="detailLoading"
       :busy="buying"
       :added-label="feedback === 'added'"
       :error="errorMessage"
