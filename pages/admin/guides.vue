@@ -2,7 +2,7 @@
 import type { GuideRequest } from '~/types/api'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Guías de activación · Admin · CHEKEYS' })
+useHead({ title: 'Guías de activación · Admin · Chekeys' })
 
 const { guides, status, error, refresh, saving, createGuide, updateGuide, deleteGuide } = await useAdminGuides()
 

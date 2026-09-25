@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import type { ProductSummary } from '~/types/api'
-import { SITE_DESCRIPTION } from '~/utils/business'
+import { SITE_DESCRIPTION, SITE_NAME } from '~/utils/business'
 
-useSeo({ title: 'CHEKEYS · Keys, gift cards y suscripciones', description: SITE_DESCRIPTION, path: '/' })
+const seo = useSeo({ title: 'Chekeys · Venta de keys de juegos, Robux y gift cards en LATAM', description: SITE_DESCRIPTION, path: '/' })
+
+// WebSite + Organization tell Google the brand name ("Chekeys" / "CHEKEYS") behind this domain, so a
+// search for the brand resolves to the home page with the right site name and logo.
+const siteUrl = seo.url()
+const brandJsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', '@id': `${siteUrl}#website`, name: SITE_NAME, alternateName: ['CHEKEYS', 'Che Keys'], url: siteUrl, inLanguage: 'es' },
+    { '@type': 'Organization', '@id': `${siteUrl}#organization`, name: SITE_NAME, url: siteUrl, logo: seo.image() },
+  ],
+}).replace(/</g, '\\u003c')
+useHead({ script: [{ type: 'application/ld+json', innerHTML: brandJsonLd }] })
 
 const api = useApi()
 // Pre-selected from `?platform=` so the product breadcrumb can link back to a filtered catalog.
@@ -40,7 +52,10 @@ watch(data, (list) => {
     </div>
     <section id="catalogo" class="flex flex-col gap-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 class="text-2xl font-bold">Catálogo</h2>
+        <div>
+          <h1 class="text-2xl font-bold">Recargá y jugá</h1>
+          <p class="mt-1 text-sm italic text-white/50">Robux, diamantes de Free Fire y keys de juegos, entregados por email en minutos en toda LATAM.</p>
+        </div>
         <PlatformFilter v-model="platform" :platforms="platforms" />
       </div>
       <ErrorState v-if="status === 'error'">

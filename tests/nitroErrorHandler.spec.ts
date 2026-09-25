@@ -13,9 +13,9 @@ describe('nuxt.config error pipeline', () => {
     const head = config.app?.head
     const meta = (key: 'name' | 'property', value: string) => head?.meta?.find((m) => m?.[key] === value)?.content
 
-    expect(head?.title).toBe('CHEKEYS')
+    expect(head?.title).toBe('Chekeys')
     expect(meta('name', 'description')).toBeTruthy()
     expect(meta('name', 'theme-color')).toBe('#0A0A0E')
-    expect(meta('property', 'og:site_name')).toBe('CHEKEYS')
+    expect(meta('property', 'og:site_name')).toBe('Chekeys')
   })
 })

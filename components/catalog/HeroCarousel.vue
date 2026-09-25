@@ -55,7 +55,7 @@ const overlayButton = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 ite
     @focusout="paused = false"
   >
     <div v-for="(slide, i) in slides" v-show="i === active" :key="slide.id" class="absolute inset-0">
-      <h1 class="sr-only">{{ slide.title }}</h1>
+      <h2 class="sr-only">{{ slide.title }}</h2>
       <NuxtLink :to="slide.productSlug ? `/product/${slide.productSlug}` : '/#catalogo'" class="block h-full w-full focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
         <img
           :src="slide.imageUrl"

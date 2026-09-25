@@ -12,7 +12,7 @@ const { data: guide, status, error, refresh } = await useAsyncData(`guide-${slug
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Guía no encontrada', fatal: true })
 
-useHead({ title: () => (guide.value ? `${guide.value.title} · CHEKEYS` : 'CHEKEYS') })
+useHead({ title: () => (guide.value ? `${guide.value.title} · Chekeys` : 'Chekeys') })
 
 const contentHtml = computed(() => (guide.value ? renderMarkdown(guide.value.contentMarkdown) : ''))
 </script>

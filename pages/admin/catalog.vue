@@ -12,7 +12,7 @@ import {
 } from '~/utils/adminCatalogFilter'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Catálogo · Admin · CHEKEYS' })
+useHead({ title: 'Catálogo · Admin · Chekeys' })
 
 const route = useRoute()
 const highlightedProductId = typeof route.query.product === 'string' ? route.query.product : undefined

@@ -90,7 +90,7 @@ describe('HeroCarousel', () => {
     // Fallback slides have no real product behind them; they link to the catalog anchor.
     expect(wrapper.find('a').attributes('href')).toBe('/#catalogo')
     // Neutral copy only: no hard-coded discount claims that the catalog prices might contradict.
-    expect(wrapper.findAll('h1').map((h) => h.text())).toEqual(['Keys para tus juegos favoritos', 'Gift cards y suscripciones', 'Pagá seguro con Mercado Pago'])
+    expect(wrapper.findAll('h2').map((h) => h.text())).toEqual(['Keys para tus juegos favoritos', 'Gift cards y suscripciones', 'Pagá seguro con Mercado Pago'])
     expect(wrapper.text()).not.toContain('%')
   })
 

@@ -10,7 +10,7 @@ type Outcome = 'approved' | 'pending' | 'rejected' | 'unknown'
 // `pending` splits once polling gives up: same order state, different message and no spinner.
 type CopyKey = Outcome | 'exhausted'
 
-useHead({ title: 'Resultado del pago · CHEKEYS' })
+useHead({ title: 'Resultado del pago · Chekeys' })
 
 const route = useRoute()
 const api = useApi()

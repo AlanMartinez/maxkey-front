@@ -30,6 +30,13 @@ export default defineNuxtConfig({
       devAdminToken: '',
     },
   },
+  // Private and transactional pages stay out of search results even if a link to them leaks.
+  routeRules: {
+    '/admin/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/account/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/checkout/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/auth/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+  },
   app: {
     head: {
       htmlAttrs: { lang: 'es' },

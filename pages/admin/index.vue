@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Admin · CHEKEYS' })
+useHead({ title: 'Admin · Chekeys' })
 </script>
 
 <template>

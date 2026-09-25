@@ -5,7 +5,7 @@ import { REDIRECT_COOKIE_KEY } from '~/composables/useAuth'
 // bounded window before showing a retry state instead of spinning forever.
 const WAIT_TIMEOUT_MS = 8000
 
-useHead({ title: 'Conectando… · CHEKEYS' })
+useHead({ title: 'Conectando… · Chekeys' })
 
 const user = useSupabaseUser()
 const redirect = useCookie<string | null>(REDIRECT_COOKIE_KEY, { path: '/', maxAge: 60 * 10 })

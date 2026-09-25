@@ -9,8 +9,8 @@ export const CONSUMER_DEFENSE_URL = 'https://www.argentina.gob.ar/produccion/def
 export const WITHDRAWAL_DAYS = 10
 
 // No alias imports here on purpose: nuxt.config.ts imports this file relatively for the default <head>.
-export const SITE_NAME = 'CHEKEYS'
-export const SITE_DESCRIPTION = 'Keys para juegos, gift cards y suscripciones, con entrega rápida y pago seguro con Mercado Pago.'
+export const SITE_NAME = 'Chekeys'
+export const SITE_DESCRIPTION = 'Venta de keys de juegos, Robux, gift cards y suscripciones en LATAM. Entrega rápida por email y pago seguro con Mercado Pago.'
 
 /**
  * One-line legal identity for the "Responsable" paragraphs: "Razón Social, CUIT 30-…, con domicilio en …".

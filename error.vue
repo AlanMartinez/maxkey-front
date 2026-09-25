@@ -11,7 +11,7 @@ const copy = computed(() => (isNotFound.value
   ? { title: 'No encontramos esta página', detail: 'El link puede estar vencido o mal escrito.', cta: 'Ir al catálogo' }
   : { title: 'Algo salió mal', detail: 'Tuvimos un problema al cargar esta página. Si el error sigue, escribinos y lo revisamos.', cta: 'Volver al inicio' }))
 
-useHead({ title: () => `${copy.value.title} · CHEKEYS` })
+useHead({ title: () => `${copy.value.title} · Chekeys` })
 
 const helpHref = whatsappUrl('Hola, llegué a una página que no existe en CHEKEYS y necesito ayuda')
 
