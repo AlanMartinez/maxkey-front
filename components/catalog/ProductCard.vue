@@ -11,7 +11,6 @@ const discount = computed(() =>
 
 const api = useApi()
 const cart = useCart()
-const preview = useProductPreview()
 type Feedback = 'added' | 'max-items' | 'error' | null
 const adding = ref(false)
 const feedback = ref<Feedback>(null)
@@ -55,7 +54,7 @@ const buttonLabel = computed(() => {
        add button collapse; the button keeps its label for screen readers but shows icon only. -->
   <article class="glass flex flex-col overflow-hidden rounded-xl border-0 transition duration-200 hover:z-10 hover:scale-[1.04] hover:shadow-xl hover:shadow-black/40 sm:rounded-2xl">
     <!-- The link covers image and copy; the add button stays a sibling so it never triggers navigation. -->
-    <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent" @click="preview.remember(product)">
+    <NuxtLink :to="`/product/${product.slug}`" class="flex flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent">
       <div class="relative aspect-[3/4] overflow-hidden bg-white/5">
         <img :src="productImageUrl(product)" :alt="product.name" loading="lazy" class="h-full w-full object-cover" />
         <span

@@ -1,29 +1,41 @@
 <script setup lang="ts">
-import type { ProductVariantDto } from '~/types/api'
+import type { ProductSummary, ProductVariantDto } from '~/types/api'
 
-const props = withDefaults(defineProps<{ productName: string; variant?: ProductVariantDto; loading?: boolean; busy?: boolean; addedLabel?: boolean; error?: string | null }>(), {
-  variant: undefined,
-  loading: false,
-  busy: false,
-  addedLabel: false,
-  error: null,
-})
+const props = withDefaults(
+  defineProps<{
+    productName: string
+    variant?: ProductVariantDto
+    /** Catalog price shown until the variant arrives, so the price never blinks into a skeleton. */
+    preview?: Pick<ProductSummary, 'fromPrice' | 'oldPrice'>
+    loading?: boolean
+    busy?: boolean
+    addedLabel?: boolean
+    error?: string | null
+  }>(),
+  {
+    variant: undefined,
+    preview: undefined,
+    loading: false,
+    busy: false,
+    addedLabel: false,
+    error: null,
+  },
+)
 defineEmits<{ buy: []; add: [] }>()
 
-const discount = computed(() =>
-  props.variant?.oldPrice ? Math.round((1 - props.variant.price / props.variant.oldPrice) * 100) : 0,
-)
+const shownPrice = computed(() => displayPrice(props.variant, props.preview))
+const discount = computed(() => discountPercent(shownPrice.value))
 </script>
 
 <template>
   <section class="glass flex flex-col gap-3 rounded-2xl p-6" aria-label="Comprar">
-    <div v-if="variant" class="mb-2 flex flex-col gap-1">
+    <div v-if="shownPrice" class="mb-2 flex flex-col gap-1">
       <p class="text-sm font-semibold text-white/70">{{ productName }}</p>
       <p class="flex flex-wrap items-baseline gap-2.5">
-        <span class="font-display text-3xl font-bold">{{ formatMoney(variant.price, variant.currency) }}</span>
+        <span class="font-display text-3xl font-bold">{{ formatMoney(shownPrice.price, shownPrice.currency) }}</span>
         <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
       </p>
-      <p v-if="variant.oldPrice" class="text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</p>
+      <p v-if="shownPrice.oldPrice" class="text-white/40 line-through">{{ formatMoney(shownPrice.oldPrice, shownPrice.currency) }}</p>
     </div>
     <div v-else-if="loading" class="mb-2 flex flex-col gap-2" aria-busy="true">
       <p class="text-sm font-semibold text-white/70">{{ productName }}</p>
