@@ -17,6 +17,9 @@ const { data: allProducts, status } = useAsyncData(
 )
 const loading = computed(() => status.value === 'pending' && !allProducts.value?.length)
 
+const previews = useProductPreviewStore()
+watch(allProducts, (list) => previews.rememberAll(list ?? []), { immediate: true })
+
 const MAX_ITEMS = 16
 // Same-platform products lead the list (closest to "related"); the rest of the catalog fills the
 // remainder. There's no category/tag field to do real relatedness with (see types/api.ts).

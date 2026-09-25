@@ -10,8 +10,9 @@ import { SITE_DESCRIPTION, SITE_NAME } from '~/utils/business'
 const slug = useRoute().params.slug as string
 const api = useApi()
 
-// Summary cached when a catalog card was clicked: lets name, image and price paint before the detail arrives.
-const preview = useProductPreview().get(slug)
+// Summary from a catalog list seen this session: name, image, price and platform paint before the detail arrives.
+const previews = useProductPreviewStore()
+const preview = computed(() => previews.get(slug))
 
 // Catalog spec: Product Detail Lookup (GET /catalog/products/{slug}; unknown or inactive slug → 404).
 // SSR still awaits the detail (SEO, real 404); client navigation is lazy so the route switches instantly.
@@ -30,7 +31,7 @@ watch(error, () => {
 })
 
 const detailLoading = computed(() => !product.value && status.value !== 'error')
-const view = computed(() => product.value ?? preview)
+const view = computed(() => product.value ?? preview.value)
 
 // Meta description is the plain-text description (Markdown stripped) clipped to the ~160 chars search engines show.
 const SEO_DESCRIPTION_LIMIT = 160
@@ -92,17 +93,19 @@ type SpecItem = {
 // Static legend shown under "Tipo" regardless of which value is selected.
 const TYPE_LEGEND = 'Esta es una edición digital del producto (CD-KEY).\nEntrega inmediata.'
 
+// Platform comes from the catalog summary, so it renders immediately; region and type need the detail.
 const specs = computed<SpecItem[]>(() => {
-  if (!product.value) return []
+  if (!view.value) return []
   const items: SpecItem[] = [
     {
       icon: 'platform',
       label: '',
-      value: product.value.platform,
-      caption: `Se activa en ${product.value.platform}`,
-      action: product.value.activationGuideSlug ? { text: 'Consulta la guía de activación', href: `/article/${product.value.activationGuideSlug}` } : undefined,
+      value: view.value.platform,
+      caption: `Se activa en ${view.value.platform}`,
+      action: product.value?.activationGuideSlug ? { text: 'Consulta la guía de activación', href: `/article/${product.value.activationGuideSlug}` } : undefined,
     },
   ]
+  if (!product.value) return items
   // Reuses the same per-variant regions VariantSelector shows chips for — there's no separate
   // product-level "activation region" field, and these are the regions the product actually sells in.
   const regions = [...new Set(product.value.variants.map((v) => v.region).filter((r): r is string => !!r))]
@@ -199,16 +202,7 @@ async function buyNow() {
         <ProductGallery :images="images" :alt="view.name" />
       </div>
 
-      <div v-if="detailLoading" class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10" aria-busy="true">
-        <div class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
-          <Skeleton v-for="n in 3" :key="n" class="h-12 w-full" />
-        </div>
-        <div class="flex flex-col gap-2 border-t border-white/10 pt-8">
-          <Skeleton class="mb-2 h-4 w-40" />
-          <Skeleton v-for="n in 4" :key="n" class="h-3 w-full rounded" />
-        </div>
-      </div>
-      <div v-else-if="product" class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
+      <div class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
         <!-- Two specs per row on phones/tablets; desktop keeps the vertical list in its column. -->
         <dl v-if="specs.length" class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
           <div v-for="spec in specs" :key="spec.icon" class="flex items-start gap-2.5 lg:gap-3">
@@ -232,13 +226,25 @@ async function buyNow() {
               <NuxtLink v-if="spec.action" :to="spec.action.href" class="self-start text-xs font-medium text-accent hover:text-accent-hover">{{ spec.action.text }}</NuxtLink>
             </div>
           </div>
+          <template v-if="detailLoading">
+            <div v-for="n in 2" :key="`spec-skeleton-${n}`" class="flex items-start gap-2.5 lg:gap-3" aria-busy="true">
+              <Skeleton class="h-8 w-8 shrink-0 lg:h-9 lg:w-9" />
+              <div class="flex flex-1 flex-col gap-1.5">
+                <Skeleton class="h-3 w-20 rounded" />
+                <Skeleton class="h-4 w-28 rounded" />
+              </div>
+            </div>
+          </template>
         </dl>
 
         <section aria-labelledby="about-heading" class="border-t border-white/10 pt-8">
           <h2 id="about-heading" class="mb-4 text-sm font-semibold uppercase tracking-wide text-white/70">Sobre este producto</h2>
+          <div v-if="detailLoading" class="flex flex-col gap-2" aria-busy="true">
+            <Skeleton v-for="n in 4" :key="n" class="h-3 w-full rounded" />
+          </div>
           <!-- Short descriptions render full Markdown inline; long ones show a plain-text clamp — clamping
                formatted HTML (lists, headings) would clip mid-element and look broken. -->
-          <div v-if="!isDescriptionLong" class="markdown-body text-sm leading-relaxed text-white/60" v-html="descriptionHtml" />
+          <div v-else-if="!isDescriptionLong" class="markdown-body text-sm leading-relaxed text-white/60" v-html="descriptionHtml" />
           <p v-else class="line-clamp-4 text-sm leading-relaxed text-white/60">{{ descriptionPreview }}</p>
           <button v-if="isDescriptionLong" type="button" class="mt-2 text-sm font-medium text-accent hover:text-accent-hover" @click="scrollToFullDescription()">Leer más</button>
         </section>
@@ -249,7 +255,7 @@ async function buyNow() {
              floating PurchaseBar at the end of the article, so only the reassurance lines stay here.
              One variant per product now (business rule), so there is nothing left to pick here. -->
         <div class="hidden lg:block">
-          <PurchasePanel :product-name="view.name" :variant="selected" :loading="detailLoading" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+          <PurchasePanel :product-name="view.name" :variant="selected" :preview="view" :loading="detailLoading" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
         </div>
         <div class="hidden lg:block">
           <SecurePaymentBadge />
@@ -277,6 +283,7 @@ async function buyNow() {
       :variants="product?.variants"
       :recommended-id="recommendedId"
       :variant="selected"
+      :preview="view"
       :loading="detailLoading"
       :busy="buying"
       :added-label="feedback === 'added'"
