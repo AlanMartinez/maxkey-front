@@ -36,7 +36,10 @@ describe('ProductCard', () => {
 
     expect(wrapper.find('a').attributes('href')).toBe('/product/riot-points')
     expect(wrapper.text()).toContain('9.990')
-    expect(wrapper.text()).toContain('-12%')
+    expect(wrapper.text()).toContain('DESC 12%')
+    expect(wrapper.text()).not.toContain('Descuento')
+    expect(wrapper.text()).not.toContain('Desde')
+    expect(wrapper.text().indexOf('DESC 12%')).toBeLessThan(wrapper.text().indexOf('9.990'))
     expect(wrapper.findComponent({ name: 'PlatformLogo' }).exists()).toBe(false)
   })
 
@@ -49,14 +52,14 @@ describe('ProductCard', () => {
   it('keeps the green discount badge and no offer ribbon at exactly 50%', async () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, fromPrice: 5000, oldPrice: 10000 } } })
 
-    expect(wrapper.find('.bg-discount').text()).toBe('-50%')
+    expect(wrapper.find('.bg-discount').text()).toBe('DESC 50%')
     expect(wrapper.find('[data-testid="offer-ribbon"]').exists()).toBe(false)
   })
 
   it('shows an orange offer badge and ribbon above 50%', async () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, fromPrice: 4900, oldPrice: 10000 } } })
 
-    expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === '-51%')).toBe(true)
+    expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === 'DESC 51%')).toBe(true)
     expect(wrapper.find('[data-testid="offer-ribbon"]').text()).toBe('OFERTA')
     expect(wrapper.find('[data-testid="offer-ribbon"]').attributes('aria-label')).toBe('Oferta especial')
   })

@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import type { CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLATFORMS } from '~/utils/platforms'
+import {
+  type CatalogFilters as CatalogFilterState,
+  DEFAULT_CATALOG_FILTERS,
+  catalogFiltersFromQuery,
+  catalogFiltersToQuery,
+  catalogPlatformOptions,
+  filterCatalog,
+  hasActiveCatalogFilters,
+} from '~/utils/adminCatalogFilter'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Catálogo · Admin · CHEKEYS' })
@@ -38,12 +47,30 @@ const newProduct = ref({ slug: '', name: '', platform: '', description: '', imag
 const newProductUpload = ref<(() => Promise<string[]>)>()
 const uploadingNewProductMedia = ref(false)
 
-// Client-side filter — the admin list has no pagination, and a text filter is enough at this scale.
-const search = ref('')
-const filteredProducts = computed(() => {
-  const term = search.value.trim().toLowerCase()
-  if (!term) return products.value
-  return products.value.filter((p) => p.name.toLowerCase().includes(term) || p.platform.toLowerCase().includes(term) || p.slug.toLowerCase().includes(term))
+// Client-side filters (the admin endpoint returns the whole catalog); mirrored in the URL so a reload
+// or a shared link keeps them. The Vault `product` param is preserved alongside.
+const router = useRouter()
+const filters = ref<CatalogFilterState>(catalogFiltersFromQuery(route.query))
+watch(filters, (value) => {
+  const keep = typeof route.query.product === 'string' ? { product: route.query.product } : {}
+  router.replace({ query: { ...keep, ...catalogFiltersToQuery(value) } })
+})
+const filtersActive = computed(() => hasActiveCatalogFilters(filters.value))
+function clearFilters() {
+  filters.value = { ...DEFAULT_CATALOG_FILTERS }
+}
+
+const platformOptions = computed(() => catalogPlatformOptions(products.value))
+const filteredProducts = computed(() => filterCatalog(products.value, filters.value))
+
+// Each ProductEditor is a full form; mounting hundreds at once makes the page sluggish, so it grows in pages.
+const PAGE_SIZE = 20
+const visibleCount = ref(PAGE_SIZE)
+watch(filters, () => (visibleCount.value = PAGE_SIZE))
+const visibleProducts = computed(() => {
+  // The Vault deep-link target must render even when it falls past the first page.
+  const highlightedIndex = highlightedProductId ? filteredProducts.value.findIndex((p) => p.id === highlightedProductId) : -1
+  return filteredProducts.value.slice(0, Math.max(visibleCount.value, highlightedIndex + 1))
 })
 
 async function submitNewProduct() {
@@ -109,12 +136,14 @@ async function submitNewProduct() {
       <AppButton type="submit" size="sm" :loading="saving" class="self-start">Crear producto</AppButton>
     </form>
 
-    <input
+    <CatalogFilters
       v-if="products.length"
-      v-model="search"
-      type="search"
-      placeholder="Buscar por nombre, plataforma o slug…"
-      class="h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent"
+      v-model="filters"
+      :platforms="platformOptions"
+      :shown="filteredProducts.length"
+      :total="products.length"
+      :active="filtersActive"
+      @clear="clearFilters"
     />
 
     <div v-if="status === 'pending'" class="grid gap-4">
@@ -124,10 +153,12 @@ async function submitNewProduct() {
       <template #retry><AppButton variant="ghost" @click="refresh()">Reintentar</AppButton></template>
     </ErrorState>
     <EmptyState v-else-if="!products.length" title="Todavía no hay productos" />
-    <EmptyState v-else-if="!filteredProducts.length" title="Ningún producto coincide con la búsqueda" />
+    <EmptyState v-else-if="!filteredProducts.length" title="Ningún producto coincide con los filtros">
+      <AppButton variant="ghost" size="sm" @click="clearFilters">Limpiar filtros</AppButton>
+    </EmptyState>
     <div v-else class="grid gap-4">
       <ProductEditor
-        v-for="product in filteredProducts"
+        v-for="product in visibleProducts"
         :key="product.id"
         :product="product"
         :guides="guides"
@@ -139,6 +170,16 @@ async function submitNewProduct() {
         @delete-variant="(variantId: string) => deleteVariant(product.id, variantId)"
         @create-variant="(body: CreateProductVariantRequest) => createVariant(product.id, body)"
       />
+      <AppButton
+        v-if="visibleProducts.length < filteredProducts.length"
+        variant="ghost"
+        size="sm"
+        class="self-center"
+        data-testid="show-more"
+        @click="visibleCount += PAGE_SIZE"
+      >
+        Mostrar más ({{ filteredProducts.length - visibleProducts.length }} restantes)
+      </AppButton>
     </div>
   </section>
 </template>

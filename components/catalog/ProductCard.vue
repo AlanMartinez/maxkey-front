@@ -76,9 +76,8 @@ const buttonLabel = computed(() => {
         </h3>
         <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span v-if="!compact" class="hidden text-white/50 sm:inline">Desde</span>
+            <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">DESC {{ discount }}%</AppBadge>
             <span class="text-base font-semibold">{{ formatMoney(product.fromPrice) }}</span>
-            <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
           </p>
           <p v-if="product.oldPrice && !compact" class="text-white/40 line-through">{{ formatMoney(product.oldPrice) }}</p>
         </div>
