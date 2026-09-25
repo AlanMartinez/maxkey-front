@@ -31,21 +31,13 @@ beforeEach(() => {
 })
 
 describe('ProductCard', () => {
-  it('links to the product page and shows platform, price and discount', async () => {
+  it('links to the product page and shows price and discount, without the platform logo', async () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product } })
 
     expect(wrapper.find('a').attributes('href')).toBe('/product/riot-points')
-    expect(wrapper.text()).toContain('Riot Games')
     expect(wrapper.text()).toContain('9.990')
     expect(wrapper.text()).toContain('-12%')
-  })
-
-  it('shows the platform logo instead of its name for a known platform', async () => {
-    const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, platform: 'Steam' } } })
-
-    const logo = wrapper.find('img[alt="Steam"]')
-    expect(logo.attributes('src')).toBe('/images/platforms/color/steam.svg')
-    expect(wrapper.text()).not.toContain('Steam')
+    expect(wrapper.findComponent({ name: 'PlatformLogo' }).exists()).toBe(false)
   })
 
   it('hides the discount badge without an old price', async () => {

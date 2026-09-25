@@ -74,10 +74,6 @@ const buttonLabel = computed(() => {
         >
           {{ product.name }}
         </h3>
-        <!-- A 16px mark fits the ~110px phone card where the old text badge had to wait for `sm`. -->
-        <div class="flex items-center">
-          <PlatformLogo :platform="product.platform" />
-        </div>
         <div class="mt-auto flex flex-col gap-1 text-xs sm:text-sm">
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span v-if="!compact" class="hidden text-white/50 sm:inline">Desde</span>

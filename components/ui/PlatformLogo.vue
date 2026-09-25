@@ -5,7 +5,7 @@ const props = withDefaults(defineProps<{ platform: string; size?: 'sm' | 'md' }>
 
 const entry = computed(() => findPlatform(props.platform))
 const badgeSizes = { sm: 'h-5 w-5', md: 'h-8 w-8 lg:h-9 lg:w-9' }
-const glyphSizes = { sm: 'h-3 w-3', md: 'h-4.5 w-4.5' }
+const glyphSizes = { sm: 'h-3 w-3', md: 'h-5 w-5' }
 </script>
 
 <template>

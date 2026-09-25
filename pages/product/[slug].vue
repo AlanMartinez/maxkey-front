@@ -176,7 +176,7 @@ async function buyNow() {
           <div v-for="spec in specs" :key="spec.icon" class="flex items-start gap-2.5 lg:gap-3">
             <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" class="shrink-0" />
             <span v-else class="flex h-8 w-8 shrink-0 items-center justify-center text-white/70 lg:h-9 lg:w-9">
-              <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <template v-if="spec.icon === 'region'">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M3 12h18M12 3c2.2 2.4 3.5 5.5 3.5 9s-1.3 6.6-3.5 9c-2.2-2.4-3.5-5.5-3.5-9s1.3-6.6 3.5-9z" />
