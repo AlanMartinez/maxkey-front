@@ -58,7 +58,7 @@ const menuIcon = 'h-4 w-4 shrink-0 text-white/50'
   <header class="glass sticky top-0 z-40 border-x-0 border-t-0">
     <div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 sm:h-16 sm:gap-6">
       <NuxtLink to="/" class="flex items-center" aria-label="CHEKEYS">
-        <img src="/images/logo/logo_letras.png" alt="CHEKEYS" class="h-10 w-auto sm:h-12" />
+        <img src="/images/logo/logo_letras.png" alt="CHEKEYS" class="-ml-3 h-14 w-auto sm:-ml-4 sm:h-16" />
       </NuxtLink>
       <!-- `ml-auto` sits on the actions group, not on the search box: the box is hidden on phones,
            so anchoring the margin there left the cart and account floating mid-bar. -->
