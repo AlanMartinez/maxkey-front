@@ -2,6 +2,7 @@
 import type { AdminCurrency, AdminProduct, CreateProductVariantRequest, GuideDto, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLACEHOLDER_IMAGE } from '~/utils/productImage'
 import { PLATFORMS, findPlatform } from '~/utils/platforms'
+import { PRODUCT_TYPES } from '~/utils/productTypes'
 
 const props = defineProps<{ product: AdminProduct; guides: GuideDto[]; saving: boolean; initiallyExpanded?: boolean }>()
 const emit = defineEmits<{
@@ -228,7 +229,10 @@ function submitNewVariant() {
           <div class="grid gap-4 md:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)] md:items-end">
             <label class="flex min-w-0 flex-col gap-2 text-sm">
               <span class="text-white/70">Tipo</span>
-              <input v-model="activationType" type="text" placeholder="Enlace de activación" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent" />
+              <select v-model="activationType" class="h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-accent">
+                <option value="">Sin definir</option>
+                <option v-for="option in PRODUCT_TYPES" :key="option" :value="option">{{ option }}</option>
+              </select>
             </label>
 
             <label class="flex min-w-0 flex-col gap-2 text-sm">

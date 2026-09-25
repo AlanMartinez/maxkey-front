@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ProductVariantDto } from '~/types/api'
 
-const props = withDefaults(defineProps<{ variant?: ProductVariantDto; busy?: boolean; addedLabel?: boolean; error?: string | null }>(), {
+const props = withDefaults(defineProps<{ productName: string; variant?: ProductVariantDto; busy?: boolean; addedLabel?: boolean; error?: string | null }>(), {
   variant: undefined,
   busy: false,
   addedLabel: false,
@@ -17,9 +17,7 @@ const discount = computed(() =>
 <template>
   <section class="glass flex flex-col gap-3 rounded-2xl p-6" aria-label="Comprar">
     <div v-if="variant" class="mb-2 flex flex-col gap-1">
-      <p class="text-sm font-semibold text-white/70">
-        {{ variant.name }}<span v-if="variant.edition" class="font-normal text-white/50"> · {{ variant.edition }}</span>
-      </p>
+      <p class="text-sm font-semibold text-white/70">{{ productName }}</p>
       <p class="flex flex-wrap items-baseline gap-2.5">
         <span class="font-display text-3xl font-bold">{{ formatMoney(variant.price, variant.currency) }}</span>
         <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>

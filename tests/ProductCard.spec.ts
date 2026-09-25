@@ -44,7 +44,7 @@ describe('ProductCard', () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product: { ...product, platform: 'Steam' } } })
 
     const logo = wrapper.find('img[alt="Steam"]')
-    expect(logo.attributes('src')).toBe('/images/platforms/steam.svg')
+    expect(logo.attributes('src')).toBe('/images/platforms/color/steam.svg')
     expect(wrapper.text()).not.toContain('Steam')
   })
 
