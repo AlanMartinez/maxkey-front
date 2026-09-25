@@ -2,7 +2,7 @@
 import type { AdminBuyerOrder, OrderStatus } from '~/types/api'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Compradores · Admin · CHEKEYS' })
+useHead({ title: 'Compradores · Admin · Chekeys' })
 
 // admin-buyers spec: Buyer Listing Grouped By Email + Resend Delivery Email; design D4.
 // Table is flattened to one row per order (see BuyerOrderRow.vue) rather than grouped cards, to scale

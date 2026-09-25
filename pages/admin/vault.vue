@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
-useHead({ title: 'Vault · Admin · CHEKEYS' })
+useHead({ title: 'Vault · Admin · Chekeys' })
 
 const route = useRoute()
 const highlightedProductId = typeof route.query.product === 'string' ? route.query.product : undefined

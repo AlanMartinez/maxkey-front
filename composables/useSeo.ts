@@ -14,9 +14,9 @@ export interface SeoParams {
   type?: 'website' | 'product' | 'article'
 }
 
-/** "Ayuda" → "Ayuda · CHEKEYS"; titles that already name the brand are kept verbatim. */
+/** "Ayuda" → "Ayuda · Chekeys"; titles that already name the brand (any casing, e.g. "CHEKEYS") are kept verbatim. */
 export function seoTitle(title: string): string {
-  return title.includes(SITE_NAME) ? title : `${title} · ${SITE_NAME}`
+  return title.toLowerCase().includes(SITE_NAME.toLowerCase()) ? title : `${title} · ${SITE_NAME}`
 }
 
 /** Joins a path to the site origin; absolute URLs pass through untouched. */

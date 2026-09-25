@@ -15,7 +15,7 @@ const { data: order, status, error, refresh } = await useAsyncData(`order-${id}`
 const httpStatus = error.value?.statusCode ?? (error.value?.cause as ApiError | undefined)?.status
 if (httpStatus === 404) throw createError({ statusCode: 404, statusMessage: 'Pedido no encontrado', fatal: true })
 
-useHead({ title: 'Detalle de compra · CHEKEYS' })
+useHead({ title: 'Detalle de compra · Chekeys' })
 
 // key-delivery-gate (PR #49): decrypt-and-return is server-side, idempotent, and permanent — once
 // revealed, `item.keys` holds the codes for good, so no client-side "revealed" flag needs persisting.
