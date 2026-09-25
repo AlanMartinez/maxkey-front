@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resizedImageUrl } from '~/utils/productImage'
+
 const props = defineProps<{ images: string[]; alt: string }>()
 
 const mainImage = computed(() => props.images[0])
@@ -57,7 +59,7 @@ watch(isZoomOpen, async (open) => {
     <div class="glass group relative aspect-[3/4] overflow-hidden rounded-2xl bg-white/5">
       <img
         v-if="mainImage"
-        :src="mainImage"
+        :src="resizedImageUrl(mainImage, 800)"
         :alt="alt"
         class="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] group-focus-within:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
       />
@@ -87,7 +89,7 @@ watch(isZoomOpen, async (open) => {
         @click="openZoom(i + 1)"
       >
         <img
-          :src="image"
+          :src="resizedImageUrl(image, 200)"
           :alt="`${alt} — vista ${i + 2}`"
           loading="lazy"
           class="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05] group-focus-visible:scale-[1.05] motion-reduce:transform-none motion-reduce:transition-none"
