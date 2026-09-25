@@ -28,7 +28,7 @@ const identity = computed(() => [BUSINESS.legalName, BUSINESS.cuit && `CUIT ${BU
       <div class="grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div class="sm:col-span-2 lg:col-span-1">
           <NuxtLink to="/" class="inline-flex" aria-label="CHEKEYS">
-            <img src="/images/logo/logo_letras.png" alt="CHEKEYS" class="h-9 w-auto" />
+            <img src="/images/logo/logo_letras.png" alt="CHEKEYS" class="h-12 w-auto" />
           </NuxtLink>
           <p class="mt-4 max-w-xs leading-relaxed text-white/50">{{ SITE_DESCRIPTION }}</p>
         </div>
