@@ -16,8 +16,13 @@ const preview = computed(() => previews.get(slug))
 
 // Catalog spec: Product Detail Lookup (GET /catalog/products/{slug}; unknown or inactive slug → 404).
 // SSR still awaits the detail (SEO, real 404); client navigation is lazy so the route switches instantly.
-const { data: product, status, error, refresh } = await useAsyncData(`product-${slug}`, () => api<ProductDetail>(`/catalog/products/${slug}`), {
+// Revisits within the TTL reuse the last response instead of refetching.
+const DETAIL_TTL_MS = 5 * 60 * 1000
+const detailKey = `product-${slug}`
+const detail = ttlCache(detailKey, DETAIL_TTL_MS, () => api<ProductDetail>(`/catalog/products/${slug}`))
+const { data: product, status, error, refresh } = await useAsyncData(detailKey, detail.handler, {
   lazy: import.meta.client,
+  getCachedData: detail.getCachedData,
 })
 
 const notFound = () => {
