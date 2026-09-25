@@ -3,6 +3,7 @@ import type { ProductVariantDto } from '~/types/api'
 
 const props = withDefaults(
   defineProps<{
+    productName: string
     variants?: ProductVariantDto[]
     modelValue?: string | null
     recommendedId?: string | null
@@ -54,7 +55,7 @@ const discount = computed(() =>
 
     <div class="flex items-center gap-3 px-4">
       <div class="flex min-w-0 flex-1 flex-col">
-        <span v-if="variant" class="truncate text-xs text-white/60">{{ variant.name }}</span>
+        <span class="truncate text-xs text-white/60">{{ productName }}</span>
         <span class="flex flex-wrap items-baseline gap-x-2">
           <span class="font-display text-xl font-bold">{{ variant ? formatMoney(variant.price, variant.currency) : '—' }}</span>
           <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>

@@ -63,26 +63,37 @@ const images = computed(() => {
   return base
 })
 
-type SpecItem = { icon: 'platform' | 'region' | 'type'; label: string; value: string; action?: { text: string; href: string } }
+type SpecItem = {
+  icon: 'platform' | 'region' | 'type'
+  label: string
+  value: string
+  caption?: string
+  captionItalic?: boolean
+  action?: { text: string; href: string }
+}
+
+// Static legend shown under "Tipo" regardless of which value is selected.
+const TYPE_LEGEND = 'Esta es una edición digital del producto (CD-KEY).\nEntrega inmediata.'
 
 const specs = computed<SpecItem[]>(() => {
   if (!product.value) return []
   const items: SpecItem[] = [
-    { icon: 'platform', label: 'Plataforma', value: product.value.platform },
+    {
+      icon: 'platform',
+      label: '',
+      value: product.value.platform,
+      caption: `Se activa en ${product.value.platform}`,
+      action: product.value.activationGuideSlug ? { text: 'Consulta la guía de activación', href: `/article/${product.value.activationGuideSlug}` } : undefined,
+    },
   ]
   // Reuses the same per-variant regions VariantSelector shows chips for — there's no separate
   // product-level "activation region" field, and these are the regions the product actually sells in.
   const regions = [...new Set(product.value.variants.map((v) => v.region).filter((r): r is string => !!r))]
   if (regions.length) {
-    items.push({
-      icon: 'region',
-      label: 'Puede activarse en',
-      value: regions.join(' / '),
-      action: product.value.activationGuideSlug ? { text: 'Consultar guía de activación', href: `/article/${product.value.activationGuideSlug}` } : undefined,
-    })
+    items.push({ icon: 'region', label: 'Puede activarse en', value: regions.join(' / ') })
   }
   // Defaults to "Enlace de activación" — the common case for this catalog — when the product hasn't set one yet.
-  items.push({ icon: 'type', label: 'Tipo', value: product.value.activationType || 'Enlace de activación' })
+  items.push({ icon: 'type', label: 'Tipo', value: product.value.activationType || 'Enlace de activación', caption: TYPE_LEGEND, captionItalic: true })
   return items
 })
 
@@ -162,15 +173,11 @@ async function buyNow() {
       <div class="order-3 flex flex-col gap-8 lg:order-none lg:gap-10">
         <!-- Two specs per row on phones/tablets; desktop keeps the vertical list in its column. -->
         <dl v-if="specs.length" class="grid grid-cols-2 gap-5 lg:flex lg:flex-col lg:gap-7">
-          <div v-for="spec in specs" :key="spec.label" class="flex items-start gap-2.5 lg:gap-3">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 lg:h-9 lg:w-9">
+          <div v-for="spec in specs" :key="spec.icon" class="flex items-start gap-2.5 lg:gap-3">
+            <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" class="shrink-0" />
+            <span v-else class="flex h-8 w-8 shrink-0 items-center justify-center text-white/70 lg:h-9 lg:w-9">
               <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <template v-if="spec.icon === 'platform'">
-                  <rect x="3" y="7" width="18" height="10" rx="3" />
-                  <circle cx="8.5" cy="12" r="1" fill="currentColor" stroke="none" />
-                  <circle cx="15.5" cy="12" r="1" fill="currentColor" stroke="none" />
-                </template>
-                <template v-else-if="spec.icon === 'region'">
+                <template v-if="spec.icon === 'region'">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M3 12h18M12 3c2.2 2.4 3.5 5.5 3.5 9s-1.3 6.6-3.5 9c-2.2-2.4-3.5-5.5-3.5-9s1.3-6.6 3.5-9z" />
                 </template>
@@ -181,11 +188,9 @@ async function buyNow() {
               </svg>
             </span>
             <div class="flex flex-col gap-0.5 text-sm">
-              <dt class="text-white/50">{{ spec.label }}</dt>
-              <dd class="font-semibold text-white">
-                <PlatformLogo v-if="spec.icon === 'platform'" :platform="spec.value" size="md" />
-                <template v-else>{{ spec.value }}</template>
-              </dd>
+              <dt v-if="spec.label" class="text-white/50">{{ spec.label }}</dt>
+              <dd class="font-semibold text-white">{{ spec.value }}</dd>
+              <p v-if="spec.caption" class="whitespace-pre-line text-xs text-white/50" :class="{ italic: spec.captionItalic }">{{ spec.caption }}</p>
               <NuxtLink v-if="spec.action" :to="spec.action.href" class="self-start text-xs font-medium text-accent hover:text-accent-hover">{{ spec.action.text }}</NuxtLink>
             </div>
           </div>
@@ -206,7 +211,7 @@ async function buyNow() {
              floating PurchaseBar at the end of the article, so only the reassurance lines stay here.
              One variant per product now (business rule), so there is nothing left to pick here. -->
         <div class="hidden lg:block">
-          <PurchasePanel :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
+          <PurchasePanel :product-name="product.name" :variant="selected" :busy="buying" :added-label="feedback === 'added'" :error="errorMessage" @buy="buyNow()" @add="addToCart()" />
         </div>
         <div class="hidden lg:block">
           <SecurePaymentBadge />
@@ -229,6 +234,7 @@ async function buyNow() {
     </CollapsibleSection>
 
     <PurchaseBar
+      :product-name="product.name"
       v-model="selectedId"
       :variants="product.variants"
       :recommended-id="recommendedId"

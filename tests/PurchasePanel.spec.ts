@@ -4,11 +4,13 @@ import PurchasePanel from '~/components/product/PurchasePanel.vue'
 import { DELIVERY, REFUND, SUPPORT } from '~/utils/promises'
 
 const variant = { id: 'v2', name: '3.500 RP', price: 18500, oldPrice: 21000, currency: 'ARS', isRecommended: true }
+const productName = 'League of Legends RP'
 
 describe('PurchasePanel', () => {
   it('shows the price with its compare-at price, both actions and the reassurance lines', async () => {
-    const wrapper = await mountSuspended(PurchasePanel, { props: { variant } })
+    const wrapper = await mountSuspended(PurchasePanel, { props: { productName, variant } })
 
+    expect(wrapper.text()).toContain(productName)
     expect(wrapper.text()).toContain('18.500')
     expect(wrapper.find('.line-through').text()).toContain('21.000')
     const buttons = wrapper.findAll('button')
@@ -25,7 +27,7 @@ describe('PurchasePanel', () => {
   })
 
   it('disables the actions without a variant and swaps the label after adding', async () => {
-    const wrapper = await mountSuspended(PurchasePanel, { props: { variant: undefined } })
+    const wrapper = await mountSuspended(PurchasePanel, { props: { productName, variant: undefined } })
     expect(wrapper.findAll('button').every((b) => b.attributes('disabled') !== undefined)).toBe(true)
 
     await wrapper.setProps({ variant, addedLabel: true, error: 'El carrito admite hasta 20 productos distintos.' })
@@ -34,7 +36,7 @@ describe('PurchasePanel', () => {
   })
 
   it('shows an orange offer badge above 50%', async () => {
-    const wrapper = await mountSuspended(PurchasePanel, { props: { variant: { ...variant, price: 4900, oldPrice: 10000 } } })
+    const wrapper = await mountSuspended(PurchasePanel, { props: { productName, variant: { ...variant, price: 4900, oldPrice: 10000 } } })
 
     expect(wrapper.findAll('[class*="bg-amber-500"]').some((element) => element.text() === '-51%')).toBe(true)
   })
