@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProductVariantDto } from '~/types/api'
+import type { ProductSummary, ProductVariantDto } from '~/types/api'
 
 const props = withDefaults(
   defineProps<{
@@ -8,18 +8,18 @@ const props = withDefaults(
     modelValue?: string | null
     recommendedId?: string | null
     variant?: ProductVariantDto
+    preview?: Pick<ProductSummary, 'fromPrice' | 'oldPrice'>
     loading?: boolean
     busy?: boolean
     addedLabel?: boolean
     error?: string | null
   }>(),
-  { variants: () => [], modelValue: null, recommendedId: null, variant: undefined, loading: false, busy: false, addedLabel: false, error: null },
+  { variants: () => [], modelValue: null, recommendedId: null, variant: undefined, preview: undefined, loading: false, busy: false, addedLabel: false, error: null },
 )
 defineEmits<{ 'update:modelValue': [id: string]; buy: []; add: [] }>()
 
-const discount = computed(() =>
-  props.variant?.oldPrice ? Math.round((1 - props.variant.price / props.variant.oldPrice) * 100) : 0,
-)
+const shownPrice = computed(() => displayPrice(props.variant, props.preview))
+const discount = computed(() => discountPercent(shownPrice.value))
 </script>
 
 <template>
@@ -58,11 +58,11 @@ const discount = computed(() =>
       <div class="flex min-w-0 flex-1 flex-col">
         <span class="truncate text-xs text-white/60">{{ productName }}</span>
         <span class="flex flex-wrap items-baseline gap-x-2">
-          <Skeleton v-if="!variant && loading" class="my-1 h-6 w-24" />
-          <span v-else class="font-display text-xl font-bold">{{ variant ? formatMoney(variant.price, variant.currency) : '—' }}</span>
+          <Skeleton v-if="!shownPrice && loading" class="my-1 h-6 w-24" />
+          <span v-else class="font-display text-xl font-bold">{{ shownPrice ? formatMoney(shownPrice.price, shownPrice.currency) : '—' }}</span>
           <AppBadge v-if="discount > 0" :tone="discount > 50 ? 'warning' : 'discount'">-{{ discount }}%</AppBadge>
         </span>
-        <span v-if="variant?.oldPrice" class="text-xs text-white/40 line-through">{{ formatMoney(variant.oldPrice, variant.currency) }}</span>
+        <span v-if="shownPrice?.oldPrice" class="text-xs text-white/40 line-through">{{ formatMoney(shownPrice.oldPrice, shownPrice.currency) }}</span>
       </div>
       <button
         type="button"

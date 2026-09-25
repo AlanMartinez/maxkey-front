@@ -25,8 +25,10 @@ const { data, status, refresh } = await useAsyncData(
 
 // Chips are derived from products seen so far, so filtering by one platform does not hide the others.
 const platforms = ref<string[]>([])
+const previews = useProductPreviewStore()
 watch(data, (list) => {
   for (const product of list ?? []) if (!platforms.value.includes(product.platform)) platforms.value.push(product.platform)
+  previews.rememberAll(list ?? [])
 }, { immediate: true })
 </script>
 

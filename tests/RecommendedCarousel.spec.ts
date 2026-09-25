@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
+import { createPinia, setActivePinia } from 'pinia'
+import { useProductPreviewStore } from '~/stores/productPreview'
 import RecommendedCarousel from '~/components/catalog/RecommendedCarousel.vue'
 import type { ProductSummary } from '~/types/api'
 
@@ -35,8 +37,16 @@ function translateX(style: string | undefined) {
 
 describe('RecommendedCarousel', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     clearNuxtData('recommended-products')
     apiMock.mockReset()
+  })
+
+  it('stores the fetched summaries so product pages can paint them instantly', async () => {
+    apiMock.mockResolvedValue([product('current'), product('a', 'Xbox')])
+    await mountSuspended(RecommendedCarousel, { props: { currentSlug: 'current', platform: 'Steam' } })
+
+    expect(useProductPreviewStore().get('a')).toMatchObject({ name: 'a', platform: 'Xbox', fromPrice: 1000 })
   })
 
   it('reuses the fetched catalog across products instead of refetching', async () => {
