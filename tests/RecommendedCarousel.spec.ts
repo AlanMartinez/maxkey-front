@@ -85,6 +85,62 @@ describe('RecommendedCarousel', () => {
     expect(translateX(track.attributes('style'))).toBe(-3 * CARD_STEP)
   })
 
+  describe('touch swipe', () => {
+    const touch = (clientX: number, clientY = 0) => ({ touches: [{ clientX, clientY }] })
+
+    async function mountFourCards() {
+      apiMock.mockResolvedValue([product('current'), product('a'), product('b'), product('c'), product('d')])
+      const wrapper = await mountSuspended(RecommendedCarousel, { props: { currentSlug: 'current', platform: 'Steam' } })
+      // 4 recommended products, clone count 4: resting position is the first real card.
+      return { wrapper, track: wrapper.find('.gap-5'), start: -4 * CARD_STEP }
+    }
+
+    it('follows the finger and snaps to the nearest card on release', async () => {
+      const { track, start } = await mountFourCards()
+
+      await track.trigger('touchstart', touch(300))
+      await track.trigger('touchmove', touch(160))
+      expect(translateX(track.attributes('style'))).toBe(start - 140)
+
+      await track.trigger('touchend')
+      expect(translateX(track.attributes('style'))).toBe(start - 1 * CARD_STEP)
+    })
+
+    it('advances one card on a short quick flick', async () => {
+      const { track, start } = await mountFourCards()
+      const now = vi.spyOn(performance, 'now').mockReturnValue(1000)
+
+      await track.trigger('touchstart', touch(300))
+      await track.trigger('touchmove', touch(260))
+      now.mockReturnValue(1050)
+      await track.trigger('touchend')
+
+      expect(translateX(track.attributes('style'))).toBe(start - 1 * CARD_STEP)
+      now.mockRestore()
+    })
+
+    it('leaves the carousel alone on a vertical scroll gesture', async () => {
+      const { track, start } = await mountFourCards()
+
+      await track.trigger('touchstart', touch(300, 0))
+      await track.trigger('touchmove', touch(280, 120))
+      await track.trigger('touchend')
+
+      expect(translateX(track.attributes('style'))).toBe(start)
+    })
+
+    it('never drags past the cloned edges', async () => {
+      const { track, start } = await mountFourCards()
+
+      await track.trigger('touchstart', touch(2000))
+      await track.trigger('touchmove', touch(0))
+      expect(translateX(track.attributes('style'))).toBe(start - 4 * CARD_STEP)
+
+      await track.trigger('touchend')
+      expect(translateX(track.attributes('style'))).toBe(start - 4 * CARD_STEP)
+    })
+  })
+
   it('sorts same-platform products first and excludes the current product', async () => {
     apiMock.mockResolvedValue([
       product('current', 'Steam'),

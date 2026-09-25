@@ -92,14 +92,84 @@ function onTransitionEnd() {
   }
 }
 
+// --- Touch swipe ---------------------------------------------------------------------------------
+// The track follows the finger, then snaps to the nearest card (or one card on a quick flick).
+// `touch-action: pan-y` on the track leaves vertical page scrolling to the browser; a gesture is
+// locked to one axis after a few pixels so a diagonal scroll never drags the carousel.
+const AXIS_LOCK_PX = 6
+const FLICK_PX_PER_MS = 0.3
+const dragOffset = ref(0)
+let touchStartX = 0
+let touchStartY = 0
+let touchStartTime = 0
+let axis: 'x' | 'y' | null = null
+let touching = false
+let suppressClick = false
+
+function onTouchStart(event: TouchEvent) {
+  const touch = event.touches[0]
+  if (products.value.length < 2 || !touch) return
+  touching = true
+  // Browsers usually swallow the click after a pan, so a leftover flag would eat the next real tap.
+  suppressClick = false
+  axis = null
+  touchStartX = touch.clientX
+  touchStartY = touch.clientY
+  touchStartTime = performance.now()
+  // A swipe can start mid-animation, possibly inside clone territory: land in the real range first so
+  // the drag below never runs past the cloned edges.
+  onTransitionEnd()
+  withTransition.value = false
+}
+
+function onTouchMove(event: TouchEvent) {
+  const touch = event.touches[0]
+  if (!touching || !touch) return
+  const dx = touch.clientX - touchStartX
+  const dy = touch.clientY - touchStartY
+  if (!axis) {
+    if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return
+    axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+  }
+  if (axis !== 'x') return
+  if (event.cancelable) event.preventDefault()
+  const limit = cloneCount.value * cardStep()
+  dragOffset.value = Math.max(-limit, Math.min(limit, dx))
+}
+
+function onTouchEnd() {
+  if (!touching) return
+  touching = false
+  const dx = dragOffset.value
+  withTransition.value = true
+  if (axis !== 'x' || dx === 0) return
+  suppressClick = true
+  const step = cardStep() || 1
+  const speed = Math.abs(dx) / Math.max(1, performance.now() - touchStartTime)
+  let cards = Math.round(-dx / step)
+  if (cards === 0 && speed > FLICK_PX_PER_MS) cards = dx < 0 ? 1 : -1
+  cards = Math.max(-cloneCount.value, Math.min(cloneCount.value, cards))
+  dragOffset.value = 0
+  index.value += cards
+}
+
+// A drag that ends over a card must not also open that product.
+function onClickCapture(event: MouseEvent) {
+  if (!suppressClick) return
+  suppressClick = false
+  event.preventDefault()
+  event.stopPropagation()
+}
+
 watch(index, () => {
   if (!withTransition.value) {
-    nextTick(() => requestAnimationFrame(() => (withTransition.value = true)))
+    // Mid-drag the track must follow the finger 1:1; onTouchEnd turns the transition back on.
+    nextTick(() => requestAnimationFrame(() => (withTransition.value = !touching)))
   }
 })
 
 const trackStyle = computed(() => ({
-  transform: `translateX(-${index.value * cardStep()}px)`,
+  transform: `translateX(${dragOffset.value - index.value * cardStep()}px)`,
   transition: withTransition.value ? 'transform 400ms ease' : 'none',
 }))
 </script>
@@ -117,9 +187,14 @@ const trackStyle = computed(() => ({
       <div class="overflow-hidden">
         <div
           ref="trackEl"
-          class="flex gap-5 sm:gap-6"
+          class="flex touch-pan-y gap-5 sm:gap-6"
           :style="trackStyle"
           @transitionend="onTransitionEnd()"
+          @touchstart.passive="onTouchStart"
+          @touchmove="onTouchMove"
+          @touchend="onTouchEnd()"
+          @touchcancel="onTouchEnd()"
+          @click.capture="onClickCapture"
         >
           <div
             v-for="(product, i) in track"
