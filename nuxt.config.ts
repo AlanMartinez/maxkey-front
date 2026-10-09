@@ -9,7 +9,7 @@ const THEME_COLOR = '#0A0A0E'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  modules: ['@nuxtjs/supabase', '@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  modules: ['@nuxtjs/supabase', '@nuxtjs/tailwindcss', '@pinia/nuxt', '@vercel/analytics'],
   css: ['~/assets/css/main.css'],
   // Components are referenced by file name (AppButton, ProductCard), not by directory prefix.
   components: [{ path: '~/components', pathPrefix: false }],
