@@ -57,7 +57,7 @@ const identity = computed(() => [BUSINESS.legalName, BUSINESS.cuit && `CUIT ${BU
         </div>
       </div>
 
-      <div v-if="BUSINESS.legalName" data-testid="footer-identity" class="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
+      <div v-if="BUSINESS.showInFooter && BUSINESS.legalName" data-testid="footer-identity" class="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
         <p>{{ identity }}</p>
         <a v-if="BUSINESS.dataFiscalUrl" :href="BUSINESS.dataFiscalUrl" target="_blank" rel="noopener" class="transition hover:text-white">Data Fiscal AFIP</a>
       </div>

@@ -4,6 +4,8 @@ export const BUSINESS = {
   cuit: '20-35885558-0',
   address: 'Alberdi 979, Río Grande, Tierra del Fuego',
   dataFiscalUrl: '',
+  // Footer identity row is hidden for now; legal pages still show the data via businessIdentity().
+  showInFooter: false,
 }
 export const CONSUMER_DEFENSE_URL = 'https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario'
 export const WITHDRAWAL_DAYS = 10

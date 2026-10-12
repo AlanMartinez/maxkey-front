@@ -39,8 +39,16 @@ describe('AppFooter', () => {
     expect(wrapper.text()).not.toContain('CUIT')
   })
 
+  it('hides the legal identity row when the footer toggle is off, even with business data set', async () => {
+    Object.assign(BUSINESS, { legalName: 'Chekeys S.A.S.', cuit: '30-12345678-9', address: 'Av. Siempre Viva 742, CABA', showInFooter: false })
+    const wrapper = await mountSuspended(AppFooter)
+
+    expect(wrapper.find('[data-testid="footer-identity"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('CUIT')
+  })
+
   it('renders the identity row with the AFIP link once the business data is set', async () => {
-    Object.assign(BUSINESS, { legalName: 'Chekeys S.A.S.', cuit: '30-12345678-9', address: 'Av. Siempre Viva 742, CABA', dataFiscalUrl: 'https://afip.example/qr' })
+    Object.assign(BUSINESS, { legalName: 'Chekeys S.A.S.', cuit: '30-12345678-9', address: 'Av. Siempre Viva 742, CABA', dataFiscalUrl: 'https://afip.example/qr', showInFooter: true })
     const wrapper = await mountSuspended(AppFooter)
 
     const row = wrapper.find('[data-testid="footer-identity"]')
