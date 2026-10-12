@@ -5,6 +5,7 @@
       <NuxtPage />
     </main>
     <AppFooter />
+    <WhatsAppButton />
     <CartDrawer />
     <LoginDialog />
     <AppToast />
