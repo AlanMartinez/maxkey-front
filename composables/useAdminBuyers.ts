@@ -20,7 +20,9 @@ const mockBuyers: AdminBuyer[] = [
     orderCount: 1,
     orders: [
       {
-        id: 'mock-order-01', status: 'Pending', totalAmount: 8000, currency: 'ARS',
+        // Bank transfer awaiting validation: listed with the buyer phone and Aprobar/Rechazar actions.
+        id: 'mock-order-01', status: 'AwaitingTransferValidation', paymentMethod: 'bank-transfer', buyerPhone: '+54 9 11 2345-6789',
+        createdAt: new Date(mockNow - 2 * 60 * 60 * 1000).toISOString(), totalAmount: 8000, currency: 'ARS',
         items: [{ productName: 'Steam Wallet Gift Card', variantName: 'AR', quantity: 1, assignedKeys: 0, revealedKeys: 0 }],
       },
     ],

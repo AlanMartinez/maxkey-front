@@ -37,6 +37,16 @@ const buyers = ref<AdminBuyer[]>([
         items: [{ productName: 'Robux', variantName: '400 R$', quantity: 1, assignedKeys: 1, revealedKeys: 0 }],
       },
       {
+        id: 'order-transfer',
+        status: 'AwaitingTransferValidation',
+        paymentMethod: 'bank-transfer',
+        buyerPhone: '+54 11 5555-1234',
+        createdAt: '2026-01-04T00:00:00Z',
+        totalAmount: 7990,
+        currency: 'ARS',
+        items: [{ productName: 'Robux', variantName: '1.700 R$', quantity: 1, assignedKeys: 0, revealedKeys: 0 }],
+      },
+      {
         id: 'order-cancelled',
         status: 'Cancelled',
         totalAmount: 1990,
@@ -77,6 +87,13 @@ mockNuxtImport('useAdminBuyers', () => () => ({
   deliverOrder: deliverOrderMock,
 }))
 
+const approveTransferMock = vi.fn(async () => true)
+mockNuxtImport('useAdminTransfers', () => () => ({
+  deciding: ref({}),
+  approve: approveTransferMock,
+  reject: vi.fn(async () => true),
+}))
+
 const orderDetailLoad = vi.fn(async () => {})
 const orderDetailReset = vi.fn()
 mockNuxtImport('useAdminOrderDetail', () => () => ({
@@ -102,7 +119,7 @@ describe('pages/admin/buyers', () => {
     const wrapper = await mountSuspended(BuyersPage)
 
     expect(wrapper.find('table').exists()).toBe(true)
-    expect(wrapper.findAll('tbody tr')).toHaveLength(4)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(5)
     expect(wrapper.text()).toContain('buyer@example.com')
     expect(wrapper.text()).toContain('Riot Points × 1')
     expect(wrapper.text()).toContain('1/1')
@@ -176,6 +193,26 @@ describe('pages/admin/buyers', () => {
 
     await wrapper.findAll('button').find((b) => b.text() === 'Asignar keys')?.trigger('click')
     expect(assignKeysMock).toHaveBeenCalledWith('order-pending')
+  })
+
+  it('lists pending bank transfers with the buyer phone and approves them only after confirmation', async () => {
+    approveTransferMock.mockClear()
+    const wrapper = await mountSuspended(BuyersPage, { attachTo: document.body })
+
+    expect(wrapper.text()).toContain('Validando transferencia')
+    expect(wrapper.text()).toContain('Tel. +54 11 5555-1234')
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Aprobar')?.trigger('click')
+    expect(approveTransferMock).not.toHaveBeenCalled()
+    const dialog = document.querySelector('[role="dialog"]')
+    expect(dialog?.textContent).toContain('+54 11 5555-1234')
+
+    Array.from(dialog!.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === 'Sí, aprobar')?.click()
+    await flushPromises()
+
+    expect(approveTransferMock).toHaveBeenCalledWith('order-transfer')
+    expect(wrapper.text()).toContain('Pagado')
+    wrapper.unmount()
   })
 
   it('opens a confirmation modal for "Entregar" and only delivers once confirmed', async () => {

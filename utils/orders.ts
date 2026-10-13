@@ -9,7 +9,7 @@ export function canRevealKeys(item: Pick<OrderItemDto, 'revealable' | 'keys'>): 
   return item.revealable && item.keys.length === 0
 }
 
-export type BuyerOrderAction = 'assign' | 'deliver' | 'resend'
+export type BuyerOrderAction = 'validate' | 'assign' | 'deliver' | 'resend'
 
 /**
  * Admin buyers table: each order status maps to exactly one primary action, so a row never shows two
@@ -19,9 +19,10 @@ export type BuyerOrderAction = 'assign' | 'deliver' | 'resend'
  *   KeysAssigned               → deliver  (the only action that asks for confirmation)
  *   Delivered                  → resend
  *   Pending / Cancelled        → none
- *   AwaitingTransferValidation → none     (approved/rejected from /admin/transfers instead)
+ *   AwaitingTransferValidation → validate (approve or reject the bank transfer, after checking the buyer phone)
  */
 export function buyerOrderAction(status: OrderStatus): BuyerOrderAction | null {
+  if (status === 'AwaitingTransferValidation') return 'validate'
   if (status === 'Paid' || status === 'AwaitingFulfillment') return 'assign'
   if (status === 'KeysAssigned') return 'deliver'
   if (status === 'Delivered') return 'resend'
