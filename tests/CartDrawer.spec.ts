@@ -85,6 +85,38 @@ describe('CartDrawer', () => {
     expect(document.body.textContent).toContain('12.500')
   })
 
+  it('removes lines whose product or variant is no longer on sale and tells the buyer', async () => {
+    vi.stubGlobal('$fetch', createFetch({
+      fetch: vi.fn<typeof fetch>(async (input) => String(input).endsWith('/gone')
+        ? new Response(JSON.stringify({ title: 'Not Found', status: 404 }), { status: 404, headers: { 'content-type': 'application/problem+json' } })
+        : new Response(JSON.stringify({ variants: [{ id: 'v1', price: 9990, currency: 'ARS' }] }), { status: 200, headers: { 'content-type': 'application/json' } })),
+      Headers,
+    }))
+    const cart = useCart()
+    cart.add(line)
+    cart.add({ ...line, variantId: 'v2', variantName: '3.650 RP' })
+    cart.add({ ...line, variantId: 'v3', productSlug: 'gone' })
+    cart.open()
+    wrapper = await mountSuspended(CartDrawer)
+    await settle()
+
+    expect(cart.lines.value.map((l) => l.variantId)).toEqual(['v1'])
+    expect(document.body.textContent).toContain('Quitamos 2 productos que ya no están disponibles.')
+    expect(document.body.textContent).not.toContain('3.650 RP')
+  })
+
+  it('keeps lines when the catalog cannot be reached', async () => {
+    vi.stubGlobal('$fetch', createFetch({ fetch: vi.fn<typeof fetch>(async () => { throw new TypeError('offline') }), Headers }))
+    const cart = useCart()
+    cart.add(line)
+    cart.open()
+    wrapper = await mountSuspended(CartDrawer)
+    await settle()
+
+    expect(cart.lines.value).toHaveLength(1)
+    expect(document.body.textContent).not.toContain('Quitamos')
+  })
+
   it('keeps the latest catalog price when refresh responses finish out of order', async () => {
     const first = deferred<Response>()
     const second = deferred<Response>()

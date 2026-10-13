@@ -4,6 +4,9 @@ import { isValidEmail } from '~/composables/useCheckout'
 useHead({ title: 'Checkout · Chekeys' })
 
 const { lines, subtotal, isEmpty } = useCart()
+// The cart may have been saved a while ago: drop anything no longer on sale before the buyer pays for it.
+const { sync, removed } = useCartSync()
+onMounted(() => void sync())
 const { status, error, errorMessage, paymentMethod, submit } = useCheckout()
 // Prefills from the signed-in user's email but keeps it editable — an edited email still links the order
 // to the account server-side via the bearer token, per auth spec.
@@ -36,6 +39,9 @@ async function pay() {
       <div class="flex flex-col gap-6">
         <CheckoutSteps :current="1" />
         <h1 class="text-3xl font-bold">Checkout</h1>
+        <p v-if="removed" role="status" class="rounded-xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-300">
+          Quitamos {{ removed === 1 ? 'un producto que ya no está disponible' : `${removed} productos que ya no están disponibles` }} de tu carrito.
+        </p>
         <ContactForm v-model="email" :disabled="busy" :error="fieldError" />
         <PaymentMethodSelector v-model="paymentMethod" :disabled="busy" />
       </div>
