@@ -13,6 +13,8 @@ function detailWith(keys: number): AdminOrderDetail {
   return {
     id: 'order-1',
     buyerEmail: 'buyer@example.com',
+    buyerPhone: null,
+    paymentMethod: 'mercadopago',
     status: keys >= 2 ? 'KeysAssigned' : 'AwaitingFulfillment',
     totalAmount: 9990,
     currency: 'ARS',

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { PaymentMethod } from '~/composables/useCheckout'
+import type { PaymentMethod, PaymentMethodOption } from '~/composables/useCheckout'
 import { PAYMENT_METHODS } from '~/composables/useCheckout'
 
-withDefaults(defineProps<{ modelValue: PaymentMethod | null; disabled?: boolean }>(), { disabled: false })
+// `methods` lets the page hide options that are currently unavailable (bank transfer while disabled).
+withDefaults(defineProps<{ modelValue: PaymentMethod | null; methods?: readonly PaymentMethodOption[]; disabled?: boolean }>(), { methods: () => PAYMENT_METHODS, disabled: false })
 defineEmits<{ 'update:modelValue': [value: PaymentMethod] }>()
 </script>
 
@@ -11,7 +12,7 @@ defineEmits<{ 'update:modelValue': [value: PaymentMethod] }>()
     <h2 id="payment-method-heading" class="text-lg font-semibold">Método de pago</h2>
     <div class="flex flex-col gap-2.5" role="radiogroup" aria-labelledby="payment-method-heading">
       <label
-        v-for="method in PAYMENT_METHODS"
+        v-for="method in methods"
         :key="method.id"
         class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-4 transition has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
         :class="method.id === modelValue ? 'border-accent bg-accent/15' : 'border-white/15 bg-surface hover:border-white/30'"

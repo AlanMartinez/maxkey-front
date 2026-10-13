@@ -19,6 +19,7 @@ export type BuyerOrderAction = 'assign' | 'deliver' | 'resend'
  *   KeysAssigned               → deliver  (the only action that asks for confirmation)
  *   Delivered                  → resend
  *   Pending / Cancelled        → none
+ *   AwaitingTransferValidation → none     (approved/rejected from /admin/transfers instead)
  */
 export function buyerOrderAction(status: OrderStatus): BuyerOrderAction | null {
   if (status === 'Paid' || status === 'AwaitingFulfillment') return 'assign'

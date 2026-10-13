@@ -8,6 +8,8 @@ const props = defineProps<{ status: OrderStatus }>()
 // confirm delivery, so it reads as "in progress" (accent) rather than "done" (success) like Delivered.
 const copy: Record<OrderStatus, { label: string; tone: 'neutral' | 'accent' | 'success' | 'danger' }> = {
   Pending: { label: 'Pendiente de pago', tone: 'neutral' },
+  // bank-transfer: the buyer reported a transfer that an admin still has to validate.
+  AwaitingTransferValidation: { label: 'Validando transferencia', tone: 'neutral' },
   Paid: { label: 'Pagado', tone: 'accent' },
   AwaitingFulfillment: { label: 'Preparando entrega', tone: 'accent' },
   KeysAssigned: { label: 'Keys asignadas', tone: 'accent' },

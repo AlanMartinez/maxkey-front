@@ -19,6 +19,8 @@ function detailWith(items: AdminOrderDetailItem[]): AdminOrderDetail {
   return {
     id: 'order-1',
     buyerEmail: 'buyer@example.com',
+    buyerPhone: '1123456789',
+    paymentMethod: 'bank-transfer',
     status: 'AwaitingFulfillment',
     totalAmount: 9990,
     currency: 'ARS',
@@ -140,6 +142,15 @@ describe('OrderDetailDialog identifiers', () => {
 
     const fullValues = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"] [data-copyable] [title]')).map((el) => el.title)
     expect(fullValues).toEqual(['2b2da360-84d5-494f-ac4d-64a74d085663', '123456789012', 'full-key-0'])
+    wrapper.unmount()
+  })
+
+  it('shows the payment method and the buyer phone', async () => {
+    const wrapper = await mount(detailWith([item('full', 1, 1)]))
+    const text = document.querySelector('[role="dialog"]')?.textContent ?? ''
+
+    expect(text).toContain('Transferencia')
+    expect(text).toContain('1123456789')
     wrapper.unmount()
   })
 })

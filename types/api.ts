@@ -56,17 +56,27 @@ export interface GuideRequest {
 // mirrors design.md §7 "POST /checkout/orders" request `items[]`
 export interface CreateOrderItem { variantId: string; quantity: number }
 
-// mirrors design.md §7 "POST /checkout/orders" request
-export interface CreateOrderRequest { email: string; items: CreateOrderItem[] }
+// mirrors bank-transfer contract: the method the order is paid with. Omitted on the wire = 'mercadopago'.
+export type CheckoutPaymentMethod = 'mercadopago' | 'bank-transfer'
 
-// mirrors design.md §7 "POST /checkout/orders" 201 response
-export interface CreateOrderResponse { orderId: string; initPoint: string }
+// mirrors design.md §7 "POST /checkout/orders" request. bank-transfer contract: `phone` is required when
+// `paymentMethod` is 'bank-transfer' (server normalizes it; 422 with `errors.phone` when invalid).
+export interface CreateOrderRequest { email: string; items: CreateOrderItem[]; paymentMethod?: CheckoutPaymentMethod; phone?: string }
+
+// mirrors design.md §7 "POST /checkout/orders" 201 response. `initPoint` is null for bank-transfer
+// orders: there is no gateway to hand off to.
+export interface CreateOrderResponse { orderId: string; initPoint: string | null }
+
+// mirrors bank-transfer contract "GET /checkout/bank-transfer" 200 response (404 = transfers disabled).
+export interface BankTransferDetails { alias: string; accountHolder: string; cbu: string | null }
 
 // mirrors design.md §4.2 Order statuses as serialized by the API (enums as text, ADR-07).
 // KeysAssigned added by key-delivery-gate (maxkeys-back PR #49): payment approval now auto-assigns keys
 // when stock exists and stops there — an order no longer reaches Delivered on its own, an admin must
 // confirm delivery via POST /admin/orders/{id}/deliver once all keys are assigned.
-export type OrderStatus = 'Pending' | 'Paid' | 'AwaitingFulfillment' | 'KeysAssigned' | 'Delivered' | 'Cancelled'
+// AwaitingTransferValidation added by bank-transfer: the buyer says they transferred and an admin has to
+// approve (→ Paid, then the usual fulfillment) or reject (→ Cancelled) it by hand.
+export type OrderStatus = 'Pending' | 'AwaitingTransferValidation' | 'Paid' | 'AwaitingFulfillment' | 'KeysAssigned' | 'Delivered' | 'Cancelled'
 
 // mirrors design.md §7 "GET /checkout/orders/{id}/status" response
 export interface OrderStatusResponse {
@@ -76,6 +86,8 @@ export interface OrderStatusResponse {
   buyerEmailMasked: string
   totalAmount: number
   currency: string
+  /** bank-transfer contract. Transfer orders must never hit the Mercado Pago reconcile endpoint. */
+  paymentMethod: CheckoutPaymentMethod
 }
 
 // mirrors design.md §7 "GET /me/orders" response item (OrderSummary)
@@ -357,6 +369,9 @@ export interface AdminOrderEvent {
 export interface AdminOrderDetail {
   id: string
   buyerEmail: string
+  /** bank-transfer contract; only collected for transfer orders, null otherwise. */
+  buyerPhone: string | null
+  paymentMethod: CheckoutPaymentMethod
   status: OrderStatus
   totalAmount: number
   currency: string
@@ -369,6 +384,32 @@ export interface AdminOrderDetail {
   lastPaymentAttemptAt: string | null
   items: AdminOrderDetailItem[]
   events: AdminOrderEvent[]
+}
+
+// mirrors maxkeys-back AdminOrderItemSummary ("GET /admin/orders" response `items[]`).
+export interface AdminOrderListItem {
+  itemId: string
+  variantId: string
+  productName: string
+  variantName: string
+  quantity: number
+  assigned: number
+}
+
+// mirrors maxkeys-back AdminOrderResponse ("GET /admin/orders" response item, plus the bank-transfer
+// additions). Also the body returned by POST /admin/orders/{id}/approve-transfer and /reject-transfer.
+// The awaiting-transfer list comes oldest first.
+export interface AdminOrder {
+  id: string
+  buyerEmail: string
+  buyerPhone: string | null
+  paymentMethod: CheckoutPaymentMethod
+  status: OrderStatus
+  paidAt: string | null
+  createdAt: string
+  totalAmount: number
+  currency: string
+  items: AdminOrderListItem[]
 }
 
 // mirrors key-delivery-gate spec (maxkeys-back PR #49) "POST /admin/orders/{id}/assign-keys" response.

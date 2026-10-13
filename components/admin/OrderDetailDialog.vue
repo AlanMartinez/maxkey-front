@@ -48,6 +48,8 @@ function formatDateTime(iso: string | null | undefined) {
   return new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+const paymentMethodLabel: Record<AdminOrderDetail['paymentMethod'], string> = { 'mercadopago': 'Mercado Pago', 'bank-transfer': 'Transferencia' }
+
 const keyTone: Record<AdminOrderKeyStatus, 'accent' | 'success'> = { Assigned: 'accent', Revealed: 'success' }
 const keyLabel: Record<AdminOrderKeyStatus, string> = { Assigned: 'Asignada', Revealed: 'Revelada' }
 
@@ -164,6 +166,8 @@ const timeline = computed<TimelineEntry[]>(() => {
           <!-- Order + payment data -->
           <dl class="grid grid-cols-2 gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-white/5 p-4 text-sm sm:grid-cols-3">
             <div><dt class="text-xs text-white/50">Total</dt><dd class="font-medium">{{ formatMoney(detail.totalAmount, detail.currency) }}</dd></div>
+            <div><dt class="text-xs text-white/50">Método de pago</dt><dd>{{ paymentMethodLabel[detail.paymentMethod] ?? detail.paymentMethod ?? '—' }}</dd></div>
+            <div><dt class="text-xs text-white/50">Teléfono</dt><dd>{{ detail.buyerPhone ?? '—' }}</dd></div>
             <div><dt class="text-xs text-white/50">Creado</dt><dd>{{ formatDateTime(detail.createdAt) }}</dd></div>
             <div><dt class="text-xs text-white/50">Pagado</dt><dd>{{ formatDateTime(detail.paidAt) }}</dd></div>
             <div><dt class="text-xs text-white/50">Entregado</dt><dd>{{ formatDateTime(detail.deliveredAt) }}</dd></div>
