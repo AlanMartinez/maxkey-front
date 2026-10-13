@@ -3,6 +3,7 @@ import type { OrderStatus, OrderStatusResponse } from '~/types/api'
 import { LAST_ORDER_STORAGE_KEY } from '~/composables/useCheckout'
 import { whatsappUrl } from '~/utils/contact'
 import { DELIVERY_INLINE, DELIVERY_MAX_HOURS } from '~/utils/promises'
+import { trackPurchaseOnce } from '~/utils/metaPixel'
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_TRIES = 20
@@ -107,6 +108,8 @@ watch(order, (value) => {
   if (cartCleared || !value || !PAID_STATUSES.has(value.status)) return
   cartCleared = true
   cart.clear()
+  // Server-confirmed total, reported once per order (a reload or a later visit does not count it again).
+  trackPurchaseOnce(value.orderId, value.totalAmount, value.currency)
 })
 onMounted(async () => {
   const fromOrderId = route.query.orderId

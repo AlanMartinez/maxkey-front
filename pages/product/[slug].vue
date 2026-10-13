@@ -6,6 +6,7 @@ import { defaultVariant, galleryImages, recommendedVariant, toCartLine } from '~
 import { PLACEHOLDER_IMAGE, productImageUrl } from '~/utils/productImage'
 import { renderMarkdown, stripMarkdown } from '~/utils/markdown'
 import { SITE_DESCRIPTION, SITE_NAME } from '~/utils/business'
+import { productPixelParams, trackPixel } from '~/utils/metaPixel'
 
 const slug = useRoute().params.slug as string
 const api = useApi()
@@ -146,9 +147,16 @@ const feedback = ref<'added' | 'max-items' | null>(null)
 const buying = ref(false)
 const errorMessage = computed(() => (feedback.value === 'max-items' ? 'El carrito admite hasta 20 productos distintos.' : null))
 
+// One ViewContent per product once its detail (and price) is known; trackPixel is a no-op during SSR.
+watch(() => product.value?.slug, (productSlug) => {
+  if (productSlug && product.value) trackPixel('ViewContent', productPixelParams(productSlug, selected.value?.price ?? product.value.fromPrice, selected.value?.currency ?? 'ARS'))
+}, { immediate: true })
+
 function addSelected() {
   if (!product.value || !selected.value) return false
-  const result = cart.add(toCartLine(product.value, selected.value))
+  const line = toCartLine(product.value, selected.value)
+  const result = cart.add(line)
+  if (result.ok) trackPixel('AddToCart', productPixelParams(line.productSlug, line.unitPrice, line.currency))
   feedback.value = result.ok ? 'added' : result.reason
   setTimeout(() => (feedback.value = null), 1500)
   return result.ok

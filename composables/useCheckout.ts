@@ -1,5 +1,6 @@
 import type { BankTransferDetails, CheckoutPaymentMethod, CreateOrderRequest, CreateOrderResponse } from '~/types/api'
 import { ApiError } from '~/composables/useApi'
+import { trackPixel } from '~/utils/metaPixel'
 
 export const LAST_ORDER_STORAGE_KEY = 'chekeys.lastOrderId'
 export type CheckoutStatus = 'idle' | 'submitting' | 'redirecting' | 'error'
@@ -77,6 +78,11 @@ export function useCheckout() {
     if (method === 'bank-transfer' && !isValidPhone(phone)) return false
     status.value = 'submitting'
     error.value = null
+    trackPixel('InitiateCheckout', {
+      value: lines.value.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
+      currency: lines.value[0]?.currency ?? 'ARS',
+      num_items: lines.value.reduce((sum, line) => sum + line.quantity, 0),
+    })
     // Only ids and quantities travel; the server recomputes prices and names (cart-checkout spec).
     const body: CreateOrderRequest = {
       email: trimmed,

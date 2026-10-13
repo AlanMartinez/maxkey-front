@@ -2,6 +2,7 @@
 import type { ProductDetail, ProductSummary } from '~/types/api'
 import { productImageUrl } from '~/utils/productImage'
 import { defaultVariant, toCartLine } from '~/utils/cartLine'
+import { productPixelParams, trackPixel } from '~/utils/metaPixel'
 
 const props = defineProps<{ product: ProductSummary; compact?: boolean }>()
 
@@ -31,8 +32,12 @@ async function addDefaultVariant() {
     const detail = await api<ProductDetail>(`/catalog/products/${props.product.slug}`)
     const variant = defaultVariant(detail.variants)
     if (!variant) return showFeedback('error')
-    const result = cart.add(toCartLine(detail, variant))
-    if (result.ok) cart.open()
+    const line = toCartLine(detail, variant)
+    const result = cart.add(line)
+    if (result.ok) {
+      trackPixel('AddToCart', productPixelParams(line.productSlug, line.unitPrice, line.currency))
+      cart.open()
+    }
     showFeedback(result.ok ? 'added' : result.reason)
   } catch {
     showFeedback('error')
