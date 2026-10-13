@@ -47,4 +47,26 @@ describe('ContactForm', () => {
     await wrapper.find('input[type="email"]').setValue('Vos@Ejemplo.com')
     expect(wrapper.emitted('update:modelValue')).toEqual([['Vos@Ejemplo.com']])
   })
+
+  it('hides the phone field unless the page asks for it', async () => {
+    const wrapper = await mountSuspended(ContactForm, { props: { modelValue: '' } })
+    expect(wrapper.find('input[type="tel"]').exists()).toBe(false)
+  })
+
+  it('validates the phone after blur and prefers the server error', async () => {
+    const wrapper = await mountSuspended(ContactForm, { props: { modelValue: 'vos@ejemplo.com', askPhone: true, phone: '123' } })
+    const tel = wrapper.find('input[type="tel"]')
+    expect(tel.attributes('required')).toBeDefined()
+    expect(wrapper.find('[data-phone-error]').exists()).toBe(false)
+
+    await tel.trigger('blur')
+    expect(wrapper.find('[data-phone-error]').text()).toContain('Ingresá un teléfono válido')
+
+    await wrapper.setProps({ phone: '+54 11 2345-6789' })
+    expect(wrapper.find('[data-phone-error]').exists()).toBe(false)
+    expect(wrapper.find('[data-phone-valid]').exists()).toBe(true)
+
+    await wrapper.setProps({ phoneError: 'El teléfono no es válido.' })
+    expect(wrapper.find('[data-phone-error]').text()).toBe('El teléfono no es válido.')
+  })
 })

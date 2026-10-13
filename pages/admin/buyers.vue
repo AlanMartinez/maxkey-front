@@ -27,10 +27,11 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
 // The /admin/buyers endpoint only supports an `email` query param server-side, so Estado/Acción/Item
 // filtering happens against whatever buyers are already loaded for the current page.
 
-const statusOrder: OrderStatus[] = ['Pending', 'Paid', 'AwaitingFulfillment', 'KeysAssigned', 'Delivered', 'Cancelled']
+const statusOrder: OrderStatus[] = ['Pending', 'AwaitingTransferValidation', 'Paid', 'AwaitingFulfillment', 'KeysAssigned', 'Delivered', 'Cancelled']
 // Mirrors OrderStatusBadge.vue's label copy so the filter options read the same as the badges do.
 const statusLabels: Record<OrderStatus, string> = {
   Pending: 'Pendiente de pago',
+  AwaitingTransferValidation: 'Validando transferencia',
   Paid: 'Pagado',
   AwaitingFulfillment: 'Preparando entrega',
   KeysAssigned: 'Claves asignadas',

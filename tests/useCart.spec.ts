@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { clearNuxtState } from '#app'
-import { CART_STORAGE_KEY, useCart } from '~/composables/useCart'
+import { CART_STORAGE_KEY, CART_TTL_MS, useCart } from '~/composables/useCart'
 
 const line = { variantId: 'v1', productSlug: 'riot-points', productName: 'Riot Points', variantName: '1.750 RP', unitPrice: 9990, currency: 'ARS', imageUrl: 'https://cdn/x.png' }
 
@@ -10,6 +10,13 @@ beforeEach(() => {
   // Drops the shared `useState` entries so each test gets a fresh composable instance.
   clearNuxtState()
 })
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+function persist(lines: unknown[], updatedAt = Date.now()) {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({ lines, updatedAt }))
+}
 
 describe('useCart', () => {
   it('adds a line and merges repeated variants into one line', () => {
@@ -68,7 +75,7 @@ describe('useCart', () => {
     cart.add(line, 2)
     await nextTick()
 
-    expect(JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? 'null')).toEqual({ lines: [{ ...line, quantity: 2 }] })
+    expect(JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? 'null')).toEqual({ lines: [{ ...line, quantity: 2 }], updatedAt: expect.any(Number) })
 
     clearNuxtState()
     const rehydrated = useCart()
@@ -81,8 +88,55 @@ describe('useCart', () => {
     expect(useCart().isEmpty.value).toBe(true)
 
     clearNuxtState()
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({ lines: [{ nope: true }, { ...line, quantity: 99 }] }))
+    persist([{ nope: true }, { ...line, quantity: 99 }])
     expect(useCart().lines.value).toEqual([{ ...line, quantity: 10 }])
+  })
+
+  it('starts empty when the persisted cart is past its TTL or has no timestamp', () => {
+    persist([{ ...line, quantity: 1 }], Date.now() - CART_TTL_MS)
+    expect(useCart().isEmpty.value).toBe(true)
+    expect(localStorage.getItem(CART_STORAGE_KEY)).toBeNull()
+
+    clearNuxtState()
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({ lines: [{ ...line, quantity: 1 }] }))
+    expect(useCart().isEmpty.value).toBe(true)
+
+    clearNuxtState()
+    persist([{ ...line, quantity: 1 }], Date.now() - CART_TTL_MS + 60_000)
+    expect(useCart().lines.value).toHaveLength(1)
+  })
+
+  it('empties an open cart once it has been idle for the full TTL, sliding with each change', async () => {
+    vi.useFakeTimers()
+    const cart = useCart()
+    cart.add(line)
+    await nextTick()
+
+    vi.advanceTimersByTime(CART_TTL_MS - 1000)
+    cart.setQuantity('v1', 2)
+    await nextTick()
+    vi.advanceTimersByTime(CART_TTL_MS - 1000)
+    expect(cart.lines.value).toHaveLength(1)
+
+    vi.advanceTimersByTime(1000)
+    expect(cart.isEmpty.value).toBe(true)
+  })
+
+  it('drops lines no longer on sale and refreshes prices of the rest when syncing with the catalog', () => {
+    const cart = useCart()
+    cart.add(line)
+    cart.add({ ...line, variantId: 'v2' })
+    cart.add({ ...line, variantId: 'v3', productSlug: 'gone-product' })
+    cart.add({ ...line, variantId: 'v4', productSlug: 'unreachable' })
+
+    const removed = cart.syncCatalog([
+      { productSlug: 'riot-points', variants: [{ variantId: 'v1', unitPrice: 12500, currency: 'ARS' }] },
+      { productSlug: 'gone-product', variants: null },
+    ])
+
+    expect(removed).toBe(2)
+    expect(cart.lines.value.map((l) => l.variantId)).toEqual(['v1', 'v4'])
+    expect(cart.lines.value[0]?.unitPrice).toBe(12500)
   })
 
   it('toggles the drawer visibility', () => {

@@ -53,6 +53,8 @@ function mockDetail(order: AdminBuyerOrder, email: string): AdminOrderDetail {
   return {
     id: order.id,
     buyerEmail: email,
+    buyerPhone: null,
+    paymentMethod: 'mercadopago',
     status: order.status,
     totalAmount: order.totalAmount,
     currency: order.currency,
