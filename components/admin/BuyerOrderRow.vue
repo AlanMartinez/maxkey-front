@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AdminBuyerOrder } from '~/types/api'
+import type { TransferDecision } from '~/composables/useAdminTransfers'
 
 // One <tr> per order (admin-buyers spec: Buyer Listing Grouped By Email + Resend Delivery Email; design
 // D4 — flattened to one row per order instead of grouping, so the table scales to many buyers/orders).
@@ -9,11 +10,18 @@ const props = defineProps<{
   order: AdminBuyerOrder
   resending: Record<string, boolean>
   assigning: Record<string, boolean>
+  deciding?: Record<string, TransferDecision | undefined>
 }>()
 // `deliver` only asks the page to open the confirmation modal (DeliverOrderDialog); the row itself
 // never fires the delivery call. Assign is one-click, no confirmation step. `open` fires on a click
 // anywhere on the row (action buttons stop propagation) so the page can open OrderDetailDialog.
-const emit = defineEmits<{ resend: [orderId: string]; assign: [orderId: string]; deliver: [orderId: string]; open: [orderId: string] }>()
+const emit = defineEmits<{
+  resend: [orderId: string]
+  assign: [orderId: string]
+  deliver: [orderId: string]
+  validate: [orderId: string, decision: TransferDecision]
+  open: [orderId: string]
+}>()
 
 // One action per status (see buyerOrderAction in utils/orders.ts), each with its own button colour:
 // Asignar = accent, Entregar = success, Reenviar = ghost.
@@ -52,7 +60,11 @@ const resendAvailable = false
     :title="`Ver detalle del pedido ${order.id.slice(0, 8)}`"
     @click="emit('open', order.id)"
   >
-    <td class="whitespace-nowrap px-3 py-2 text-sm">{{ email }}</td>
+    <td class="whitespace-nowrap px-3 py-2 text-sm">
+      {{ email }}
+      <!-- Bank transfers only: the phone the buyer left so the admin can match the transfer before approving it. -->
+      <a v-if="order.buyerPhone" :href="`tel:${order.buyerPhone}`" class="block text-xs text-white/60 hover:text-accent" @click.stop>Tel. {{ order.buyerPhone }}</a>
+    </td>
     <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-white/60">{{ order.id.slice(0, 8) }}</td>
     <td class="whitespace-nowrap px-3 py-2"><OrderStatusBadge :status="order.status" /></td>
     <td class="whitespace-nowrap px-3 py-2 text-sm">{{ order.totalAmount }} {{ order.currency }}</td>
@@ -73,7 +85,11 @@ const resendAvailable = false
     </td>
     <td class="whitespace-nowrap px-3 py-2">
       <div class="flex items-center gap-2">
-        <AppButton v-if="action === 'assign'" type="button" size="sm" :loading="assigning[order.id]" @click.stop="emit('assign', order.id)">Asignar keys</AppButton>
+        <template v-if="action === 'validate'">
+          <AppButton type="button" variant="success" size="sm" :loading="deciding?.[order.id] === 'approve'" :disabled="!!deciding?.[order.id]" @click.stop="emit('validate', order.id, 'approve')">Aprobar</AppButton>
+          <AppButton type="button" variant="ghost" size="sm" :loading="deciding?.[order.id] === 'reject'" :disabled="!!deciding?.[order.id]" @click.stop="emit('validate', order.id, 'reject')">Rechazar</AppButton>
+        </template>
+        <AppButton v-else-if="action === 'assign'" type="button" size="sm" :loading="assigning[order.id]" @click.stop="emit('assign', order.id)">Asignar keys</AppButton>
         <AppButton v-else-if="action === 'deliver'" type="button" variant="success" size="sm" @click.stop="emit('deliver', order.id)">Entregar</AppButton>
         <span v-else-if="action === 'resend'" title="Próximamente" @click.stop>
           <AppButton type="button" variant="ghost" size="sm" :disabled="!resendAvailable" :loading="resending[order.id]" @click="emit('resend', order.id)">Reenviar email</AppButton>

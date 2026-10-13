@@ -301,6 +301,10 @@ export interface AdminBuyerOrder {
   id: string
   status: OrderStatus
   paidAt?: string
+  createdAt?: string
+  /** Bank transfers awaiting validation are listed too (no `paidAt` yet); `buyerPhone` is only set for them. */
+  paymentMethod?: CheckoutPaymentMethod
+  buyerPhone?: string | null
   totalAmount: number
   currency: string
   items: AdminBuyerOrderItem[]

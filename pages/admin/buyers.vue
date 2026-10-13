@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AdminBuyerOrder, OrderStatus } from '~/types/api'
+import type { TransferDecision } from '~/composables/useAdminTransfers'
 
 definePageMeta({ middleware: ['auth', 'admin'] })
 useHead({ title: 'Compradores · Admin · Chekeys' })
@@ -58,6 +59,42 @@ async function confirmDeliver(orderId: string) {
   deliverTarget.value = null
   // Delivered from inside the detail modal: refresh it in place so the badge/timeline reflect the new state.
   if (detailTarget.value?.order.id === orderId) loadOrderDetail(orderId, undefined, { silent: true })
+}
+
+// --- Bank transfer validation ----------------------------------------------------------------------
+// Pending transfers are approved/rejected from this table too, behind a confirmation that shows the buyer
+// phone and amount so the admin checks the bank movement first. On success the row is patched locally:
+// an approved order is Paid and continues with the usual assign/deliver flow.
+const { deciding, approve: approveTransfer, reject: rejectTransfer } = useAdminTransfers()
+const validateTarget = ref<{ row: FlatRow; decision: TransferDecision } | null>(null)
+const validateCopy = computed(() => {
+  const target = validateTarget.value
+  if (!target) return { title: '', body: '' }
+  const { order, email } = target.row
+  const who = `${email}${order.buyerPhone ? ` (tel. ${order.buyerPhone})` : ''}`
+  const amount = formatMoney(order.totalAmount, order.currency)
+  return target.decision === 'approve'
+    ? { title: '¿Aprobar la transferencia?', body: `Confirmá que recibiste ${amount} de ${who}. El pedido pasa a pagado y sigue con la entrega de la key.` }
+    : { title: '¿Rechazar la transferencia?', body: `El pedido de ${who} por ${amount} queda cancelado y no se entrega ninguna key.` }
+})
+
+function openValidate(orderId: string, decision: TransferDecision) {
+  const row = flatRows.value.find((r) => r.order.id === orderId)
+  if (row) validateTarget.value = { row, decision }
+}
+
+async function confirmValidate() {
+  const target = validateTarget.value
+  if (!target) return
+  const ok = await (target.decision === 'approve' ? approveTransfer : rejectTransfer)(target.row.order.id)
+  if (!ok) return
+  if (target.decision === 'approve') {
+    target.row.order.status = 'Paid'
+    target.row.order.paidAt = new Date().toISOString()
+  } else {
+    target.row.order.status = 'Cancelled'
+  }
+  validateTarget.value = null
 }
 
 // --- Order detail modal ------------------------------------------------------------------------
@@ -213,6 +250,7 @@ const filteredRows = computed(() =>
                     class="h-8 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs font-normal normal-case text-white outline-none focus:border-accent"
                   >
                     <option value="all">Todas</option>
+                    <option value="validate">Validar transferencia</option>
                     <option value="assign">Asignar keys</option>
                     <option value="deliver">Entregar</option>
                     <option value="resend">Reenviar</option>
@@ -231,6 +269,8 @@ const filteredRows = computed(() =>
                 :order="row.order"
                 :resending="resending"
                 :assigning="assigning"
+                :deciding="deciding"
+                @validate="openValidate"
                 @resend="resendDelivery"
                 @assign="assignKeys"
                 @deliver="openDeliver"
@@ -255,6 +295,17 @@ const filteredRows = computed(() =>
         <AppButton type="button" variant="ghost" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">Siguiente</AppButton>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-if="validateTarget"
+      :title="validateCopy.title"
+      :body="validateCopy.body"
+      :confirm-label="validateTarget.decision === 'approve' ? 'Sí, aprobar' : 'Sí, rechazar'"
+      cancel-label="Volver"
+      :loading="!!deciding[validateTarget.row.order.id]"
+      @confirm="confirmValidate"
+      @cancel="validateTarget = null"
+    />
 
     <DeliverOrderDialog
       v-if="deliverTarget"
