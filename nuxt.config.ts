@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { defineNuxtConfig } from 'nuxt/config'
 import { SITE_DESCRIPTION, SITE_NAME } from './utils/business'
+import { META_PIXEL_ID } from './utils/metaPixel'
 
 // Same value as the `bg` token in tailwind.config.ts and public/icon/site.webmanifest, so the browser
 // chrome (address bar, PWA splash) matches the app background.
@@ -52,6 +53,14 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icon/favicon-16x16.png?v=2' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/icon/apple-touch-icon.png' },
         { rel: 'manifest', href: '/icon/site.webmanifest' },
+      ],
+      // Meta Pixel fallback for browsers without JavaScript; plugins/meta-pixel.client.ts covers the rest.
+      // Rendered in <body> because an <img> inside <noscript> is not valid in <head>.
+      noscript: [
+        {
+          tagPosition: 'bodyOpen',
+          innerHTML: `<img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1" />`,
+        },
       ],
     },
   },
