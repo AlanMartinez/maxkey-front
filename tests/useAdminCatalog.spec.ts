@@ -85,3 +85,53 @@ describe('useAdminCatalog saveVariant', () => {
     expect(catalog.products.value[0]?.variants.map((v) => v.isRecommended)).toEqual([true, false])
   })
 })
+
+describe('useAdminCatalog permanentlyDeleteProduct', () => {
+  it('calls DELETE .../permanent with force=false and removes the product on 204', async () => {
+    apiMock.mockResolvedValueOnce([buildProduct()]).mockResolvedValueOnce(undefined)
+    const catalog = await useAdminCatalog()
+
+    const result = await catalog.permanentlyDeleteProduct('p1')
+
+    expect(apiMock).toHaveBeenCalledWith('/admin/catalog/products/p1/permanent', { method: 'DELETE', query: { force: false } })
+    expect(result).toEqual({ status: 'deleted' })
+    expect(catalog.products.value).toHaveLength(0)
+    expect(catalog.saving.value).toBe(false)
+  })
+
+  it('returns the availableKeys count on a 409 without deleting or surfacing an error', async () => {
+    apiMock.mockResolvedValueOnce([buildProduct()]).mockRejectedValueOnce(
+      new ApiError({ type: 'about:blank', title: 'Product has available keys', status: 409, availableKeys: 3 }),
+    )
+    const catalog = await useAdminCatalog()
+
+    const result = await catalog.permanentlyDeleteProduct('p1')
+
+    expect(result).toEqual({ status: 'hasAvailableKeys', availableKeys: 3 })
+    expect(catalog.products.value).toHaveLength(1)
+    expect(catalog.saveError.value).toBeNull()
+  })
+
+  it('sends force=true when forcing', async () => {
+    apiMock.mockResolvedValueOnce([buildProduct()]).mockResolvedValueOnce(undefined)
+    const catalog = await useAdminCatalog()
+
+    const result = await catalog.permanentlyDeleteProduct('p1', true)
+
+    expect(apiMock).toHaveBeenCalledWith('/admin/catalog/products/p1/permanent', { method: 'DELETE', query: { force: true } })
+    expect(result).toEqual({ status: 'deleted' })
+  })
+
+  it('fails and keeps the product on 404', async () => {
+    apiMock.mockResolvedValueOnce([buildProduct()]).mockRejectedValueOnce(
+      new ApiError({ type: 'about:blank', title: 'Product not found', status: 404 }),
+    )
+    const catalog = await useAdminCatalog()
+
+    const result = await catalog.permanentlyDeleteProduct('p1')
+
+    expect(result).toEqual({ status: 'failed' })
+    expect(catalog.products.value).toHaveLength(1)
+    expect(catalog.saveError.value?.status).toBe(404)
+  })
+})

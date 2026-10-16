@@ -1,6 +1,6 @@
 <script setup lang="ts">
 withDefaults(
-  defineProps<{ variant?: 'primary' | 'success' | 'ghost'; size?: 'sm' | 'md' | 'lg'; type?: 'button' | 'submit'; loading?: boolean; disabled?: boolean }>(),
+  defineProps<{ variant?: 'primary' | 'success' | 'ghost' | 'danger'; size?: 'sm' | 'md' | 'lg'; type?: 'button' | 'submit'; loading?: boolean; disabled?: boolean }>(),
   { variant: 'primary', size: 'md', type: 'button', loading: false, disabled: false },
 )
 
@@ -10,6 +10,8 @@ const variants = {
   // when both sit in the same row.
   success: 'bg-success text-bg shadow-[0_0_24px_rgba(34,211,168,0.3)] hover:bg-success/90',
   ghost: 'border border-white/10 text-white/80 hover:bg-white/5 hover:text-white',
+  // Irreversible destructive actions (e.g. permanently deleting a product).
+  danger: 'bg-red-500 text-white hover:bg-red-400',
 }
 const sizes = { sm: 'h-9 px-3 text-sm', md: 'h-11 px-5 text-sm', lg: 'h-12 px-6 text-base' }
 </script>

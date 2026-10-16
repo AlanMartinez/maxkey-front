@@ -288,4 +288,22 @@ describe('ProductEditor', () => {
     expect(saveVariantCalls?.[0]).toEqual(['v1', expect.objectContaining({ region: 'AR', edition: 'Standard', isRecommended: true })])
     expect(saveVariantCalls?.[1]).toEqual(['v2', expect.objectContaining({ region: 'AR', edition: 'Promo', isRecommended: true })])
   })
+  it('emits permanentlyDeleteProduct from the red "Eliminar producto" button and deleteProduct from "Desactivar producto"', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: false } })
+    await wrapper.find('button').trigger('click')
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Eliminar producto')!.trigger('click')
+    expect(wrapper.emitted('permanentlyDeleteProduct')).toHaveLength(1)
+    expect(wrapper.emitted('deleteProduct')).toBeUndefined()
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Desactivar producto')!.trigger('click')
+    expect(wrapper.emitted('deleteProduct')).toHaveLength(1)
+  })
+
+  it('disables "Eliminar producto" while a request is in flight', async () => {
+    const wrapper = await mountSuspended(ProductEditor, { props: { product, guides, saving: true } })
+    await wrapper.find('button').trigger('click')
+
+    expect(wrapper.findAll('button').find((b) => b.text() === 'Eliminar producto')!.attributes('disabled')).toBeDefined()
+  })
 })

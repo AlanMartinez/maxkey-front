@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
+import type { AdminProduct, CreateProductVariantRequest, UpdateProductRequest, UpdateProductVariantRequest } from '~/types/api'
 import { PLATFORMS } from '~/utils/platforms'
 import {
   type CatalogFilters as CatalogFilterState,
@@ -27,6 +27,7 @@ const {
   saveVariant,
   createProduct,
   deleteProduct,
+  permanentlyDeleteProduct,
   createVariant,
   deleteVariant,
 } = await useAdminCatalog()
@@ -72,6 +73,33 @@ const visibleProducts = computed(() => {
   const highlightedIndex = highlightedProductId ? filteredProducts.value.findIndex((p) => p.id === highlightedProductId) : -1
   return filteredProducts.value.slice(0, Math.max(visibleCount.value, highlightedIndex + 1))
 })
+
+// Permanent delete flow: the first confirmation always shows; a second warning appears only when
+// the backend answers 409 because the product still has Available keys (then retried with force).
+const pendingPermanentDelete = ref<{ product: AdminProduct; availableKeys?: number } | null>(null)
+const permanentDeleteDialog = computed(() => {
+  const pending = pendingPermanentDelete.value
+  if (!pending) return null
+  if (pending.availableKeys === undefined) {
+    return {
+      title: `¿Eliminar "${pending.product.name}"?`,
+      body: 'El producto se va a eliminar definitivamente, junto con sus variantes. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar producto',
+    }
+  }
+  const n = pending.availableKeys
+  const body = n === 1
+    ? 'Este producto tiene 1 key disponible en el vault. Si lo eliminás, esa key va a quedar en la base de datos sin producto asociado y deja de contar como stock. ¿Eliminar igual?'
+    : `Este producto tiene ${n} keys disponibles en el vault. Si lo eliminás, esas keys van a quedar en la base de datos sin producto asociado y dejan de contar como stock. ¿Eliminar igual?`
+  return { title: 'Este producto tiene keys en el vault', body, confirmLabel: 'Eliminar igual' }
+})
+
+async function confirmPermanentDelete() {
+  const pending = pendingPermanentDelete.value
+  if (!pending) return
+  const result = await permanentlyDeleteProduct(pending.product.id, pending.availableKeys !== undefined)
+  pendingPermanentDelete.value = result.status === 'hasAvailableKeys' ? { ...pending, availableKeys: result.availableKeys } : null
+}
 
 async function submitNewProduct() {
   if (uploadingNewProductMedia.value) return
@@ -167,6 +195,7 @@ async function submitNewProduct() {
         @save="(body: UpdateProductRequest) => saveProduct(product.id, body)"
         @save-variant="(variantId: string, body: UpdateProductVariantRequest) => saveVariant(product.id, variantId, body)"
         @delete-product="deleteProduct(product.id)"
+        @permanently-delete-product="pendingPermanentDelete = { product }"
         @delete-variant="(variantId: string) => deleteVariant(product.id, variantId)"
         @create-variant="(body: CreateProductVariantRequest) => createVariant(product.id, body)"
       />
@@ -181,5 +210,16 @@ async function submitNewProduct() {
         Mostrar más ({{ filteredProducts.length - visibleProducts.length }} restantes)
       </AppButton>
     </div>
+
+    <ConfirmDialog
+      v-if="permanentDeleteDialog"
+      :title="permanentDeleteDialog.title"
+      :body="permanentDeleteDialog.body"
+      :confirm-label="permanentDeleteDialog.confirmLabel"
+      confirm-variant="danger"
+      :loading="saving"
+      @confirm="confirmPermanentDelete"
+      @cancel="pendingPermanentDelete = null"
+    />
   </section>
 </template>

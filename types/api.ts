@@ -150,6 +150,8 @@ export interface ProblemDetails {
   instance?: string
   traceId?: string
   errors?: Record<string, string[]>
+  /** 409 extension on DELETE /admin/catalog/products/{id}/permanent: Available keys still in the vault. */
+  availableKeys?: number
 }
 
 // mirrors admin-dashboard design.md D5 "GET /admin/me" response
