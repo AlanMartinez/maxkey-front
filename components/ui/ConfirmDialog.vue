@@ -9,7 +9,9 @@ const props = withDefaults(defineProps<{
   cancelLabel?: string
   link?: { label: string; to: string }
   loading?: boolean
-}>(), { confirmLabel: 'Confirmar', cancelLabel: 'Cancelar', link: undefined, loading: false })
+  /** `danger` paints the confirm button red for irreversible destructive actions. */
+  confirmVariant?: 'primary' | 'danger'
+}>(), { confirmLabel: 'Confirmar', cancelLabel: 'Cancelar', link: undefined, loading: false, confirmVariant: 'primary' })
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
 const titleId = `confirm-dialog-${Math.random().toString(36).slice(2, 8)}`
@@ -49,7 +51,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
         <div class="flex justify-end gap-2">
           <AppButton type="button" variant="ghost" :disabled="loading" @click="emit('cancel')">{{ cancelLabel }}</AppButton>
-          <AppButton ref="primary" type="button" :loading="loading" @click="emit('confirm')">{{ confirmLabel }}</AppButton>
+          <AppButton ref="primary" type="button" :variant="confirmVariant" :loading="loading" @click="emit('confirm')">{{ confirmLabel }}</AppButton>
         </div>
       </div>
     </div>

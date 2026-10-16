@@ -9,6 +9,7 @@ const emit = defineEmits<{
   save: [body: UpdateProductRequest]
   saveVariant: [variantId: string, body: UpdateProductVariantRequest]
   deleteProduct: []
+  permanentlyDeleteProduct: []
   deleteVariant: [variantId: string]
   createVariant: [body: CreateProductVariantRequest]
 }>()
@@ -300,13 +301,24 @@ function submitNewVariant() {
         </label>
         <AppButton type="submit" size="sm" :loading="saving">Guardar producto</AppButton>
         <span v-if="saved" class="text-xs text-emerald-300">Guardado ✓</span>
+        <!-- Soft delete (isActive:false PUT) — reversible, so no confirmation. -->
         <AppButton
           type="button"
           variant="ghost"
           size="sm"
-          class="ml-auto text-red-300 hover:border-red-400/60 hover:text-red-300"
+          class="ml-auto"
           :loading="saving"
           @click="emit('deleteProduct')"
+        >
+          Desactivar producto
+        </AppButton>
+        <!-- Hard delete — the catalog page owns the confirmation dialogs and the API call. -->
+        <AppButton
+          type="button"
+          variant="danger"
+          size="sm"
+          :disabled="saving"
+          @click="emit('permanentlyDeleteProduct')"
         >
           Eliminar producto
         </AppButton>

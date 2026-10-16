@@ -9,6 +9,16 @@ import type {
 import { ApiError } from '~/composables/useApi'
 
 /**
+ * Outcome of a permanent product delete. `hasAvailableKeys` means the backend refused (409) because
+ * the product still has Available keys in the vault — nothing was deleted; retry with `force` to
+ * delete anyway (those keys stay in the DB unlinked and stop counting as stock).
+ */
+export type PermanentDeleteResult =
+  | { status: 'deleted' }
+  | { status: 'hasAvailableKeys'; availableKeys: number }
+  | { status: 'failed' }
+
+/**
  * Admin catalog editing (admin-catalog spec; design D3). `PUT` always sends the full editable
  * record — no `PATCH`, no separate toggle endpoint; callers re-send the row with `isActive` flipped.
  */
@@ -107,6 +117,31 @@ export async function useAdminCatalog() {
     })
   }
 
+  // Hard delete — DELETE /admin/catalog/products/{id}/permanent. Separate from the soft
+  // `deleteProduct` above, which stays as the isActive:false PUT.
+  async function permanentlyDeleteProduct(id: string, force = false): Promise<PermanentDeleteResult> {
+    saving.value = true
+    saveError.value = null
+    try {
+      await api(`/admin/catalog/products/${id}/permanent`, { method: 'DELETE', query: { force } })
+      products.value = products.value.filter((p) => p.id !== id)
+      toast.success('Producto eliminado.')
+      return { status: 'deleted' }
+    } catch (e) {
+      const err = toApiError(e)
+      const availableKeys = err.problem.availableKeys
+      if (!force && err.status === 409 && typeof availableKeys === 'number') {
+        return { status: 'hasAvailableKeys', availableKeys }
+      }
+      saveError.value = err
+      // ApiError's generic 404 copy talks about orders ("Pedido no encontrado").
+      toast.error(err.status === 404 ? 'Producto no encontrado.' : err.friendlyMessage())
+      return { status: 'failed' }
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function createVariant(productId: string, body: CreateProductVariantRequest) {
     saving.value = true
     saveError.value = null
@@ -152,6 +187,7 @@ export async function useAdminCatalog() {
     saveVariant,
     createProduct,
     deleteProduct,
+    permanentlyDeleteProduct,
     createVariant,
     deleteVariant,
   }
